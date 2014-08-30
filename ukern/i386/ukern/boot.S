@@ -38,7 +38,8 @@ multiboot_entry:
 	jne badmultiboot
 
 	/* Set segments in a known state */
-	lgdt _C_LABEL(_boot_gdtr)
+	call _C_LABEL(_setup_boot_gdt)
+	lgdt ADDR_BOOTGDTR
 	ljmp $0x8, $1f
 1:	mov $0x10, %eax
 	mov %ax, %ds
@@ -49,8 +50,8 @@ multiboot_entry:
 	mov %ax, %gs
 
 	/* Setup IDT */
-	call _C_LABEL(_set_boot_idt)
-	lidt _C_LABEL(_boot_idtr)
+	call _C_LABEL(_setup_idt)
+	lidt _C_LABEL(_kern_idtr)
 
 	/* Setup boot paging structures */
 	mov $0, %eax
@@ -122,6 +123,36 @@ print:
 	loopne 1b
 	ret
 
+ENTRY(_setup_boot_gdt)
+	/* Zero whole page */
+	mov $0, %eax
+	mov $1024, %ecx
+	mov $ADDR_BOOTGDTR, %edi
+	rep stosl
+
+	mov $ADDR_BOOTGDTR, %eax
+	movw $(5 * 8 - 1), (%eax)
+	movl $ADDR_BOOTGDT, 2(%eax)
+
+	movl $ADDR_BOOTGDT + 8, %eax
+	/* 32-bit code */
+	movl $0x0000ffff, (%eax)
+	movl $0x00cf9a00, 4(%eax)
+	add $8, %eax
+	/* 32-bit data */
+	movl $0x0000ffff, (%eax)
+	movl $0x00cf9200, 4(%eax)
+	add $8, %eax
+	/* 16-bit code */
+	movl $0x0000ffff, (%eax)
+	movl $0x00009a01, 4(%eax)
+	add $8, %eax
+	/* 16-bit code */
+	movl $0x0000ffff, (%eax)
+	movl $0x00009201, 4(%eax)
+	add $8, %eax
+	ret
+
 	.data
 haltstring: 
 	.asciz "System Halted."
@@ -130,46 +161,6 @@ haltstring_size = . - haltstring
 badbootstring: 
 	.asciz "Multiboot compliant bootloader needed."
 badbootstring_size = . - badbootstring
-
-LABEL(_boot_idtr)
-	.word (256 * 8) - 1
-	.long _C_LABEL(_boot_idt)
-	
-LABEL(_boot_gdtr)
-	.word 5 * 8 - 1
-	.long _C_LABEL(_boot_gdt)
-
-    	.align 64
-LABEL(_boot_gdt)
-	/* Unused */
-	.quad   0
-	/* 32-bit code */
-	.quad   0x00cf9a000000ffff
-        /* 32-bit data */
-        .quad   0x00cf92000000ffff
-	/* 16-bit code */
-	.quad   0x00009a000000ffff | (ADDR_CODE16 << 16)
-	/* 16-bit data */
-	.quad   0x000092000000ffff | (ADDR_CODE16 << 16)
-
-	.align 32
-LABEL(_boot_pdpt)
-	.long _boot_kernpd + 1 /* Temp */
-	.long 0
-	.quad 0
-	.quad 0
-	.long _boot_kernpd + 1
-	.long 0
-
-	.align 4096
-LABEL(_boot_kernpd)
-	.quad 0xe3   /* Base 0, PS-D-A-W-P */
-	.skip 4096 - 8
-
-
-/*
- * XXX: SERIOUSLY? STACK AND GDT/PAGING CLOSE TOGETHER?
- */
 
 /* BSP Bootstrap Page Structure: see AP Bootstrap Page Structure in ll.S */
 	.align 4096

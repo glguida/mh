@@ -64,13 +64,13 @@ hdlr_&\vct&:
 	mov $KCS, %ax
 	shl $16, %eax
 	mov %cx, %ax
-	mov %eax, _C_LABEL(_boot_idt) + (\vct * 8)
+	mov %eax, _C_LABEL(_kern_idt) + (\vct * 8)
 	mov %ecx, %eax
 	mov $0x8e00, %ax
-	mov %eax, _C_LABEL(_boot_idt) + (\vct * 8) + 4
+	mov %eax, _C_LABEL(_kern_idt) + (\vct * 8) + 4
 .endm
 
-ENTRY(_set_boot_idt)
+ENTRY(_setup_idt)
 	repeat setidt 0, 31
 	ret
 
@@ -89,6 +89,10 @@ ENTRY(_set_boot_idt)
 
 .data
 	.align 64
-LABEL(_boot_idt)
+LABEL(_kern_idt)
 	.skip  256 * 8
+
+LABEL(_kern_idtr)
+	.word (256 * 8) - 1
+	.long _C_LABEL(_kern_idt)
 
