@@ -4,6 +4,10 @@
 	.altmacro
 .macro _do_entry vct
 	pushal
+	mov  %cr3, %eax
+	push %eax
+	mov %cr2, %eax
+	push %eax
 	pushw %gs
 	pushw %fs
 	pushw %es

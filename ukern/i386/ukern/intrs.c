@@ -7,6 +7,9 @@ struct intframe {
   uint16_t es;
   uint16_t fs;
   uint16_t gs;
+  /* CRs    */
+  uint32_t cr2;
+  uint32_t cr3;
   /* pushal */
   uint32_t edi;
   uint32_t esi;
@@ -50,19 +53,18 @@ char *exceptions[] = {
 
 void framedump(struct intframe *f)
 {
-	printf("\tCS: %04x\tEIP: %08x\tEFLAGS: %08x\n",
-	       (int)f->cs, f->eip, f->eflags);
-	if (f->cs & 3)
-	    printf("\tSS: %08x\tESP: %08x\n", f->ss, f->espx);
 
-	printf("\n\n");
-	printf("\tEAX: %08x\tEBX: %08x\tECX: %08x\tEDX:%08x\n",
-	       f->eax, f->ebx, f->ecx, f->edx);
-	printf("\tEDI: %08x\tESI: %08x\tEBP: %08x\tESP:%08x\n",
-	       f->edi, f->esi, f->ebp, f->espx);
-	printf("\n");
-	printf("\tDS: %04x\tES: %04x\tFS: %04x\tGS: %04x\n",
-	       f->ds, f->es, f->fs, f->gs);
+    printf("\tCR3: %08x\tCR2: %08x\n", f->cr3, f->cr2);
+    printf("\tCS: %04x\tEIP: %08x\tEFLAGS: %08x\n",
+	   (int)f->cs, f->eip, f->eflags);
+    if (f->cs & 3)
+	printf("\tSS: %08x\tESP: %08x\n", f->ss, f->espx);
+    printf("\tEAX: %08x\tEBX: %08x\tECX: %08x\tEDX:%08x\n",
+	   f->eax, f->ebx, f->ecx, f->edx);
+    printf("\tEDI: %08x\tESI: %08x\tEBP: %08x\tESP:%08x\n",
+	   f->edi, f->esi, f->ebp, f->espx);
+    printf("\tDS: %04x\tES: %04x\tFS: %04x\tGS: %04x\n",
+	   f->ds, f->es, f->fs, f->gs);
 }
 
 int

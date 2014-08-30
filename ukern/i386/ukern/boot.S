@@ -43,6 +43,7 @@ multiboot_entry:
 1:	mov $0x10, %eax
 	mov %ax, %ds
 	mov %ax, %es
+	mov %ax, %ss
 	mov $0, %eax
 	mov %ax, %fs
 	mov %ax, %gs
@@ -50,7 +51,33 @@ multiboot_entry:
 	/* Setup IDT */
 	call _C_LABEL(_set_boot_idt)
 	lidt _C_LABEL(_boot_idtr)
-	
+
+	/* Setup boot paging structures */
+	mov $0, %eax
+	mov $(8 * 4), %ecx
+	mov $ADDR_BOOTL3, %edi
+	rep stosb
+	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3
+	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3 + 24
+
+	mov $0, %eax
+	mov $4096, %ecx
+	mov $ADDR_BOOTL2, %edi
+	rep stosb
+	movl $0xe3, ADDR_BOOTL2
+
+	/* Enable paging */
+	mov %cr4, %eax
+	or  $0x30, %eax
+	mov  %eax, %cr4
+	mov $ADDR_BOOTL3, %eax
+	mov %eax, %cr3
+	mov  %cr0, %eax
+	or   $(1<<31), %eax
+	mov  %eax, %cr0
+	ljmp $0x08, $1f
+1:
+
 	/* Save Multiboot CMDLINE */
 	mov MBIOFFSET_FLAGS(%ebx), %eax
 	and $_MBIF_CMDLINE, %eax
@@ -125,6 +152,24 @@ LABEL(_boot_gdt)
 	/* 16-bit data */
 	.quad   0x000092000000ffff | (ADDR_CODE16 << 16)
 
+	.align 32
+LABEL(_boot_pdpt)
+	.long _boot_kernpd + 1 /* Temp */
+	.long 0
+	.quad 0
+	.quad 0
+	.long _boot_kernpd + 1
+	.long 0
+
+	.align 4096
+LABEL(_boot_kernpd)
+	.quad 0xe3   /* Base 0, PS-D-A-W-P */
+	.skip 4096 - 8
+
+
+/*
+ * XXX: SERIOUSLY? STACK AND GDT/PAGING CLOSE TOGETHER?
+ */
 
 /* BSP Bootstrap Page Structure: see AP Bootstrap Page Structure in ll.S */
 	.align 4096

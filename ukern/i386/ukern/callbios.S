@@ -5,11 +5,12 @@ LABEL(start_code16)
 #define ACTADDR(_x) ADDR_CODE16 + _x - _C_LABEL(start_code16)
 #define RELADDR(_x) _x - _C_LABEL(start_code16)
 	.code32
-	mov %esp, _stackptr
-	sgdt _saved_idtr
+	mov %esp, _saved_esp
+	sidt _saved_idtr
+	mov %cr3, %eax
+	mov %eax, _saved_cr3
 
 	cli
-
 	mov $0x20, %eax
 	mov %eax, %ds
 	mov %eax, %es
@@ -19,10 +20,10 @@ LABEL(start_code16)
 
 	ljmpl $0x18, $RELADDR(1f)
 1:
-
 	.code16
 	mov %cr0, %eax
 	and $-2, %eax
+	and $0x7fffffff, %eax
 	mov %eax, %cr0
 
 	ljmpl $SEG16_ADDR(ADDR_CODE16), $RELADDR(1f)
@@ -74,27 +75,27 @@ LABEL(start_code16)
 	mov %cr0, %eax
 	orl $1, %eax
 	mov %eax, %cr0
-
 	ljmpl $0x18, $RELADDR(1f)
 1:
-
 	ljmpl $0x08, $1f
 1:
 	.code32
+	cs lidt _saved_idtr
+	cs mov _saved_cr3, %eax
+	mov %eax, %cr3
+	mov %cr0, %eax
+	orl $0x80000000, %eax
+	mov %eax, %cr0
+
 	mov $0x10, %ax
 	mov %ax, %ds
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
 	mov %ax, %ss
-	lidt _saved_idtr
 
-	mov _stackptr, %esp
+	mov  _saved_esp, %esp
 	ret
-
-
-_stackptr:
-	.long 0	
 
 	.align 64
 _bios_idtr:
@@ -104,6 +105,11 @@ _bios_idtr:
 	.align 64
 _saved_idtr:
 	.skip 6
+	
+_saved_esp:
+	.long 0
+_saved_cr3:
+	.long 0
 	
 	.globl _C_LABEL(size_code16)
 size_code16 = . - start_code16
