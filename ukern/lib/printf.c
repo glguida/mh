@@ -173,22 +173,28 @@ vprintf(const char *fmt, va_list ap)
 	    if (!str)
 		str = "(NULL)";
 	    break;
+	case 'd':
 	case 'X':
 	case 'x':
 	case 'u':
-	case 'd':
 	case 'o':
 	case 'b': {
+#define OP_VA_ARG(_ap, _op, _type1, _type2) \
+	(_op ? va_arg(_ap, _type1) : va_arg(_ap, _type2))	
+	    int sgnd = 0;
 	    uint64_t val;
 
+	    if (*p == 'd')
+		sgnd = 1;
+
 	    if (lmod >=2)
-		val = va_arg(ap, int64_t);
+		val = OP_VA_ARG(ap, sgnd, int64_t, uint64_t);
 	    else if (lmod)
-		val = va_arg(ap, long);
+		val = OP_VA_ARG(ap, sgnd, long, unsigned long);
 	    else if (hmod)
 		val = va_arg(ap, int) & 0xffff;
 	    else
-		val = va_arg(ap, int);
+		val = OP_VA_ARG(ap, sgnd, int, unsigned);
 
 	    str = __toa(buf, val, *p, opt);
 	    break;
