@@ -1,4 +1,5 @@
 #include <machine/uk/asm.h>
+#include <uk/param.h>
 #include "conf.h"
 
 LABEL(start_code16)
@@ -7,8 +8,6 @@ LABEL(start_code16)
 	.code32
 	mov %esp, _saved_esp
 	sidt _saved_idtr
-	mov %cr3, %eax
-	mov %eax, _saved_cr3
 
 	cli
 	mov $0x20, %eax
@@ -17,7 +16,6 @@ LABEL(start_code16)
 	mov %eax, %fs
 	mov %eax, %gs
 	mov %eax, %ss
-
 	ljmpl $0x18, $RELADDR(1f)
 1:
 	.code16
@@ -25,11 +23,9 @@ LABEL(start_code16)
 	and $-2, %eax
 	and $0x7fffffff, %eax
 	mov %eax, %cr0
-
 	ljmpl $SEG16_ADDR(ADDR_CODE16), $RELADDR(1f)
 1:
 	cs lidt RELADDR(_bios_idtr)
-
 	mov %cs, %ax
 	mov %ax, %ds
 	mov %ax, %es
@@ -73,26 +69,22 @@ LABEL(start_code16)
 	/* Get back to protected mode */
 	cli
 	mov %cr0, %eax
-	orl $1, %eax
+	orl $0x1, %eax
+	mov %eax, %cr0
+	orl $0x80000000, %eax
 	mov %eax, %cr0
 	ljmpl $0x18, $RELADDR(1f)
 1:
 	ljmpl $0x08, $1f
 1:
 	.code32
-	cs lidt _saved_idtr
-	cs mov _saved_cr3, %eax
-	mov %eax, %cr3
-	mov %cr0, %eax
-	orl $0x80000000, %eax
-	mov %eax, %cr0
-
 	mov $0x10, %ax
 	mov %ax, %ds
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
 	mov %ax, %ss
+	lidt _saved_idtr
 
 	mov  _saved_esp, %esp
 	ret
@@ -107,8 +99,6 @@ _saved_idtr:
 	.skip 6
 	
 _saved_esp:
-	.long 0
-_saved_cr3:
 	.long 0
 	
 	.globl _C_LABEL(size_code16)

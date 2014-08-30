@@ -4,7 +4,7 @@ ENTRY(_start)
 SECTIONS
 {
    /* kernel code */
-   .text 0x100000 :
+   .text 0xc0100000 :
    {
       *(.text)
       _ecode = .;

@@ -1,3 +1,4 @@
+#include <uk/param.h>
 #include <machine/uk/asm.h>
 #include "conf.h"
 	
@@ -8,7 +9,6 @@
 #define MBIOFFSET_FLAGS   0
 #define _MBIF_CMDLINE     (1 << 3)
 #define MBIOFFSET_CMDLINE 16
-
 
 
 ENTRY(start)
@@ -27,7 +27,7 @@ multiboot_header:
 	.long multiboot_entry
 
 multiboot_entry:
-	movl $stacktop, %esp
+	movl $(stacktop - KERNBASE), %esp
 
 	/* Clear flags (cld and cli) */
 	pushl $0
@@ -37,22 +37,6 @@ multiboot_entry:
 	cmpl $MULTIBOOT_REGSIGN, %eax
 	jne badmultiboot
 
-	/* Set segments in a known state */
-	call _C_LABEL(_setup_boot_gdt)
-	lgdt ADDR_BOOTGDTR
-	ljmp $0x8, $1f
-1:	mov $0x10, %eax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %ss
-	mov $0, %eax
-	mov %ax, %fs
-	mov %ax, %gs
-
-	/* Setup IDT */
-	call _C_LABEL(_setup_idt)
-	lidt _C_LABEL(_kern_idtr)
-
 	/* Setup boot paging structures */
 	mov $0, %eax
 	mov $(8 * 4), %ecx
@@ -60,7 +44,6 @@ multiboot_entry:
 	rep stosb
 	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3
 	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3 + 24
-
 	mov $0, %eax
 	mov $4096, %ecx
 	mov $ADDR_BOOTL2, %edi
@@ -78,6 +61,21 @@ multiboot_entry:
 	mov  %eax, %cr0
 	ljmp $0x08, $1f
 1:
+	/* Set segments in a known state */
+	call _C_LABEL(_setup_boot_gdt)
+	lgdt ADDR_BOOTGDTR
+	ljmp $0x8, $1f
+1:	mov $0x10, %eax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %ss
+	mov $0, %eax
+	mov %ax, %fs
+	mov %ax, %gs
+
+	/* Setup IDT */
+	call _C_LABEL(_setup_idt)
+	lidt _C_LABEL(_kern_idtr)
 
 	/* Save Multiboot CMDLINE */
 	mov MBIOFFSET_FLAGS(%ebx), %eax
@@ -132,7 +130,7 @@ ENTRY(_setup_boot_gdt)
 
 	mov $ADDR_BOOTGDTR, %eax
 	movw $(5 * 8 - 1), (%eax)
-	movl $ADDR_BOOTGDT, 2(%eax)
+	movl $(KERNBASE + ADDR_BOOTGDT), 2(%eax)
 
 	movl $ADDR_BOOTGDT + 8, %eax
 	/* 32-bit code */
