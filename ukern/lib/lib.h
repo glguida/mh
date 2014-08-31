@@ -4,9 +4,8 @@
 #include <uk/cdefs.h>
 #include <uk/stdarg.h>
 
-#define memcpy __builtin_memcpy
-#define memset __builtin_memset
-
+int (*putc)(int);
+void *memset(void *b, int c, size_t len);
 int vprintf(const char *fmt, va_list ap);
 int printf(const char *, ...) __printflike(1, 2);
 void _setputcfn(int(*)(int));

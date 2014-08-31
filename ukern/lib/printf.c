@@ -3,7 +3,7 @@
 #include <lib/lib.h>
 
 extern int _boot_putc(int);
-static int (*putc)(int) = _boot_putc;
+int (*putc)(int) = _boot_putc;
 
 void
 _setputcfn(int (*fn)(int))
