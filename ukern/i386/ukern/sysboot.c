@@ -1,8 +1,8 @@
 #include <uk/types.h>
+#include <uk/param.h>
 #include <lib/lib.h>
 
 #include <ukern/pfndb.h>
-#include "conf.h"
 
 char *_boot_cmdline = NULL;
 
@@ -25,7 +25,7 @@ sysboot(void)
     _setpfndb((void *)(unsigned long)(16*1024*1024));
 
     printf("E820 map:\n");
-    p = (struct e820e *)ADDR_SMAP16;
+    p = (struct e820e *)UKERN_BSMAP16;
     while (p->addr || p->len || p->type) {
 	int pfnt = p->type == 1 ? PFN_FREE : PFN_IOMAP;
 
@@ -36,12 +36,11 @@ sysboot(void)
 
 
 	for (i = p->addr; i < p->addr + p->len; i += 4096 /* PAGESIZE */)
-	    pfndb_inittype((int)(i >> 12), pfnt);
+	    pfndb_inittype((int)(i >> 12) /* PAGE_SHIFT */, pfnt);
 	p++;
     }
     printf("\n");
 
     pfndb_printstats();
-
 }
 

@@ -54,11 +54,10 @@ char *exceptions[] = {
 void framedump(struct intframe *f)
 {
 
-    printf("\tCR3: %08x\tCR2: %08x\n", f->cr3, f->cr2);
+    printf("\tCR3: %08x\tCR2: %08x\terr: %08x\n",
+	   f->cr3, f->cr2, f->err);
     printf("\tCS: %04x\tEIP: %08x\tEFLAGS: %08x\n",
 	   (int)f->cs, f->eip, f->eflags);
-    if (f->cs & 3)
-	printf("\tSS: %08x\tESP: %08x\n", f->ss, f->espx);
     printf("\tEAX: %08x\tEBX: %08x\tECX: %08x\tEDX:%08x\n",
 	   f->eax, f->ebx, f->ecx, f->edx);
     printf("\tEDI: %08x\tESI: %08x\tEBP: %08x\tESP:%08x\n",

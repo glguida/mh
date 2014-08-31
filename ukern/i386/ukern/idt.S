@@ -1,5 +1,5 @@
 #include <machine/uk/asm.h>
-#include "conf.h"	
+#include <machine/uk/param.h>
 
 	.altmacro
 .macro _do_entry vct

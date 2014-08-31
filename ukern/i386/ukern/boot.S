@@ -1,6 +1,5 @@
 #include <uk/param.h>
 #include <machine/uk/asm.h>
-#include "conf.h"
 	
 #define MULTIBOOT_HDRSIGN 0x1badb002 
 #define MULTIBOOT_REGSIGN 0x2badb002
@@ -27,7 +26,7 @@ multiboot_header:
 	.long multiboot_entry
 
 multiboot_entry:
-	movl $(stacktop - KERNBASE), %esp
+	movl $(stacktop - UKERNBASE), %esp
 
 	/* Clear flags (cld and cli) */
 	pushl $0
@@ -40,21 +39,28 @@ multiboot_entry:
 	/* Setup boot paging structures */
 	mov $0, %eax
 	mov $(8 * 4), %ecx
-	mov $ADDR_BOOTL3, %edi
+	mov $UKERN_BL3TABLE, %edi
 	rep stosb
-	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3
-	movl $(ADDR_BOOTL2 + 1), ADDR_BOOTL3 + 24
+	movl $(UKERN_BL2TABLE + 1), UKERN_BL3TABLE
+	movl $(UKERN_BL2TABLE + 1), UKERN_BL3TABLE + 24
 	mov $0, %eax
 	mov $4096, %ecx
-	mov $ADDR_BOOTL2, %edi
+	mov $UKERN_BL2TABLE, %edi
 	rep stosb
-	movl $0xe3, ADDR_BOOTL2
+
+	mov  $0xe3, %eax
+	mov  $512, %ecx
+	mov  $UKERN_BL2TABLE, %edi
+1:	mov  %eax, (%edi)
+	add  $(1 << 21), %eax
+	add  $8, %edi
+	loop 1b
 
 	/* Enable paging */
 	mov %cr4, %eax
 	or  $0x30, %eax
 	mov  %eax, %cr4
-	mov $ADDR_BOOTL3, %eax
+	mov $UKERN_BL3TABLE, %eax
 	mov %eax, %cr3
 	mov  %cr0, %eax
 	or   $(1<<31), %eax
@@ -63,7 +69,7 @@ multiboot_entry:
 1:
 	/* Set segments in a known state */
 	call _C_LABEL(_setup_boot_gdt)
-	lgdt ADDR_BOOTGDTR
+	lgdt UKERN_BGDTREG
 	ljmp $0x8, $1f
 1:	mov $0x10, %eax
 	mov %ax, %ds
@@ -88,12 +94,12 @@ multiboot_entry:
 
 	/* Prepare real mode re-entry */
 	mov $start_code16, %esi
-	mov $ADDR_CODE16, %edi
+	mov $UKERN_BCODE16, %edi
 	mov $size_code16, %ecx
 1:      rep movsb
 
 	/* Call Real mode */
-	mov $ADDR_CODE16, %eax
+	mov $UKERN_BCODE16, %eax
 	call *%eax
 
 	call sysboot
@@ -125,14 +131,14 @@ ENTRY(_setup_boot_gdt)
 	/* Zero whole page */
 	mov $0, %eax
 	mov $1024, %ecx
-	mov $ADDR_BOOTGDTR, %edi
+	mov $UKERN_BGDTREG, %edi
 	rep stosl
 
-	mov $ADDR_BOOTGDTR, %eax
+	mov $UKERN_BGDTREG, %eax
 	movw $(5 * 8 - 1), (%eax)
-	movl $(KERNBASE + ADDR_BOOTGDT), 2(%eax)
+	movl $(UKERNBASE + UKERN_BGDTABLE), 2(%eax)
 
-	movl $ADDR_BOOTGDT + 8, %eax
+	movl $UKERN_BGDTABLE + 8, %eax
 	/* 32-bit code */
 	movl $0x0000ffff, (%eax)
 	movl $0x00cf9a00, 4(%eax)

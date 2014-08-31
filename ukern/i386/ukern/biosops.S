@@ -1,9 +1,7 @@
 #include <machine/uk/asm.h>
 #include <uk/param.h>
-#include "conf.h"
 
 LABEL(start_code16)
-#define ACTADDR(_x) ADDR_CODE16 + _x - _C_LABEL(start_code16)
 #define RELADDR(_x) _x - _C_LABEL(start_code16)
 	.code32
 	mov %esp, _saved_esp
@@ -23,7 +21,7 @@ LABEL(start_code16)
 	and $-2, %eax
 	and $0x7fffffff, %eax
 	mov %eax, %cr0
-	ljmpl $SEG16_ADDR(ADDR_CODE16), $RELADDR(1f)
+	ljmpl $SEG16_ADDR(UKERN_BCODE16), $RELADDR(1f)
 1:
 	cs lidt RELADDR(_bios_idtr)
 	mov %cs, %ax
@@ -32,14 +30,14 @@ LABEL(start_code16)
 	mov %ax, %fs
 	mov %ax, %gs
 
-	mov $SEG16_ADDR(ADDR_STCK16), %ax
+	mov $SEG16_ADDR(UKERN_BSTCK16), %ax
 	mov %ax, %ss
-	mov $OFF16_ADDR(ADDR_STCK16), %sp
+	mov $OFF16_ADDR(UKERN_BSTCK16), %sp
 
 	/* Get E820 map */
-	mov $SEG16_ADDR(ADDR_SMAP16), %ax
+	mov $SEG16_ADDR(UKERN_BSMAP16), %ax
 	mov %ax, %es
-	mov $OFF16_ADDR(ADDR_SMAP16), %di
+	mov $OFF16_ADDR(UKERN_BSMAP16), %di
 	mov $0xe820, %eax
 	mov $0, %ebx
 	mov $24, %ecx
