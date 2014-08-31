@@ -3,4 +3,6 @@
 
 typedef u_long lock_t;
 
+typedef u_long addr_t;
+
 #endif

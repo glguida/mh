@@ -9,7 +9,6 @@
 #define _MBIF_CMDLINE     (1 << 3)
 #define MBIOFFSET_CMDLINE 16
 
-
 ENTRY(start)
 ENTRY(_start)
 	jmp multiboot_entry
@@ -165,6 +164,9 @@ haltstring_size = . - haltstring
 badbootstring: 
 	.asciz "Multiboot compliant bootloader needed."
 badbootstring_size = . - badbootstring
+
+LABEL(_ukern_end)
+	.long _end
 
 /* BSP Bootstrap Page Structure: see AP Bootstrap Page Structure in ll.S */
 	.align 4096

@@ -2,15 +2,12 @@
 #define __i386_param_h
 
 #ifdef _UKERNEL
+#include <machine/uk/vmparam.h>
 
 #define MAXCPUS         32
 
-#define PGSHIFT         12
-#define NBPG            (1 << PGSHIFT)
-#define PGOFSET         (NBPG-1)
-#define NPTEPG          (NBPG/(sizeof (pt_entry_t)))
-
 #define UKERNBASE       0xc0000000
+#define UKERNEND        _ukern_end
 
 #define UKERNCMPOFF     0x100000 /* 1Mb */
 #define UKERNTEXTOFF    (UKERNBASE + UKERNCMPOFF)
@@ -25,7 +22,11 @@
 #define UKERN_BGDTREG   0x52000 /* Temporary GDT reg */
 #define UKERN_BGDTABLE  0x52030 /* Temporary GDT */
 
-#ifdef _ASSEMBLER
+/* Non-temporary boot-time static memory allocation */
+#define UKERN_PFNDB_PA  (16<<20) /* Physical Frames information */
+#define UKERN_PFNDB     (UKERNBASE + UKERN_PFNDB_PA)
+
+
 #define KCS 0x08
 #define KDS 0x10
 #define CS16  0x18
@@ -33,6 +34,9 @@
 
 #define SEG16_ADDR(_a) (((_a) >> 4) & 0xf000)
 #define OFF16_ADDR(_a) ((_a) & 0xffff)
+
+#ifndef _ASSEMBLER
+extern unsigned long _ukern_end;
 #endif
 
 #endif /* _UKERNEL */
