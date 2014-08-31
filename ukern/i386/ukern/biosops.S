@@ -82,8 +82,8 @@ LABEL(start_code16)
 	mov %ax, %fs
 	mov %ax, %gs
 	mov %ax, %ss
-	lidt _saved_idtr
 
+	lidt _saved_idtr
 	mov  _saved_esp, %esp
 	ret
 
