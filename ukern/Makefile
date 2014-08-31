@@ -14,7 +14,6 @@ include $(MKDIR)/obj.mk
 LDFLAGS += -T $(MKDIR)/ukern.ld
 
 all: $(OBJDIR) ukern
-	echo $(LIBGCC)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
@@ -25,6 +24,6 @@ install_headers:
 	for dir in $(INCSRCDIRS); do $(MAKE) -C $$dir includes; done
 
 ukern: install_headers $(OBJS) 
-	ld $(LDFLAGS) -o $(DISTDIR)/$@ $(addprefix $(OBJDIR)/, $(OBJS))
+	$(LD) $(LDFLAGS) -o $(DISTDIR)/$@ $(addprefix $(OBJDIR)/, $(OBJS))
 
 
