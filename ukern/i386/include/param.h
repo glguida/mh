@@ -23,9 +23,7 @@
 #define UKERN_BGDTABLE  0x52030 /* Temporary GDT */
 
 /* Non-temporary boot-time static memory allocation */
-#define UKERN_PFNDB_PA  (16<<20) /* Physical Frames information */
-#define UKERN_PFNDB     (UKERNBASE + UKERN_PFNDB_PA)
-
+#define UKERN_PFNDB  (((UKERNEND + 127) >> 7) << 7)
 
 #define KCS 0x08
 #define KDS 0x10

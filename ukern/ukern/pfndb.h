@@ -6,27 +6,35 @@ typedef struct {
     void *slab;
 } __packed ipfn_t;
 
-enum {
-  PFN_FREE,		/* Free Page */
-  PFN_SYSTEM,		/* Generical System Page */
-  PFN_IOMAP,		/* I/O Mapped Page */
-  PFN_PTABLE,            /* Page tables */
-  PFN_FREE_PZ_LONE,	/* GFP unique pagezone */
-  PFN_FREE_PZ_STRT,	/* GFP pagezone start */
-  PFN_FREE_PZ_TERM,	/* GFP pagezone end */
-  PFN_SYS_MSLAB,		/* Meta Slab Page */
-  PFN_SYS_SLAB,		/* Slab Page */
-  PFN_USER,		/* User allocated pages */
+enum { 
+  /* Invalid must be zero, i.e. status of blank page. */
+  PFNT_INVALID = 0,
 
-  PFN_NUMTYPES
+  PFNT_PTABLE,           /* Page tables */
+  PFNT_FREE_PZ_LONE,     /* GFP unique pagezone */
+  PFNT_FREE_PZ_STRT,     /* GFP pagezone start */
+  PFNT_FREE_PZ_TERM,     /* GFP pagezone end */
+  PFNT_SYS_SLAB,         /* Slab Page */
+  PFNT_USER,             /* User allocated pages */
+
+  /* Keep these two at the highest value, for overlap checking */
+  PFNT_FREE,		 /* Free Page */
+  PFNT_SYSTEM,		 /* Generic System Page */
+  PFNT_MMIO,	         /* I/O Mapped Page */
+  PFNT_NUM
 };
 
-void pfndb_inittype(int, uint8_t);
-uint8_t pfndb_type(int);
-void pfndb_setslab(int, void *);
-void *pfndb_getslab(int);
-void pfndb_printstats(void);
+void pfndb_clear(unsigned);
+void pfndb_add(unsigned, uint8_t);
+void pfndb_subst(uint8_t, uint8_t);
 
-void _setpfndb(void *);
+void  pfndb_settype(unsigned, uint8_t);
+uint8_t pfndb_type(unsigned);
+void pfndb_setslab(unsigned, void *);
+void *pfndb_getslab(unsigned);
+void pfndb_printstats(void);
+void pfndb_printranges(void);
+
+void *pfndb_setup(void *, unsigned);
 
 #endif

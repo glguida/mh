@@ -3,6 +3,7 @@
 
 typedef u_long lock_t;
 
-typedef u_long addr_t;
+typedef unsigned long long  paddr_t;
+typedef u_long   vaddr_t;
 
 #endif
