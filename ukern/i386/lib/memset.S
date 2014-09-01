@@ -18,4 +18,4 @@ ENTRY(memset)
 	pop %edi
 	mov %ebp, %esp
 	pop %ebp
-
+	ret
