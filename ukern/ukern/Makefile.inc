@@ -1,2 +1,2 @@
 VPATH+= ukern/
-SRCS+= pfndb.c
+SRCS+= pfndb.c gfp.c

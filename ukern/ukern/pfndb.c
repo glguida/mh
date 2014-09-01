@@ -9,7 +9,7 @@
 static lock_t pfndblock;
 static ipfn_t *pfndb = NULL;
 
-static uint32_t pfndb_max = 0;
+uint32_t pfndb_max = 0;
 static u_long pfndb_stats[PFNT_NUM];
 
 static const char *pfndb_names[PFNT_NUM] = {
@@ -121,47 +121,20 @@ pfndb_type(unsigned pfn)
     return t;
 }
 
-void
-pfndb_setslab(unsigned pfn, void *s)
-{
-    ipfn_t *p = &pfndb[pfn];
-
-    assert(pfn <= pfndb_max);
-
-    spinlock(&pfndblock);
-    p->slab = s;
-    spinunlock(&pfndblock);
-}
-
 void *
-pfndb_slab(unsigned pfn)
+pfndb_getptr(unsigned pfn)
 {
-    void *slab;
+    void *ptr;
     ipfn_t *p = &pfndb[pfn];
 
     assert(pfn <= pfndb_max);
 
     spinlock(&pfndblock);
-    slab = p->slab;
+    ptr = (void *)p->ptr;
     spinunlock(&pfndblock);
-    return slab;
+
+    return ptr;
 }
-
-#if 0
-pagezone_t *
-pfndb_pzptr(unsigned pfn)
-{
-    pagezone_t *pzptr;
-    ipfn_t *p = &pfndb[pfn];
-
-    assert(pfn <= pfndb_max);
-
-    spinlock(&pfndblock);
-    pzptr = &p->pz;
-    spinunlock(&pfndblock);
-    return pzptr;
-}
-#endif
 
 void
 pfndb_printstats(void)
@@ -195,9 +168,3 @@ pfndb_printranges(void)
     } while(ptr < max);
 }
 
-void
-_setpfndb(void *_pfndb)
-{
-
-
-}

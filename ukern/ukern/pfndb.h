@@ -1,9 +1,14 @@
 #ifndef __uk_pfndb_h
 #define __uk_pfndb_h
 
+#include <ukern/gfp.h>
+
 typedef struct {
     uint8_t type;
-    void *slab;
+    union {
+	char           ptr[0];
+	struct pgzone  pz;
+    };
 } __packed ipfn_t;
 
 enum { 
@@ -24,14 +29,16 @@ enum {
   PFNT_NUM
 };
 
+extern unsigned pfndb_max;
+#define pfndb_max() pfndb_max
+
 void pfndb_clear(unsigned);
 void pfndb_add(unsigned, uint8_t);
 void pfndb_subst(uint8_t, uint8_t);
 
 void  pfndb_settype(unsigned, uint8_t);
 uint8_t pfndb_type(unsigned);
-void pfndb_setslab(unsigned, void *);
-void *pfndb_getslab(unsigned);
+void *pfndb_getptr(unsigned);
 void pfndb_printstats(void);
 void pfndb_printranges(void);
 
