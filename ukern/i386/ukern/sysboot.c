@@ -72,10 +72,10 @@ sysboot(void)
 
     pfndb_printranges();
     pfndb_printstats();
+    getfreepages_init();
 
     printf("Kernel loaded at VA %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
-    printf("pfndb from %x to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
-
+    printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
 
     printf("Booting...\n");
 }
