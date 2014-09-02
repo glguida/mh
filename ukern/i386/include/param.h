@@ -12,7 +12,7 @@
 #define UKERNCMPOFF     0x100000 /* 1Mb */
 #define UKERNTEXTOFF    (UKERNBASE + UKERNCMPOFF)
 
-/* Temporary address for boot-time allocation. */
+/* Temporary physical boot-time allocation physical address */
 #define UKERN_BCODE16   0x10000 /* 16bit code */
 #define UKERN_BSTCK16   0x2fffe /* 16bit stack */
 #define UKERN_BSMAP16   0x30000 /* E820 map */
@@ -23,7 +23,8 @@
 #define UKERN_BGDTABLE  0x52030 /* Temporary GDT */
 
 /* Non-temporary boot-time static memory allocation */
-#define UKERN_PFNDB  (((UKERNEND + 127) >> 7) << 7)
+#define UKERN_PFNDB     (((UKERNEND + 127) >> 7) << 7)
+
 
 #define KCS 0x08
 #define KDS 0x10
