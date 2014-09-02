@@ -1,6 +1,8 @@
 #ifndef __slab_h
 #define __slab_h
 
+#include <uk/queue.h>
+
 struct slab
 {
     lock_t lock;

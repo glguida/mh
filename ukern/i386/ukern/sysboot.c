@@ -3,6 +3,7 @@
 #include <lib/lib.h>
 
 #include <ukern/pfndb.h>
+#include <ukern/fixmems.h>
 
 char *_boot_cmdline = NULL;
 
@@ -70,10 +71,10 @@ sysboot(void)
 	 i++)
 	pfndb_add(i, PFNT_SYSTEM);
 
+    getfreepages_init();
+    fixmems_init();
     pfndb_printranges();
     pfndb_printstats();
-    getfreepages_init();
-
     printf("Kernel loaded at VA %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
     printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
 

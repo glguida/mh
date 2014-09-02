@@ -1,10 +1,3 @@
-struct slab;
-struct objhdr;
-
-/*
- * Implementation-dependent code.
- */
-
 #include <uk/cdefs.h>
 #include <uk/param.h>
 #include <uk/types.h>
@@ -13,6 +6,33 @@ struct objhdr;
 #include <ukern/pfndb.h>
 #include <ukern/gfp.h>
 #include <lib/lib.h>
+
+
+#define MAGIC_SIZE 16
+#define MAGIC 0xdead5ade
+
+struct slab;
+struct objhdr;
+
+struct slabhdr
+{
+     union {
+     struct {
+	  uint64_t             magic;
+	  struct slab          *cache;
+	  unsigned             freecnt;
+	  SLIST_HEAD(, objhdr) freeq;
+	  
+	  LIST_ENTRY(slabhdr)  list_entry;
+     };
+     char cacheline[64];
+     };
+
+};
+
+/*
+ * Implementation-dependent code.
+ */
 
 #define DECLARE_SPIN_LOCK(_x) lock_t _x
 #define SPIN_LOCK_INIT(_x) do { _x = 0; } while (0)
@@ -69,7 +89,14 @@ ___slabfree(void *addr)
 }
 
 
-#elif __SLAB_STRUCTALLOC
+#elif __SLAB_STRUCTS
+
+#include <ukern/fixmems.h>
+
+#define SLABFUNC(_s) structs##_s
+#define SLABSQUEUE structsq
+
+#define ___slabsize() (1 << 12)
 
 static const size_t
 ___slabobjs(const size_t size)
@@ -79,15 +106,16 @@ ___slabobjs(const size_t size)
 }
 
 static struct slabhdr *
-___slab_alloc(struct objhdr **ptroh);
+___slaballoc(struct objhdr **ohptr)
 {
-    uintptr_t addr;
+    void *ptr;
 
-    addr = mach_getpage()
+    ptr = alloc4k();
+    if (ptr == NULL)
 	return NULL;
 
-    *oh = (struct objhdr *)(addr + sizeof(slabhdr))
-    return (struct slabhdr *)addr;
+    *ohptr = (struct objhdr *)((uintptr_t)ptr + sizeof(struct slabhdr));
+    return (struct slabhdr *)ptr;
 }
 
 static struct slabhdr *
@@ -96,10 +124,17 @@ ___slabgethdr(void *obj)
      struct slabhdr *sh;
      uintptr_t addr = (uintptr_t)obj;
 
-     sh = (struct slabhdr *)(addr & ~((uintptr_t)slab_size -1));
-     if (sh->magic != slab_magic)
+     sh = (struct slabhdr *)(addr & ~((uintptr_t)___slabsize() -1));
+     if (sh->magic != MAGIC)
 	  return NULL;
      return sh;
+}
+
+static void
+___slabfree(void *ptr)
+{
+
+    free4k(ptr);
 }
 
 #endif
@@ -111,9 +146,6 @@ ___slabgethdr(void *obj)
 
 #include "slab.h"
 
-#define MAGIC_SIZE 16
-#define MAGIC 0xdead5ade
-
 static int initialised = 0;
 static size_t slab_size = 0;
 static const uint64_t slab_magic = MAGIC;
@@ -124,22 +156,6 @@ DECLARE_SPIN_LOCK(slabs_lock);
 struct objhdr
 {
      SLIST_ENTRY(objhdr) list_entry;
-};
-
-struct slabhdr
-{
-     union {
-     struct {
-	  uint64_t             magic;
-	  struct slab          *cache;
-	  unsigned             freecnt;
-	  SLIST_HEAD(, objhdr) freeq;
-	  
-	  LIST_ENTRY(slabhdr)  list_entry;
-     };
-     char cacheline[64];
-     };
-
 };
 
 int
@@ -300,7 +316,6 @@ SLABFUNC(_register)(struct slab *sc, char *name, size_t objsize,
 	initialised++;
     }
 
-    SPIN_LOCK_INIT(sc->lock);
     sc->name = name;
 
     if (cachealign) {
@@ -314,6 +329,7 @@ SLABFUNC(_register)(struct slab *sc, char *name, size_t objsize,
     sc->freecnt = 0;
     sc->fullcnt = 0;
 
+    SPIN_LOCK_INIT(sc->lock);
     LIST_INIT(&sc->emptyq);
     LIST_INIT(&sc->freeq);
     LIST_INIT(&sc->fullq);
