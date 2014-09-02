@@ -34,16 +34,16 @@ static u_long free_pages;
 /* XXX: MOVE CONSTANTS TO PARAM_H. */
 
 #define MEMTYPE_LOKERN_START 	(0)
-#define MEMTYPE_LOKERN_END 	((16<<8) < pfndb_max() ? \
-				 (16<<8) : pfndb_max())
+#define MEMTYPE_LOKERN_END 	((16>>1) < pfndb_max() ? \
+				 (16>>1) : pfndb_max())
 
-#define MEMTYPE_KERN_START 	((16<<8) < pfndb_max() ? \
-				 (16<<8) : pfndb_max())
-#define MEMTYPE_KERN_END 	((1024<<8) < pfndb_max() ? \
-				 (1024<<8) : pfndb_max())
+#define MEMTYPE_KERN_START 	((16>>1) < pfndb_max() ? \
+				 (16>>1) : pfndb_max())
+#define MEMTYPE_KERN_END 	((1024>>1) < pfndb_max() ? \
+				 (1024>>1) : pfndb_max())
 
-#define MEMTYPE_HIGH_START 	((1024<<8) < pfndb_max() ? \
-				 (1024<<8) : pfndb_max())
+#define MEMTYPE_HIGH_START 	((1024>>1) < pfndb_max() ? \
+				 (1024>>1) : pfndb_max())
 #define MEMTYPE_HIGH_END   	(pfndb_max())
 
 /* XXX: UNTIL HERE. */
