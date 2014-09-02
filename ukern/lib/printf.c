@@ -44,6 +44,7 @@ __toa(char *buf, uint64_t val, char pmode, int opt)
     switch (pmode) {
     case 'X':
 	hic = 'A' - 10;
+    case 'p':
     case 'x':
 	base = 16;
 	break;
@@ -173,6 +174,8 @@ vprintf(const char *fmt, va_list ap)
 	    if (!str)
 		str = "(NULL)";
 	    break;
+	case 'p':
+	    lmod = 1;
 	case 'd':
 	case 'X':
 	case 'x':
