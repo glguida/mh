@@ -102,7 +102,7 @@ static struct pgzlist zones_shortcut_lokern[GFP_MAXORDER];
 
 
 static int
-pgzone_detachzone(struct pgzlist *zlist, u_long *bmap, struct pgzone *pz)
+pgzone_detachzone(struct pgzlist *zlist, uint32_t *bmap, struct pgzone *pz)
 {
     u_long msb;
 
@@ -121,7 +121,7 @@ pgzone_detachzone(struct pgzlist *zlist, u_long *bmap, struct pgzone *pz)
 
 
 static int
-pgzone_attachzone(struct pgzlist *zlist, u_long *bmap, struct pgzone *pz)
+pgzone_attachzone(struct pgzlist *zlist, uint32_t *bmap, struct pgzone *pz)
 {
     u_long msb;
 
