@@ -23,5 +23,7 @@ void getfreepages_init(void);
 long getfreepages(u_long n, u_long type, u_long flags);
 void freepages(u_long ppn, u_long n);
 
+#define getfreepage(_t) getfreepages(1, (_t), GFP_KERN)
+#define freepage(_p) freepages((_p), 1)
 
 #endif

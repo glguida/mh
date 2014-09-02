@@ -18,7 +18,7 @@ static const char *pfndb_names[PFNT_NUM] = {
     "Pagezone (1)",
     "Pagezone (S)",
     "Pagezone (E)",
-    "Slabs",
+    "Fixmem",
     "User",
     "Free",
     "System",
