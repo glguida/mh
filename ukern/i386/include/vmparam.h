@@ -9,11 +9,15 @@
 #define trunc_page(x) (((x) >> PAGE_SHIFT) << PAGE_SHIFT) /* type-safe */
 #define round_page(x) trunc_page((x) + PAGE_MASK)
 
-#define atop(x) ((paddr_t)(x) >> PAGE_SHIFT)
-#define ptoa(x) ((paddr_t)(x) << PAGE_SHIFT)
+#ifndef _ASSEMBLER
 
-#define vtop(x) ((vaddr_t)(x) >> PAGE_SHIFT)
-#define ptov(x) ((vaddr_t)(x) << PAGE_SHIFT)
+#define atop(x)  ((paddr_t)(x) >> PAGE_SHIFT)
+#define ptoa(x)  ((paddr_t)(x) << PAGE_SHIFT)
+
+#define vatop(x) ((vaddr_t)((x) - UKERNBASE) >> PAGE_SHIFT)
+#define ptova(x) ((UKERNBASE + (vaddr_t)(x)) << PAGE_SHIFT)
+#endif
+
 
 
 #endif
