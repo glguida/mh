@@ -75,6 +75,7 @@ sysboot(void)
     fixmems_init();
     pfndb_printranges();
     pfndb_printstats();
+
     printf("Kernel loaded at VA %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
     printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
 

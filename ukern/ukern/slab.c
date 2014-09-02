@@ -42,10 +42,9 @@ struct slabhdr
 
 #ifdef __SLAB_FIXMEM
 
-#define SLABFUNC(_s) fixmem##_s
+#define SLABFUNC_NAME "fixed memory cache"
+#define SLABFUNC(_s) fixmem_##_s
 #define SLABSQUEUE fixmemq
-
-#include <ukern/fixmem.h>
 
 #define ___slabsize() PAGE_SIZE
 
@@ -93,7 +92,8 @@ ___slabfree(void *addr)
 
 #include <ukern/fixmems.h>
 
-#define SLABFUNC(_s) structs##_s
+#define SLABFUNC_NAME "struct cache"
+#define SLABFUNC(_s) structs_##_s
 #define SLABSQUEUE structsq
 
 #define ___slabsize() (1 << 12)
@@ -159,7 +159,7 @@ struct objhdr
 };
 
 int
-SLABFUNC(_grow)(struct slab *sc)
+SLABFUNC(grow)(struct slab *sc)
 {
      int i;
      struct objhdr *ptr;
@@ -189,7 +189,7 @@ SLABFUNC(_grow)(struct slab *sc)
 }
 
 int
-SLABFUNC(_shrink)(struct slab *sc)
+SLABFUNC(shrink)(struct slab *sc)
 {
      int shrunk = 0;
      struct slabhdr *sh;
@@ -211,7 +211,7 @@ SLABFUNC(_shrink)(struct slab *sc)
 }
 
 void *
-SLABFUNC(_alloc)(struct slab *sc, void *opq)
+SLABFUNC(alloc_opq)(struct slab *sc, void *opq)
 {
      int tries = 0;
      void *addr = NULL;
@@ -246,7 +246,7 @@ retry:
 	  if (tries++ > 3)
 	       goto out;
 
-	  SLABFUNC(_grow)(sc);
+	  SLABFUNC(grow)(sc);
 
 	  SPIN_LOCK(sc->lock);
 	  goto retry;
@@ -269,7 +269,7 @@ retry:
 }
 
 void
-SLABFUNC(_free)(void *ptr)
+SLABFUNC(free)(void *ptr)
 {
 struct slab *sc;
      struct slabhdr *sh;
@@ -305,8 +305,8 @@ struct slab *sc;
 }
 
 int
-SLABFUNC(_register)(struct slab *sc, char *name, size_t objsize,
-		    void (*ctr)(void *, void *, int),	int cachealign)
+SLABFUNC(register)(struct slab *sc, char *name, size_t objsize,
+		   void (*ctr)(void *, void *, int),	int cachealign)
 {
 
     if (initialised == 0) {
@@ -343,7 +343,7 @@ SLABFUNC(_register)(struct slab *sc, char *name, size_t objsize,
 }
 
 void
-SLABFUNC(_deregister)(struct slab *sc)
+SLABFUNC(deregister)(struct slab *sc)
 {
      struct slabhdr *sh;
 
@@ -372,4 +372,20 @@ SLABFUNC(_deregister)(struct slab *sc)
      LIST_REMOVE(sc, list_entry);
      slabs--;
      SPIN_UNLOCK(slabs_lock);
+}
+
+void
+SLABFUNC(dumpstats)(void)
+{
+    struct slab *sc;
+
+    printf(SLABFUNC_NAME " usage statistics:\n\t%-20s  %-8s\t%-9s%-8s\n",
+	   "Name", "Empty", "Partial", "Full");
+    SPIN_LOCK(slabs_lock);
+    LIST_FOREACH(sc, &SLABSQUEUE, list_entry) {
+	printf("\t%-20s: %-8d\t%-8d\t%-8d\n",
+	       sc->name, sc->emptycnt,
+	       sc->freecnt, sc->fullcnt);
+    }
+    SPIN_UNLOCK(slabs_lock);
 }
