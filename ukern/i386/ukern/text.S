@@ -3,9 +3,24 @@
 WEAK_ALIAS(_boot_putc, b800_putc)
 
 	.data
-vptr:
+ENTRY(base)
+	.long 0
+
+ENTRY(vptrscrsrc)
+	.long 0xb80a0
+END(vptrscrsrc)
+
+ENTRY(vptrscrdst)
+	.long 0xb8000
+END(vptrscrdst)
+
+ENTRY(vptr)
 	.long 0xb8000
 END(vptr)
+
+ENTRY(vptrmax)
+	.long 0xb8000 + 80 * 25 * 2
+END(vptrmax)
 	
 ENTRY(b800_putc)
 	push  %ebp
@@ -43,7 +58,7 @@ ENTRY(b800_putc)
 	jmp   .Lupdate
 	
 .Lupdate:
-	cmpl  $0xb9000, %ecx
+	cmpl  vptrmax, %ecx
 	jge   2f
 1:
 	xor   %eax, %eax
@@ -54,8 +69,8 @@ ENTRY(b800_putc)
 	mov   %ecx, %eax
 	pushl %esi
 	pushl %edi
-	movl  $0xb80a0, %esi
-	movl  $0xb8000, %edi
+	movl  vptrscrsrc, %esi
+	movl  vptrscrdst, %edi
 	movl  $0x7b0, %ecx
 	rep   movsl
 	sub   $160, %eax

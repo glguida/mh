@@ -101,10 +101,18 @@ multiboot_entry:
 	mov $UKERN_BCODE16, %eax
 	call *%eax
 
+	/* Rebase pointers still in use */
+	addl $UKERNBASE, %esp
+	addl $UKERNBASE, vptr
+	addl $UKERNBASE, vptrmax
+	addl $UKERNBASE, vptrscrsrc
+	addl $UKERNBASE, vptrscrdst
+
 	call sysboot
 halt:
-	lea haltstring, %esi
-	call print
+	pushl $haltstring
+	call printf
+	add $4, %esp
 loop: 
 	cli
 	hlt
