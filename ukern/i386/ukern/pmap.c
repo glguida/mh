@@ -54,7 +54,6 @@ pmap_boot(void)
     if (pmap_kernel_l1 < 0)
 	panic("BOOTL1: Alloc failed");
 
-    printf("pmap_kernel_l1: %p\n", pmap_kernel_l1);
     kl1 = (void *)pmap_kernel_l1;
     for (i = KL1_SDMAP; i < KL1_EDMAP; i++)
 	kl1[i] = mkl1e(UKERNBASE + (i * PAGE_SIZE), PG_A | PG_D | PG_W | PG_P);
@@ -67,7 +66,8 @@ pmap_boot(void)
 	panic("BPMAP: FAILED");
 
     /* Set pmap current */
-    /* XXX: per-cpu pointer? */
+    /* XXX: No need for per-cpu pointer, exactly what CR3 is, since
+       the offset of pdptr in pmap. Incidentally, it is zero now. */
     bpmap->refcnt++;
     __setpdptr(bpmap->pdptr);
 
