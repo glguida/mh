@@ -15,7 +15,7 @@
 #define ptoa(x)  ((paddr_t)(x) << PAGE_SHIFT)
 
 #define vatop(x) ((vaddr_t)((x) - UKERNBASE) >> PAGE_SHIFT)
-#define ptova(x) ((UKERNBASE + (vaddr_t)(x)) << PAGE_SHIFT)
+#define ptova(x) (UKERNBASE + ((vaddr_t)(x) << PAGE_SHIFT))
 #endif
 
 
