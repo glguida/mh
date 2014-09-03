@@ -1,5 +1,6 @@
 #include <uk/types.h>
 #include <uk/param.h>
+#include <machine/uk/pmap.h>
 #include <lib/lib.h>
 
 #include <ukern/pfndb.h>
@@ -58,6 +59,8 @@ sysboot(void)
 	    pfndb_add(pfn, t);
     }
 
+    /* No need to mark 0 page as SYSTEM, given all there's in it */
+
     /* Mark holes as MMIO */
     pfndb_subst(PFNT_INVALID, PFNT_MMIO);
 
@@ -74,10 +77,12 @@ sysboot(void)
     getfreepages_init();
     fixmems_init();
     pfndb_printranges();
-    pfndb_printstats();
 
-    printf("Kernel loaded at VA %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
+    printf("kernel loaded at va %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
     printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
+    printf("kernel pmap at %p\n", pmap_boot());
+
+    pfndb_printstats();
 
     printf("Booting...\n");
 }
