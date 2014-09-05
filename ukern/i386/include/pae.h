@@ -18,18 +18,18 @@
 
 #define L2SHIFT    30
 #define L2MASK     (0x3 << L2SHIFT)
-#define L2OFF(_a) (((uintptr_t)(_a) & L2MASK) >> L2SHIFT)
-#define L2ADDR(_a) (((_a) & 0x3) << L2SHIFT)
+#define L2OFF(_a)  (((uintptr_t)(_a) & L2MASK) >> L2SHIFT)
+#define L2VA(_a)   (((_a) & 0x3) << L2SHIFT)
 
 #define L1SHIFT    21
 #define L1MASK     (0x1ff << L1SHIFT)
-#define L1OFF(_a) (((uintptr_t)(_a) & L1MASK) >> L1SHIFT)
-#define L1ADDR(_a) (((_a) & 0x1ff) << L1SHIFT)
+#define L1OFF(_a)  (((uintptr_t)(_a) & L1MASK) >> L1SHIFT)
+#define L1VA(_a)   (((_a) & 0x1ff) << L1SHIFT)
 
 /* L0: Actual PAE PTE, used only for linear maps here. Sorry. */
 #define L0SHIFT    12
 #define L0MASK     (0x1ff << L0SHIFT)
-#define L0ADDR(_a) (((_a) & 0x1ff) << L0SHIFT)
+#define L0VA(_a)   (((_a) & 0x1ff) << L0SHIFT)
 
 
 #define KL1_SDMAP  L1OFF(KERN_SDMAP)
@@ -44,11 +44,11 @@
 #define PG_S       0x80
 #define PG_NX      0x8000000000000000LL
 
-#define LMAPOFF    (NPTES - 4)
+#define LINOFF    (NPTES - 4)
 
-#define PAEOFF2VA(_l2,_l1,_l0) (L2ADDR(_l2) + L1ADDR(_l1) + L0ADDR(_l0))
-#define GETL1T(_a) PAEOFF2VA(2, LMAPOFF + 2, LMAPOFF + L2OFF(_a)) 
-#define GETL2T(_a) (PAEOFF2VA(2, LMAPOFF + 2, LMAPOFF + 2) + 8 * LMAPOFF)
+#define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_lo))
+#define __val1tbl(_va) ((l1t *)__paeoffva(2, LINOFF+ 2, LINOFF + L2OFF(_va)))
+#define __val2tbl(_va) ((l2t *)__paeoffva(2, LINOFF +2, LINOFF + 2) + LINOFF)
 
 #define trunc_4k(_a) ((uintptr_t)(_a) & 0xfffff000)
 #define mkl1e(_a, _f) (trunc_page((uintptr_t)(_a) - UKERNBASE) | PG_S | (_f))

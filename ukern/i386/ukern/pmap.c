@@ -12,26 +12,27 @@ __regparm void __setpdptr(void *);
 struct pmap *
 pmap_alloc(void)
 {
-    l1e_t *l2;
+    l1e_t *l1;
     struct pmap *pmap;
 
-    l2 = (l1e_t *)alloc4k();
-    if (l2 == NULL)
+    l1 = (l1e_t *)alloc4k();
+    if (l1 == NULL)
 	return NULL;
 
     pmap = structs_alloc(&pmap_cache);
     if (pmap == NULL) {
-	free4k(l2);
+	free4k(l1);
 	return NULL;
     }
 
-    memset(l2, 0, 4096);
-    l2[LMAPOFF + 2] = mklinl1e(l2, PG_A | PG_D | PG_W | PG_P);
-    l2[LMAPOFF + 3] = mklinl1e(pmap_kernel_l1, PG_A | PG_D | PG_W | PG_P);
+    memset(l1, 0, 4096);
+    /* (l1 + LINOFF) must always be the copy of PDPTR */
+    l1[LINOFF + 2] = mklinl1e(l1, PG_A | PG_D | PG_W | PG_P);
+    l1[LINOFF + 3] = mklinl1e(pmap_kernel_l1, PG_A | PG_D | PG_W | PG_P);
 
     pmap->pdptr[0] = 0;
     pmap->pdptr[1] = 0;
-    pmap->pdptr[2] = mkl2e(l2, PG_P);
+    pmap->pdptr[2] = mkl2e(l1, PG_P);
     pmap->pdptr[3] = mkl2e(pmap_kernel_l1, PG_P);
 
     pmap->lock = 0;
