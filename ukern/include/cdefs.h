@@ -15,4 +15,6 @@
 
 #define NULL ((void *)0)
 
+#define __UNCONST(c) ((void *)(unsigned long)(const void *)(c))
+
 #endif
