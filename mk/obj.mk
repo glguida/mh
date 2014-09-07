@@ -10,3 +10,5 @@ OBJS+= $(CUSTOBJS)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
+
+ALL_TARGET=$(OBJDIR)
