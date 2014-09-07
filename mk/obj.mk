@@ -1,9 +1,12 @@
-OBJS+= $(addsuffix .o, $(basename $(SRCS)))
+OBJS= $(addprefix $(OBJDIR)/,$(addsuffix .o, $(basename $(SRCS))))
 
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $(OBJDIR)/$@ $^
+$(OBJDIR)/%.o: %.c
+	$(CC) -c $(CFLAGS) -o $@ $^
 
-%.o: %.S
-	$(CC) -c $(ASFLAGS) -o $(OBJDIR)/$@ $^
+$(OBJDIR)/%.o: %.S
+	$(CC) -c $(ASFLAGS) -o $@ $^
 
 OBJS+= $(CUSTOBJS)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)

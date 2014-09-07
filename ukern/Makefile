@@ -1,29 +1,26 @@
-UKERN=y
 SRCROOT= ..
+include $(SRCROOT)/ukern.config
+include $(MACHINE)/Makefile.inc
+SUBDIRS_MKINC+= lib/ ukern/
+SUBDIRS+= include acpica
+
 MKDIR=$(SRCROOT)/mk
-include $(MKDIR)/rules.mk
+include $(MKDIR)/ukern.mk
 
-CFLAGS += -D_UKERNEL -I .
-ASFLAGS += -D_UKERNEL
-
-INCSRCDIRS+= include
-SUBDIRS= $(MACHINE)/ lib/ ukern/
-
-all: $(OBJDIR) ukern
-
-include $(MKDIR)/subdir.mk
+include $(MKDIR)/exts.mk
 include $(MKDIR)/obj.mk
-LDFLAGS += -T $(MKDIR)/ukern.ld
+include $(MKDIR)/subdir.mk
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
-.phony: install_headers
-
-install_headers:
-	for dir in $(INCSRCDIRS); do $(MAKE) -C $$dir includes; done
-
-ukern: install_headers $(OBJS)
-	$(LD) $(LDFLAGS) -o $(DISTDIR)/$@ $(addprefix $(OBJDIR)/, $(OBJS))
+LIBS+= -lkacpica
+LDFLAGS+= -Lacpica
 
 
+ukern: $(OBJS)
+	$(LD) $(LDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(LIBS)
+
+ALL_TARGET+= ukern
+
+all: $(ALL_TARGET)
+
+clean: $(CLEAN_TARGET)
+	-rm $(INSTALLDIR)/ukern $(OBJS)
