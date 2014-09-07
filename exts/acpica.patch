@@ -1,7 +1,7 @@
 diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 --- acpica.dist/include/platform/acdrex.h	1970-01-01 01:00:00.000000000 +0100
-+++ acpica/include/platform/acdrex.h	2014-09-07 21:59:34.000000000 +0100
-@@ -0,0 +1,16 @@
++++ acpica/include/platform/acdrex.h	2014-09-08 00:40:32.000000000 +0100
+@@ -0,0 +1,25 @@
 +#ifndef __ACDREX_H__
 +#define __ACDREX_H__
 +
@@ -9,7 +9,16 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +#define ACPI_MACHINE_WIDTH      32
 +#endif
 +
++#define ACPI_USE_NATIVE_DIVIDE
++
++#define ACPI_SYSTEM_XFACE
++#define ACPI_EXTERNAL_XFACE
++#define ACPI_INTERNAL_XFACE
++#define ACPI_INTERNAL_VAR_XFACE
++
 +#ifdef _UKERNEL
++
++#include <uk/cdefs.h>
 +
 +#define AcpiOsPrintf printf
 +#define AcpiOsVprintf vprintf
@@ -20,7 +29,7 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +#endif
 diff -Nru acpica.dist/include/platform/acenv.h acpica/include/platform/acenv.h
 --- acpica.dist/include/platform/acenv.h	2013-12-27 18:46:13.000000000 +0000
-+++ acpica/include/platform/acenv.h	2014-09-07 21:57:29.000000000 +0100
++++ acpica/include/platform/acenv.h	2014-09-08 00:38:01.000000000 +0100
 @@ -146,7 +146,10 @@
   *
   *****************************************************************************/
