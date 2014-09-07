@@ -6,12 +6,14 @@ LIBNAME=kacpica
 NOINST=y
 EXTS += acpica
 
-SRCS+= acpi.c
+SRCS+= acpi.c acpios.c
 VPATH+= $(SRCROOT)/acpica
 
 CFLAGS+= -I $(EXTSDIR)/acpica/include
-SRCS+= tbxfroot.c
+SRCS+= tbxfroot.c tbxface.c tbprint.c
 VPATH+= $(EXTSDIR)/acpica/tables/
+SRCS+= utclib.c utxferror.c utexcep.c
+VPATH+= $(EXTSDIR)/acpica/utilities/
 
 
 include $(MKDIR)/obj.mk

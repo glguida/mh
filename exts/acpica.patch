@@ -1,7 +1,7 @@
 diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 --- acpica.dist/include/platform/acdrex.h	1970-01-01 01:00:00.000000000 +0100
-+++ acpica/include/platform/acdrex.h	2014-09-07 20:02:24.000000000 +0100
-@@ -0,0 +1,8 @@
++++ acpica/include/platform/acdrex.h	2014-09-07 21:59:34.000000000 +0100
+@@ -0,0 +1,16 @@
 +#ifndef __ACDREX_H__
 +#define __ACDREX_H__
 +
@@ -9,10 +9,18 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +#define ACPI_MACHINE_WIDTH      32
 +#endif
 +
++#ifdef _UKERNEL
++
++#define AcpiOsPrintf printf
++#define AcpiOsVprintf vprintf
++#define ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsUnmapMemory
++#define AcpiOsUnmapMemory(...) 
++#endif /* _UKERNEL */
++
 +#endif
 diff -Nru acpica.dist/include/platform/acenv.h acpica/include/platform/acenv.h
 --- acpica.dist/include/platform/acenv.h	2013-12-27 18:46:13.000000000 +0000
-+++ acpica/include/platform/acenv.h	2014-09-07 20:00:48.000000000 +0100
++++ acpica/include/platform/acenv.h	2014-09-07 21:57:29.000000000 +0100
 @@ -146,7 +146,10 @@
   *
   *****************************************************************************/
