@@ -1,14 +1,14 @@
 #ifndef __uk_pfndb_h
 #define __uk_pfndb_h
 
-#include <ukern/pgalloc.h>
+#include <ukern/gfp.h>
 #include <ukern/slab.h>
 
 typedef struct {
     uint8_t type;
     union {
 	char           ptr[0];
-	struct zone    pz;
+	struct pgzone  pz;
 	struct slab    sh;
     };
 } __packed ipfn_t;

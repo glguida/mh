@@ -1,5 +1,5 @@
 VPATH+= ukern
-SRCS+= pfndb.c pgalloc.c fixmems.c
+SRCS+= pfndb.c gfp.c fixmems.c
 
 CUSTOBJS+= $(OBJDIR)/fixmem.o $(OBJDIR)/structs.o
 
