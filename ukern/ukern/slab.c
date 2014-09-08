@@ -4,7 +4,7 @@
 #include <uk/queue.h>
 #include <uk/locks.h>
 #include <ukern/pfndb.h>
-#include <ukern/gfp.h>
+#include <ukern/pgalloc.h>
 #include <lib/lib.h>
 
 
@@ -60,7 +60,7 @@ ___slaballoc(struct objhdr **ohptr)
 {
     long pfn;
 
-    pfn = getfreepage(PFNT_FIXMEM);
+    pfn = __allocpage(PFNT_FIXMEM);
     if (pfn < 0)
 	return NULL;
 
@@ -84,7 +84,7 @@ ___slabfree(void *addr)
     long pfn;
 
     pfn = vatop(addr);
-    freepage(pfn);
+    __freepage(pfn);
 }
 
 
