@@ -1,10 +1,13 @@
 SRCROOT=../../
 MKDIR=$(SRCROOT)/mk
+OBJDIR=$(SRCROOT)/ukern/acpica/.objdir
+ALL_PREDEP = exts
+EXTS += acpica
+
 include $(MKDIR)/ukern.mk
 
 LIBNAME=kacpica
 NOINST=y
-EXTS += acpica
 
 SRCS+= acpi.c acpios.c
 VPATH+= $(SRCROOT)/acpica
@@ -19,7 +22,6 @@ SRCS+= utclib.c utxferror.c utexcep.c \
 	utmisc.c utstate.c utmutex.c \
 	utownerid.c utstring.c utlock.c
 VPATH+= $(EXTSDIR)/acpica/utilities/
-
 
 include $(MKDIR)/obj.mk
 include $(MKDIR)/exts.mk

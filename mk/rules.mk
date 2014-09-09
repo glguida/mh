@@ -5,8 +5,6 @@ EXTSRCDIR=$(SRCROOT)/exts
 INSTALLDIR=$(SRCROOT)/dist
 INSTALLINCDIR= $(INSTALLDIR)/usr/include
 
-do_all: all
-
 CFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
 	-fno-builtin -nostdinc -nostdlib -Wall \
 	-D_DREX_MACHINE=$(MACHINE)
@@ -18,7 +16,9 @@ CFLAGS+= -O2 -fno-strict-aliasing -fno-delete-null-pointer-checks
 
 include $(MKDIR)/$(MACHINE)/rules.mk
 
+do_all: all
+
 ifneq ($(SUBDIRS_MKINC)z, z)
-	include $(addsuffix /Makefile.inc, $(SUBDIRS_MKINC))
+include $(addsuffix /Makefile.inc, $(SUBDIRS_MKINC))
 endif
 

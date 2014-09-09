@@ -1,10 +1,11 @@
 SRCROOT= ..
+MKDIR=$(SRCROOT)/mk
+OBJDIR=$(SRCROOT)/ukern/.objs
+
 include $(SRCROOT)/ukern.config
 include $(MACHINE)/Makefile.inc
 SUBDIRS_MKINC+= lib/ ukern/
 SUBDIRS+= include acpica
-
-MKDIR=$(SRCROOT)/mk
 include $(MKDIR)/ukern.mk
 
 include $(MKDIR)/exts.mk

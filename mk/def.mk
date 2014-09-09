@@ -1,4 +1,5 @@
-all: $(ALL_TARGET)
+all: $(ALL_PREDEP)
+	$(MAKE) $(ALL_TARGET)
 
 install: $(INSTALL_TARGET)
 
