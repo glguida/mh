@@ -29,6 +29,20 @@
 static lock_t gfplock = 0;
 static u_long free_pages;
 
+static __inline uint32_t
+lsbit(uint32_t x)
+{
+    assert (x != 0);
+    return ffs(x) - 1;
+}
+
+static __inline uint32_t
+msbit(uint32_t x)
+{
+    assert (x != 0);
+    return fls(x) - 1;
+}
+
 /* O(1) Zoned Page Allocator */
 
 /* XXX: MOVE CONSTANTS TO PARAM_H. */
@@ -107,13 +121,12 @@ pgzone_detachzone(struct pgzlist *zlist, uint32_t *bmap, struct pgzone *pz)
     u_long msb;
 
     assert(pz->size != 0);
-    msb = fls(pz->size) - 1;
-    msb = msb >= GFP_MAXORDER ? GFP_MAXORDER : msb;
+    msb = msbit(pz->size);
+    assert(msb >= GFP_MAXORDER);
 
     LIST_REMOVE(pz, list);
     if (LIST_EMPTY(&zlist[msb]))
-	*bmap &= ~(1L << (32 - msb));
-    
+	*bmap &= ~(1UL << msb);
     free_pages -= pz->size;
   
     return 1;
@@ -126,15 +139,10 @@ pgzone_attachzone(struct pgzlist *zlist, uint32_t *bmap, struct pgzone *pz)
     u_long msb;
 
     assert(pz->size != 0);
-    if (pz->size == 1) {
-	/* XXX: Currently never allocated. FIX IT */
-	return;
-    }
+    msb = msbit(pz->size);
+    assert(msb >= GFP_MAXORDER);
 
-    msb = fls(pz->size) - 1;
-    msb = msb >= GFP_MAXORDER ? GFP_MAXORDER : msb;
-
-    *bmap |= (1L << (32 - msb));
+    *bmap |= (1UL << msb);
     LIST_INSERT_HEAD(&zlist[msb], pz, list);
     free_pages += pz->size;
     return 1;
@@ -172,38 +180,43 @@ static struct pgzone *
 findfreepgzone(u_long n, u_long flag)
 {
     uint32_t tmp;
-    unsigned int msb;
+    unsigned int minbit;
     struct pgzone *pz = NULL;
 
-    msb = fls(n) - 1;
-    if (msb >= GFP_MAXORDER || msb == -1) {
+    minbit = msbit(n);
+
+    if (n != (1 << minbit))
+	minbit += 1;
+
+    if (minbit >= GFP_MAXORDER) {
 	/* Wrong size */
 	return NULL;
     }
 
     if (flag & GFP_HIGH_ONLY) {
-	tmp = zones_bitmap_high << msb;
+	tmp = zones_bitmap_high >> minbit;
 	if (tmp) {
-	    tmp = 32 - fls(tmp) + 1;
-	    pz = LIST_FIRST(&zones_shortcut_high[msb + tmp]);
+	    tmp = lsbit(tmp);
+	    pz = LIST_FIRST(&zones_shortcut_high[minbit + tmp]);
 	    goto out;
 	}
     }
 
     if (flag & GFP_KERN_ONLY) {
-	tmp = zones_bitmap_kern << msb;
+	tmp = zones_bitmap_kern >> minbit;
+
 	if (tmp) {
-	    tmp = 32 - fls(tmp) + 1;
-	    pz = LIST_FIRST(&zones_shortcut_kern[msb + tmp]);
+	    tmp = lsbit(tmp);
+	    pz = LIST_FIRST(&zones_shortcut_kern[minbit + tmp]);
 	    goto out;
 	}
     }
 
     if (flag & GFP_LOKERN_ONLY) {
-	tmp = zones_bitmap_lokern << msb;
+	tmp = zones_bitmap_lokern >> minbit;
 	if (tmp) {
-	    tmp = 32 - fls(tmp) + 1;
-	    pz = LIST_FIRST(&zones_shortcut_lokern[msb + tmp]);
+	    tmp = lsbit(tmp);
+	    pz = LIST_FIRST(&zones_shortcut_lokern[minbit + tmp]);
 	    goto out;
 	}
     }
