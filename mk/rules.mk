@@ -14,6 +14,10 @@ ASFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
 
 CFLAGS+= -O2 -fno-strict-aliasing -fno-delete-null-pointer-checks
 
+ifneq ($(DEBUG)z,z)
+CFLAGS+= -D__DEBUG
+endif
+
 include $(MKDIR)/$(MACHINE)/rules.mk
 
 do_all: all
