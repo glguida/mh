@@ -3,6 +3,7 @@
 #include <uk/types.h>
 #include <uk/queue.h>
 #include <uk/locks.h>
+#include <uk/assert.h>
 #include <ukern/pfndb.h>
 #include <ukern/gfp.h>
 #include <lib/lib.h>
@@ -65,7 +66,7 @@ ___slaballoc(struct objhdr **ohptr)
 	return NULL;
 
     *ohptr = (struct objhdr *)ptova(pfn);
-    return pfndb_slabh(pfn);
+    return (struct slabhdr *)pfndb_getptr(pfn);
 }
 
 static struct slabhdr *
@@ -75,7 +76,8 @@ ___slabgethdr(void *obj)
     uintptr_t addr = (uintptr_t)obj;
 
     pfn = trunc_page(addr);
-    return pfndb_slabh(pfn);
+    assert(pfndb_type(pfn) == PFNT_FIXMEM);
+    return pfndb_getptr(pfn);
 }
 
 static void
