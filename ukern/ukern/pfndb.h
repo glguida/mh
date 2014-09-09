@@ -17,7 +17,7 @@ enum {
   /* Invalid must be zero, i.e. status of blank page. */
   PFNT_INVALID = 0,
 
-  PFNT_PTABLE,           /* Page tables */
+  PFNT_HEAP,             /* Kernel heap */
   PFNT_FREE_PZ_LONE,     /* GFP unique pagezone */
   PFNT_FREE_PZ_STRT,     /* GFP pagezone start */
   PFNT_FREE_PZ_TERM,     /* GFP pagezone end */
@@ -44,10 +44,6 @@ void pfndb_printstats(void);
 void pfndb_printranges(void);
 
 void *pfndb_getptr(unsigned);
-/* XXX: CHECK TYPE FOR THESE! */
-#define pfndb_slabh(_p) (struct slabhdr *)pfndb_getptr(_p)
-#define pfndb_pgzone(_p) (struct pgzone *)pfndb_getpgzone(_p)
-
 void *pfndb_setup(void *, unsigned);
 
 #endif

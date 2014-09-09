@@ -5,6 +5,7 @@
 
 #include <ukern/pfndb.h>
 #include <ukern/fixmems.h>
+#include <ukern/heap.h>
 
 char *_boot_cmdline = NULL;
 
@@ -76,12 +77,12 @@ sysboot(void)
 
     getfreepages_init();
     fixmems_init();
+    heap_init();
     pfndb_printranges();
 
     printf("kernel loaded at va %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
     printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
     printf("kernel pmap at %p\n", pmap_boot());
-
     pfndb_printstats();
 
     printf("Booting...\n");
