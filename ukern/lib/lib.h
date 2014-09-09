@@ -12,6 +12,7 @@ int vprintf(const char *fmt, va_list ap);
 int printf(const char *, ...) __printflike(1, 2);
 void _setputcfn(int(*)(int));
 int fls(int);
+int ffs(int);
 
 #ifdef __DEBUG
 #define dprintf(...) do { printf(__VA_ARGS__); } while(0)
