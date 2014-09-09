@@ -126,6 +126,11 @@ pgzone_attachzone(struct pgzlist *zlist, uint32_t *bmap, struct pgzone *pz)
     u_long msb;
 
     assert(pz->size != 0);
+    if (pz->size == 1) {
+	/* XXX: Currently never allocated. FIX IT */
+	return;
+    }
+
     msb = fls(pz->size) - 1;
     msb = msb >= GFP_MAXORDER ? GFP_MAXORDER : msb;
 
