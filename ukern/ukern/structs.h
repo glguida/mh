@@ -2,7 +2,7 @@
 #define __structs_h
 
 #include <uk/queue.h>
-#include <ukern/slab.h>
+#include "slab.h"
 
 int structs_grow(struct slab *);
 int structs_shring(struct slab *);
