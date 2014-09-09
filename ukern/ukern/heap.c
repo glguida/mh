@@ -123,7 +123,7 @@ heap_alloc(size_t size)
 
     /* LOCK */
     LIST_FOREACH(hptr, &kheaps, kheaps)
-	if (ptr = kheap_alloc(hptr, size))
+	if ((ptr = kheap_alloc(hptr, size)))
 	    break;
     if (ptr != NULL)
 	return ptr;
