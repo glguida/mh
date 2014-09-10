@@ -92,7 +92,7 @@ int
 vprintf(const char *fmt, va_list ap)
 {
     const char *p = fmt;
-    int lmod, hmod, opt, mwidth, len;
+    unsigned lmod, hmod, opt, mwidth, len, maxlen;
     char *str, buf[_BUFSZ];
 
     while(1) {
@@ -128,12 +128,29 @@ vprintf(const char *fmt, va_list ap)
 	}
 
       _width:
+	maxlen = 0;
 	mwidth = 0;
 	while (*p) {
 	    switch (*p) {
 	    case '0'...'9':
 		mwidth *= 10;
 		mwidth += *p - '0';
+		break;
+	    case '.':
+		p++;
+		goto _prec;
+	    default:
+		goto _size;
+	    }
+	    p++;
+	}
+
+      _prec:
+	while (*p) {
+	    switch (*p) {
+	    case '0'...'9':
+		maxlen *= 10;
+		maxlen += *p - '0';
 		break;
 	    default:
 		goto _size;
@@ -217,6 +234,11 @@ vprintf(const char *fmt, va_list ap)
 		len++;
 	}
 
+	if (maxlen == 0)
+	    maxlen = len;
+	if (len > maxlen)
+	    len = maxlen;
+
 	if (~opt & O_LEFT)
 	    while (len++ < mwidth)
 		if (opt & O_ZERO)
@@ -224,7 +246,7 @@ vprintf(const char *fmt, va_list ap)
 		else
 		    putc(' ');
 
-	while(*str)
+	while(maxlen--)
 	    putc(*str++);
 
 	if (opt & O_LEFT)
