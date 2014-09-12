@@ -13,8 +13,14 @@
 #define __printflike(fmtarg, vararg)	\
   __attribute__((__format__(__printf__, fmtarg, vararg)))
 
+#define __predict_false(_cond) __builtin_expect((_cond), 0)
+#define __predict_true(_cond) __builtin_expect((_cond), 1)
+
 #define NULL ((void *)0)
 
 #define __UNCONST(c) ((void *)(unsigned long)(const void *)(c))
+
+#define __BEGIN_DECLS
+#define __END_DECLS
 
 #endif
