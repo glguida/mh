@@ -9,17 +9,6 @@
 
 #define NPTES  512
 
-
-/* XXX:NOT REALLY PAE: PARAM! */
-/* 768mb: Max direct-mapped kernel address */
-#define DMAPSIZE  __ULONG(768 << 20)
-#define KVA_SDMAP __ULONG(UKERNBASE)
-#define KVA_EDMAP __ULONG(UKERNBASE + DMAPSIZE)
-#define KVA_SVMAP __ULONG(KVA_EDMAP)
-#define KVA_EVMAP __ULONG(0xffe00000)
-#define VMAPSIZE  __ULONG(KVA_EVMAP - KVA_SVMAP)
-
-
 #define L2SHIFT    30
 #define L2MASK     (0x3 << L2SHIFT)
 #define L2OFF(_a)  (((uintptr_t)(_a) & L2MASK) >> L2SHIFT)

@@ -13,11 +13,42 @@
 
 #define MAXCPUS         32
 
-#define UKERNBASE       __ULONG(0xc0000000)
-#define UKERNEND        _ukern_end
+/* i386 Virtual Address Space Map:
+ *
+ * 00000000:bfffffff     User mappings
+ * c0000000:UKERNEND     Kernel code and data
+ * c0000000:DMAP_END     Kernel 1:1 direct mapping
+ * DMAP_END:ffe00000     Kernel VA allocation range
+ */
+
+#define UKERNBASE __ULONG(0xc0000000)
+#define UKERNEND  _ukern_end
+#define DMAPSIZE  __ULONG(768 << 20)
+#define KVA_SDMAP __ULONG(UKERNBASE)
+#define KVA_EDMAP __ULONG(UKERNBASE + DMAPSIZE)
+#define KVA_SVMAP __ULONG(KVA_EDMAP)
+#define KVA_EVMAP __ULONG(0xffe00000)
+#define VMAPSIZE  __ULONG(KVA_EVMAP - KVA_SVMAP)
 
 #define UKERNCMPOFF     0x100000 /* 1Mb */
 #define UKERNTEXTOFF    (UKERNBASE + UKERNCMPOFF)
+
+/*
+ * Physical address ranges:
+ *
+ * 00000000:00100000     Boot-time allocation memory (640k)
+ *                       + BIOS area
+ * 00100000:_end         Kernel code + data
+ * _end    :LKMEMEND     Low 1:1 Kernel memory
+ * KMEMSTRT:KMEMEND      1:1 Kernel memory
+ * HIGHSTRT:HIGHEND      High memory, accessed through mapping
+ */
+
+#define LKMEMSTRT        0
+#define LKMEMEND         __ULONG(16 << 20)
+#define KMEMSTRT         LKMEMEND
+#define KMEMEND          DMAPSIZE
+#define HIGHSTRT         DMAPSIZE
 
 /* Temporary physical boot-time allocation physical address */
 #define UKERN_BCODE16   0x10000 /* 16bit code */

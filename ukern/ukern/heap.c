@@ -31,7 +31,7 @@ LIST_HEAD(, kheap) kheaps;
 static struct kheap *
 kheap_add(void)
 {
-    unsigned pfn = getfreepage(PFNT_HEAP);
+    pfn_t pfn = __allocpage(PFNT_HEAP);
     struct kheap *hptr;
     struct ekheap *eptr;
 
