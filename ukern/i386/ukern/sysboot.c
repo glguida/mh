@@ -75,7 +75,7 @@ sysboot(void)
 	 i++)
 	pfndb_add(i, PFNT_SYSTEM);
 
-    getfreepages_init();
+    pginit();
     fixmems_init();
     heap_init();
     pfndb_printranges();
