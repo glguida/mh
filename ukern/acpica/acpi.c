@@ -13,13 +13,16 @@ acpi_init(void)
 {
     ACPI_STATUS r;
 
-    r = AcpiInitializeTables(itblarray, NTBLARY, 0);
-    if (r == AE_OK)
-	return 0;
-    else
+    r = AcpiInitializeTables(NULL, 0, 0);
+    if (r != AE_OK) {
+	printf("ACPICA table init failed.\n");
 	return -1;
+    }
+
+    return 0;
 }
 
+/* X86 BIOS only.  */
 void *
 acpi_findrootptr(void)
 {
@@ -31,6 +34,7 @@ acpi_findrootptr(void)
     acpi_rdsp = rptr;
     if (as != AE_OK)
 	return NULL;
-    else
-	return (void *)(uintptr_t)rptr;
+
+    printf("ACPI root pointer found at address %lx\n", rptr);
+    return (void *)(uintptr_t)rptr;
 }

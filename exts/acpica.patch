@@ -1,7 +1,7 @@
 diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 --- acpica.dist/include/platform/acdrex.h	1970-01-01 01:00:00.000000000 +0100
 +++ acpica/include/platform/acdrex.h	2014-09-08 00:40:32.000000000 +0100
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,23 @@
 +#ifndef __ACDREX_H__
 +#define __ACDREX_H__
 +
@@ -22,8 +22,6 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +
 +#define AcpiOsPrintf printf
 +#define AcpiOsVprintf vprintf
-+#define ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsUnmapMemory
-+#define AcpiOsUnmapMemory(...) 
 +#endif /* _UKERNEL */
 +
 +#endif

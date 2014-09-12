@@ -1,6 +1,7 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
+#include <acpica/acpica.h>
 #include <lib/lib.h>
 
 #include <ukern/pfndb.h>
@@ -83,11 +84,13 @@ sysboot(void)
     vmap_free(KVA_SVMAP, VMAPSIZE);
     pfndb_printranges();
 
-    printf("kernel loaded at va %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
+    printf("kernel loaded at va %08lx:%08lx\n", UKERNTEXTOFF, UKERNEND);
     printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
     printf("kernel pmap at %p\n", pmap_boot());
     pfndb_printstats();
+    acpi_findrootptr();
 
     printf("Booting...\n");
+    acpi_init();
 }
 
