@@ -12,9 +12,13 @@
 
 /* XXX:NOT REALLY PAE: PARAM! */
 /* 768mb: Max direct-mapped kernel address */
-#define DMAPSIZE   768*1024*1024
-#define KERN_SDMAP UKERNBASE
-#define KERN_EDMAP UKERNBASE + DMAPSIZE
+#define DMAPSIZE  __ULONG(768 << 20)
+#define KVA_SDMAP __ULONG(UKERNBASE)
+#define KVA_EDMAP __ULONG(UKERNBASE + DMAPSIZE)
+#define KVA_SVMAP __ULONG(KVA_EDMAP)
+#define KVA_EVMAP __ULONG(0xffe00000)
+#define VMAPSIZE  __ULONG(KVA_EVMAP - KVA_SVMAP)
+
 
 #define L2SHIFT    30
 #define L2MASK     (0x3 << L2SHIFT)
@@ -32,8 +36,8 @@
 #define L0VA(_a)   (((_a) & 0x1ff) << L0SHIFT)
 
 
-#define KL1_SDMAP  L1OFF(KERN_SDMAP)
-#define KL1_EDMAP  L1OFF(KERN_EDMAP)
+#define KL1_SDMAP  L1OFF(KVA_SDMAP)
+#define KL1_EDMAP  L1OFF(KVA_EDMAP)
 #define NPTES      512
 
 #define PG_P       1
@@ -46,15 +50,15 @@
 
 #define LINOFF    (NPTES - 4)
 
-#define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_lo))
-#define __val1tbl(_va) ((l1t *)__paeoffva(2, LINOFF+ 2, LINOFF + L2OFF(_va)))
-#define __val2tbl(_va) ((l2t *)__paeoffva(2, LINOFF +2, LINOFF + 2) + LINOFF)
+#define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_l0))
+#define __val1tbl(_va) ((l1e_t *)__paeoffva(2, LINOFF+ 2, LINOFF + L2OFF(_va)))
+#define __val2tbl(_va) ((l2e_t *)__paeoffva(2, LINOFF +2, LINOFF + 2) + LINOFF)
 
 #define trunc_4k(_a) ((uintptr_t)(_a) & 0xfffff000)
-#define mkl1e(_a, _f) (trunc_page((uintptr_t)(_a) - UKERNBASE) | PG_S | (_f))
-#define mkl2e(_a, _f) (trunc_4k((uintptr_t)(_a) - UKERNBASE) | (_f))
+#define mkl1e(_a, _f) (trunc_page((uintptr_t)(_a)) | PG_S | (_f))
+#define mkl2e(_a, _f) (trunc_4k((uintptr_t)(_a)) | (_f))
 /* Linear mapping must use 4k mapping. */
-#define mklinl1e(_a, _f) (trunc_4k((uintptr_t)(_a) - UKERNBASE) | (_f))
+#define mklinl1e(_a, _f) (trunc_4k((uintptr_t)(_a)) | (_f))
 
 /* We use 2Mb pages, PAE has only 2 levels for to us */
 typedef uint64_t l2e_t;

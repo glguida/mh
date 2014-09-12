@@ -2,11 +2,18 @@
 #define __i386_param_h
 
 #ifdef _UKERNEL
+
+#ifdef _ASSEMBLER
+#define __ULONG(_c) _c
+#else
+#define __ULONG(_c) ((unsigned long)(_c))
+#endif
+
 #include <machine/uk/vmparam.h>
 
 #define MAXCPUS         32
 
-#define UKERNBASE       0xc0000000
+#define UKERNBASE       __ULONG(0xc0000000)
 #define UKERNEND        _ukern_end
 
 #define UKERNCMPOFF     0x100000 /* 1Mb */
