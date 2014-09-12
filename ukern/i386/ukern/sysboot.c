@@ -6,6 +6,7 @@
 #include <ukern/pfndb.h>
 #include <ukern/fixmems.h>
 #include <ukern/heap.h>
+#include <ukern/vmap.h>
 
 char *_boot_cmdline = NULL;
 
@@ -78,6 +79,8 @@ sysboot(void)
     pginit();
     fixmems_init();
     heap_init();
+    vmap_init();
+    vmap_free(KVA_SVMAP, VMAPSIZE);
     pfndb_printranges();
 
     printf("kernel loaded at va %08x:%08lx\n", UKERNTEXTOFF, UKERNEND);
