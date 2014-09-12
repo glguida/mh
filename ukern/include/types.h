@@ -16,4 +16,6 @@ typedef unsigned long  uintptr_t;
 #include <machine/uk/ansi.h>
 #include <machine/uk/int_types.h>
 
+typedef uint64_t cpumask_t;
+
 #endif

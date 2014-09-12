@@ -35,7 +35,12 @@
 #define PG_A       0x20
 #define PG_D       0x40
 #define PG_S       0x80
+#define PG_G       0x100
+#if 0
 #define PG_NX      0x8000000000000000LL
+#else
+#define PG_NX      0
+#endif
 
 #define LINOFF    (NPTES - 4)
 
@@ -52,5 +57,8 @@
 /* We use 2Mb pages, PAE has only 2 levels for to us */
 typedef uint64_t l2e_t;
 typedef uint64_t l1e_t;
+
+#define l1epfn(_l1e) ((_l1e)>>PAGE_SHIFT)
+#define l1eflags(_l1e) ((_l1e) & 0x8000000000000fffULL)
 
 #endif
