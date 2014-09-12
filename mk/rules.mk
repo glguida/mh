@@ -12,10 +12,12 @@ ASFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
 	-fno-builtin -nostdinc -nostdlib -Wall -D_ASSEMBLER \
 	-D_DREX_MACHINE=$(MACHINE)
 
-CFLAGS+= -O2 -fno-strict-aliasing -fno-delete-null-pointer-checks
+CFLAGS+= -fno-strict-aliasing -fno-delete-null-pointer-checks
 
 ifneq ($(DEBUG)z,z)
-CFLAGS+= -D__DEBUG
+CFLAGS+= -D__DEBUG -O0 -g
+else
+CFLAGS+= -O2 -g
 endif
 
 include $(MKDIR)/$(MACHINE)/rules.mk
