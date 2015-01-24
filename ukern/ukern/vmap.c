@@ -146,6 +146,7 @@ ___freeptr(struct vme *vme)
 
 #include "alloc.c"
 
+static lock_t vmap_lock = 0;
 static struct zone vmap_zone;
 
 vaddr_t
@@ -155,7 +156,9 @@ vmap_alloc(size_t size, uint8_t type)
     vaddr_t va;
 
     pgsz = round_page(size);
+    spinlock(&vmap_lock);
     va = vmapzone_alloc(&vmap_zone, pgsz);
+    spinunlock(&vmap_lock);
     if (va == 0)
 	panic("OOVM");
 
@@ -166,7 +169,9 @@ void
 vmap_free(vaddr_t va, size_t size)
 {
 
+    spinlock(&vmap_lock);
     vmapzone_free(&vmap_zone, va, size);
+    spinunlock(&vmap_lock);
 }
 
 void
@@ -177,7 +182,9 @@ vmap_info(vaddr_t va, vaddr_t *startp, size_t *sizep, uint8_t *typep)
     size_t size;
     uint8_t type;
 
+    spinlock(&vmap_lock);
     vme = vmap_find(va);
+    spinunlock(&vmap_lock);
     if (vme == NULL) {
 	start = 0;
 	size = 0;
@@ -203,6 +210,7 @@ vmap_init(void)
     setup_structcache(&vme_structs,  vme);
     rb_tree_init(&vmap_rbtree, &vmap_tree_ops);
     vmapzone_init(&vmap_zone);
+    vmap_lock = 0;
     vmap_size = 0;
 }
 
