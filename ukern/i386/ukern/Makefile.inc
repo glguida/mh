@@ -1,3 +1,3 @@
-SRCS+= boot.S biosops.S idt.S text.S locks.S sysboot.c intrs.c pae.S pmap.c \
-       tlb.c
+SRCS+= boot.S biosops.S idt.S text.S locks.S pae.S
+SRCS+= cpu.c lapic.c sysboot.c intrs.c pmap.c tlb.c
 VPATH+= i386/ukern
