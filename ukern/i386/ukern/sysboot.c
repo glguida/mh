@@ -1,13 +1,10 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
+#include <ukern/pfndb.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
-
-#include <ukern/pfndb.h>
-#include <ukern/fixmems.h>
-#include <ukern/heap.h>
-#include <ukern/vmap.h>
+#include <ukern/kern.h>
 
 char *_boot_cmdline = NULL;
 
@@ -77,20 +74,13 @@ sysboot(void)
 	 i++)
 	pfndb_add(i, PFNT_SYSTEM);
 
-    pginit();
-    fixmems_init();
-    heap_init();
-    vmap_init();
-    vmap_free(KVA_SVMAP, VMAPSIZE);
-    pfndb_printranges();
-
-    printf("kernel loaded at va %08lx:%08lx\n", UKERNTEXTOFF, UKERNEND);
-    printf("pfndb from %lx to %lx\n", UKERN_PFNDB, (unsigned long)lpfndb);
-    printf("kernel pmap at %p\n", pmap_boot());
-    pfndb_printstats();
-    acpi_findrootptr();
-
     printf("Booting...\n");
+    kern_boot();
+}
+
+void arch_init()
+{
+    acpi_findrootptr();
     acpi_init();
 }
 
