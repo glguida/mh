@@ -20,8 +20,8 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +
 +#include <uk/cdefs.h>
 +
-+#define AcpiOsPrintf printf
-+#define AcpiOsVprintf vprintf
++__decl_alias(AcpiOsPrintf, printf);
++__decl_alias(AcpiOsVprintf, vprintf);
 +#endif /* _UKERNEL */
 +
 +#endif
