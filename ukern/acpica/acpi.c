@@ -1,6 +1,5 @@
 #include <uk/types.h>
 #include "../lib/lib.h"
-#include <machine/uk/cpu.h>
 #include "acpica.h"
 
 /* ACPICA includes */
@@ -37,6 +36,7 @@ acpi_madt_scan(void)
     uint8_t type;
     uint8_t *ptr;
     void lapic_init(paddr_t);
+    int cpu_add(uint16_t physid, uint16_t acpiid);
 
     lapic_init(acpi_madt->Address);
 

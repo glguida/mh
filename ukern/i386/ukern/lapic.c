@@ -1,9 +1,9 @@
 #include <uk/types.h>
 #include <ukern/vmap.h>
 #include <lib/lib.h>
-#include "lapic.h"
+#include <machine/uk/lapic.h>
 
-static void *lapic_base;
+void *lapic_base = NULL;
 
 void
 lapic_init(paddr_t base)

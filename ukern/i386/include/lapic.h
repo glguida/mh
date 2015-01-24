@@ -41,23 +41,16 @@
 
 #define LAPIC_SIZE      (1UL << 12)
 
+extern void *lapic_base;
 void lapic_init(paddr_t base);
 
-#include <uk/assert.h>
-#include <machine/uk/cpu.h>
-
-static inline
-int thiscpu(void)
+static inline uint16_t
+lapic_read(unsigned reg)
 {
-    int physid, id;
-    int lapic_getcurrent(void);
-    extern int cpu_phys_to_id[UKERN_MAX_PHYSCPUS];
 
-    physid = lapic_getcurrent();
-    dbgassert(physid < UKERN_MAX_PHYSCPUS);
-    id = cpu_phys_to_id[physid];
-    dbgassert(id < UKERN_MAX_CPUS);
-    return id;
+    return *((uint16_t *)lapic_base + reg);
 }
+
+#define lapic_getcurrent(void)  (lapic_read(L_IDREG) >> 24)
 
 #endif

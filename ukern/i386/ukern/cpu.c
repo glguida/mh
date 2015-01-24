@@ -1,7 +1,7 @@
 #include <uk/types.h>
+#include <machine/uk/lapic.h>
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
-#include "lapic.h"
 
 int number_cpus = 0;
 struct cpuinfo cpus[UKERN_MAX_CPUS];
