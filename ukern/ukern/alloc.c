@@ -1,7 +1,6 @@
 #include <uk/cdefs.h>
 #include <uk/types.h>
 #include <uk/assert.h>
-#include <uk/locks.h>
 #include <uk/queue.h>
 #include <lib/lib.h>
 
