@@ -1,6 +1,7 @@
 #include <uk/types.h>
 #include <uk/queue.h>
 #include <uk/param.h>
+#include <machine/uk/locks.h>
 #include <ukern/pgalloc.h>
 #include <ukern/pfndb.h>
 
