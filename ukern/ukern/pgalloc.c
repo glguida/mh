@@ -29,6 +29,8 @@
 #define PFNZ_TYPE(_p)					\
     (PFNZ_KERN(_p) ? 1 : PFNZ_LOKERN(_p) ? 0 : 2)
 
+#define NPFNZTYPES 3
+
 
 /*
  * Allocator configuration.
@@ -132,8 +134,14 @@ ___freeptr(struct pgzentry *ze)
  */
 
 
-#define NPFNZTYPES 3
+lock_t pgalloc_lck[NPFNZTYPES];
 struct zone pgzones[NPFNZTYPES];
+
+#define __LCK(_i, ...) do {			\
+	spinlock(pgalloc_lck + (_i));		\
+	__VA_ARGS__;				\
+	spinunlock(pgalloc_lck + (_i));		\
+    } while(0)
 
 pfn_t
 pgalloc(size_t size, uint8_t type, unsigned long flags)
@@ -146,11 +154,17 @@ pgalloc(size_t size, uint8_t type, unsigned long flags)
 	flags = GFP_DEFAULT;
 
     if (flags & GFP_HIGH_ONLY)
-	addr = pgzone_alloc(pgzones + 2, size);
+	__LCK(2, {
+		addr = pgzone_alloc(pgzones + 2, size);
+	    });
     if (!addr && flags & GFP_KERN_ONLY)
-	addr = pgzone_alloc(pgzones + 1, size);
+	__LCK(1, { 
+		addr = pgzone_alloc(pgzones + 1, size);
+	    });
     if (!addr && flags & GFP_LOKERN_ONLY)
-	addr = pgzone_alloc(pgzones + 0, size);
+	__LCK(0, {
+		addr = pgzone_alloc(pgzones + 0, size);
+	    });
     if (!addr)
 	panic("OOM");
 
@@ -163,10 +177,16 @@ pgalloc(size_t size, uint8_t type, unsigned long flags)
 void
 pgfree(pfn_t pfn, size_t size)
 {
+    int pfnz_type;
     assert(pfn != 0);
     assert(size != 0);
 
-    pgzone_free(pgzones + PFNZ_TYPE(pfn), pfn, size);
+    pfnz_type = PFNZ_TYPE(pfn);
+    assert(pfnz_type < NPFNZTYPES);
+
+    __LCK(pfnz_type, {
+	    pgzone_free(pgzones + pfnz_type, pfn, size);
+	});
 }
 
 void
@@ -177,8 +197,10 @@ pginit(void)
     int status=0; 	/* 1: we're scanning freezone,
 			 * 0: we're searching for free zone */
 
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
+	pgalloc_lck[j] = 0;
 	pgzone_init(pgzones + j);
+    }
 
     start = 0;
     for (i = 0; i < pfndb_max(); i++) {
