@@ -1,6 +1,7 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <uk/assert.h>
+#include <uk/locks.h>
 #include <ukern/pfndb.h>
 #include <lib/lib.h>
 
@@ -17,11 +18,13 @@ struct ekheap {
 };
 
 struct kheap {
+    lock_t lock;
     LIST_ENTRY(kheap) kheaps;
     LIST_HEAD(, ekheap) list;
     LIST_HEAD(, ekheap) free_list;
 };
 
+lock_t kheaps_lock;
 LIST_HEAD(, kheap) kheaps;
 
 #define UNITS(_s) ((_s) / sizeof(struct ekheap))
@@ -37,6 +40,7 @@ kheap_add(void)
 
     /* Lock free, not connected */
     hptr = pfndb_getptr(pfn);
+    hptr->lock = 0;
     LIST_INIT(&hptr->list);
     LIST_INIT(&hptr->free_list);
     
@@ -55,28 +59,33 @@ kheap_alloc(struct kheap *hptr, size_t sz)
     unsigned udiff;
     unsigned units = UROUND(sz) + 1; /* Account for hdr */
 
+    /* Splintering the heap is atomic. Long spinlock */
+    spinlock(&hptr->lock);
     LIST_FOREACH(eptr, &hptr->free_list, free_list)
 	if (eptr->ulen >= units)
 	    break;
 
-    if (eptr == LIST_END(&hptr->free_list))
+    if (eptr == LIST_END(&hptr->free_list)) {
+	spinunlock(&hptr->lock);
 	return NULL;
+    }
 
     assert(eptr->isfree);
+
     udiff = eptr->ulen - units;
     if (udiff) {
 	neptr = eptr + units;
 	neptr->isfree = 1;
 	neptr->ulen = udiff;
-	/* LOCK */
+
 	LIST_INSERT_AFTER(eptr, neptr, list);
 	LIST_INSERT_HEAD(&hptr->free_list, neptr, free_list);
     }
 
-    /* LOCK */
     LIST_REMOVE(eptr, free_list);
     eptr->isfree = 0;
     eptr->ulen = units;
+    spinunlock(&hptr->lock);
 
     return eptr + 1;
 }
@@ -92,7 +101,7 @@ kheap_free(void *ptr)
     hptr = (struct kheap *)pfndb_getptr(pfn);
     eptr = (struct ekheap *)ptr - 1;
 
-    /* LOCK */
+    spinlock(&hptr->lock);
     peptr = LIST_PREV(eptr, ekheap, list);
     neptr = LIST_NEXT(eptr, list);
     if (neptr && neptr->isfree) {
@@ -108,6 +117,7 @@ kheap_free(void *ptr)
 	eptr->isfree=1;
 	LIST_INSERT_HEAD(&hptr->free_list, eptr, free_list);
     }
+    spinunlock(&hptr->lock);
 }
 
 void *
@@ -121,28 +131,37 @@ heap_alloc(size_t size)
 	return NULL;
     }
 
-    /* LOCK */
+    spinlock(&kheaps_lock);
     LIST_FOREACH(hptr, &kheaps, kheaps)
       if ((ptr = kheap_alloc(hptr, size)) != NULL)
 	    break;
+    spinunlock(&kheaps_lock);
     if (ptr != NULL)
 	return ptr;
 
     hptr = kheap_add();
     ptr = kheap_alloc(hptr, size);
-    /* LOCK */
+
+    spinlock(&kheaps_lock);
     LIST_INSERT_HEAD(&kheaps, hptr, kheaps);
+    spinunlock(&kheaps_lock);
+
     return ptr;
 }
 
 void
 heap_free(void *ptr)
 {
+
     kheap_free(ptr);
 }
 
 void heap_init(void)
 {
+
+    assert(sizeof(struct kheap) < sizeof(ipfn_t));
+
+    kheaps_lock = 0;
     LIST_INIT(&kheaps);
 }
 
