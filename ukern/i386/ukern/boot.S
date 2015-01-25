@@ -142,7 +142,7 @@ ENTRY(_setup_boot_gdt)
 	rep stosl
 
 	mov $UKERN_BGDTREG, %eax
-	movw $(5 * 8 - 1), (%eax)
+	movw $(128 * 8 - 1), (%eax)
 	movl $(UKERNBASE + UKERN_BGDTABLE), 2(%eax)
 
 	movl $UKERN_BGDTABLE + 8, %eax
@@ -164,6 +164,29 @@ ENTRY(_setup_boot_gdt)
 	add $8, %eax
 	ret
 
+	.globl _C_LABEL(_load_tss)
+_C_LABEL(_load_tss):
+	push  %ebp
+	mov   %esp, %ebp
+	movl  8(%ebp), %eax
+	shl   $3, %eax
+	add $(UKERNBASE + UKERN_BGDTABLE + (5 * 8)), %eax
+	movl $0, (%eax)
+	movl $0, 4(%eax)
+	movl $(UKERNBASE +_C_LABEL(_bsp_tss)), %ecx
+	movw %bx, 2(%eax)
+	movw $104, (%eax)
+	shr  $16, %ecx
+	movb %cl, 4(%eax)
+	movb %ch, 7(%eax)
+	orl  $0x00408900, 4(%eax)
+	mov  8(%ebp), %eax
+	add  $5, %eax
+	shl  $3, %eax
+	ltr  %ax
+	pop  %ebp
+	ret
+
 	.data
 haltstring: 
 	.asciz "System Halted."
@@ -176,31 +199,12 @@ badbootstring_size = . - badbootstring
 LABEL(_ukern_end)
 	.long _end
 
-/* BSP Bootstrap Page Structure: see AP Bootstrap Page Structure in ll.S */
 	.align 4096
 stackbtm:
-	.skip (4096 - 104 - 4 - 4)
+	.skip 4096
 stacktop:
-	.long 0    // CPU Number
-	.long 0x50500505
-LABEL(cpu_tss)
-LABEL(bsptss) /* Per CPU? */
+	.skip 512
+LABEL(_bsp_tss)
 	.skip 102
 	.hword 104 // IOMAP over the edge.
-
-	.align 4
-	.globl cpu_kstack
-	.globl cpu_udata, cpu_inkern, cpu_idle, cpu_inustore
-cpu_udata:
-	.long 0
-cpu_kstack:
-	.long 0
-cpu_idle:
-	.long 0
-cpu_inkern:
-	.long 1
-cpu_inustore:
-	.long 0
-
-
 

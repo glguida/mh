@@ -1,6 +1,7 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
+#include <machine/uk/cpu.h>
 #include <ukern/pfndb.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
@@ -82,5 +83,9 @@ void arch_init()
 {
     acpi_findrootptr();
     acpi_init();
+
+    /* Finish up initialization quickly.
+       We can now setup per-cpu data. */
+    _load_tss(thiscpu());
 }
 
