@@ -44,11 +44,30 @@
 extern void *lapic_base;
 void lapic_init(paddr_t base);
 
-static inline uint16_t
+static inline void
+lapic_write(unsigned reg, uint32_t data)
+{
+
+    *((uint32_t *)(lapic_base + reg)) = data;
+}
+
+static inline uint32_t
 lapic_read(unsigned reg)
 {
 
-    return *((uint16_t *)lapic_base + reg);
+    return *((uint32_t *)(lapic_base + reg));
+}
+
+static inline void
+lapic_ipi(unsigned physid, uint8_t dlvr, uint8_t vct)
+{
+    uint32_t hi, lo;
+
+    lo = 0x4000 | (dlvr & 0x7) << 8 | vct;
+    hi = (physid & 0xff) << 24;
+
+    lapic_write(L_ICR_HI, hi);
+    lapic_write(L_ICR_LO, lo);
 }
 
 #define lapic_getcurrent(void)  (lapic_read(L_IDREG) >> 24)
