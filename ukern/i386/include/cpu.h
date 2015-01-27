@@ -15,6 +15,7 @@ struct cpuinfo {
 
 struct cpuinfo *cpu_get(unsigned id);
 int cpu_add(uint16_t physid, uint16_t acpiid);
+void cpu_wakeup_aps(void);
 
 static inline
 int thiscpu(void)

@@ -21,6 +21,7 @@ struct pv_entry {
     unsigned    vfn;
 };
 
+void pmap_init(void);
 struct pmap *pmap_boot(void);
 struct pmap *pmap_alloc(void);
 

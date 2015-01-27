@@ -60,6 +60,9 @@
 #define UKERN_BGDTREG   0x52000 /* Temporary GDT reg */
 #define UKERN_BGDTABLE  0x52030 /* Temporary GDT */
 
+#define UKERN_APBOOTPG  0x60000 /* AP stack */
+#define UKERN_APBOOT(x) (UKERN_APBOOTPG + ((x) * 4096))
+
 /* Non-temporary boot-time static memory allocation */
 #define UKERN_PFNDB     (((UKERNEND + 127) >> 7) << 7)
 

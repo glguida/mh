@@ -101,8 +101,26 @@ pmap_commit(struct pmap *pmap)
 struct pmap*
 pmap_boot(void)
 {
-    int i;
     struct pmap *bpmap;
+
+    /* Safe now to alloc a pmap */
+    bpmap =  pmap_alloc();
+    if (bpmap == NULL)
+	panic("BPMAP: FAILED");
+
+    /* Set pmap current */
+    /* No need for per-cpu pointer, exactly what CR3 is, minus
+       the offset of pdptr in pmap. Incidentally, it is zero now. */
+    bpmap->refcnt++;
+    __setpdptr(bpmap->pdptr);
+
+    return bpmap;
+}
+
+void
+pmap_init(void)
+{
+    int i;
     l1e_t *kl1;
 
     setup_structcache(&pmap_cache, pmap);
@@ -119,15 +137,4 @@ pmap_boot(void)
 	kl1[i] = 0;
 
     /* Safe now to alloc a pmap */
-    bpmap =  pmap_alloc();
-    if (bpmap == NULL)
-	panic("BPMAP: FAILED");
-
-    /* Set pmap current */
-    /* No need for per-cpu pointer, exactly what CR3 is, minus
-       the offset of pdptr in pmap. Incidentally, it is zero now. */
-    bpmap->refcnt++;
-    __setpdptr(bpmap->pdptr);
-
-    return bpmap;
 }

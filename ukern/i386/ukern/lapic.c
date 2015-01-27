@@ -13,4 +13,3 @@ lapic_init(paddr_t base)
     dprintf("lapic (PA: %016llx) mapped at addr %p\n", base, lapic_base);
 }
 
-

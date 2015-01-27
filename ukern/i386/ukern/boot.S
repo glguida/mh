@@ -174,7 +174,7 @@ _C_LABEL(_load_tss):
 	movl $0, (%eax)
 	movl $0, 4(%eax)
 	movl $(UKERNBASE +_C_LABEL(_bsp_tss)), %ecx
-	movw %bx, 2(%eax)
+	movw %cx, 2(%eax)
 	movw $104, (%eax)
 	shr  $16, %ecx
 	movb %cl, 4(%eax)
@@ -186,6 +186,77 @@ _C_LABEL(_load_tss):
 	ltr  %ax
 	pop  %ebp
 	ret
+
+/*
+ * AP BOOTSTRAP.
+ *
+ * This code is copied into per-cpu pages.
+ * These same page will become the AP kernel
+ * stack.
+ */
+	.code16
+	.globl _C_LABEL(_ap_start)
+ENTRY(_ap_start)
+	cli
+	movw %cs, %ax
+	movw %ax, %ds
+
+	lgdtl .Lap_gdtreg - _C_LABEL(_ap_start)
+	lidtl .Lap_idtreg - _C_LABEL(_ap_start)
+
+	movw $0xb800, %ax
+	movw %ax, %es
+	movw $('A'<<8 + 'A'), %es:0
+
+	/* Save AP Boostrap Page Segment. */
+	mov %cs, %bx
+
+	mov $1, %ax
+	lmsw %ax
+	ljmpl $0x8, $(apsetup - UKERNBASE)
+
+.Lap_gdtreg:
+	.hword (128 * 8) - 1
+	.long UKERN_BGDTABLE
+
+.Lap_idtreg:
+	.hword (256 * 8) - 1
+	.long _C_LABEL(_kern_idt) - UKERNBASE
+ENTRY(_ap_end)
+
+	.code32
+apsetup: /* bx:	AP Bootstrap Segment */
+	/* Setup segments. */
+	mov $KDS, %ax
+	mov %ax, %ss
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+
+	/* Setup CR registers. */
+	mov %cr4, %eax
+	or  $0x30, %eax
+	mov  %eax, %cr4
+	mov $UKERN_BL3TABLE, %eax
+	mov %eax, %cr3
+	mov  %cr0, %eax
+	or   $(1<<31), %eax
+	mov  %eax, %cr0
+	ljmp $0x08, $1f
+1:
+	/* Reload GDT and IDT */
+	lgdt UKERN_BGDTREG
+	lidt _C_LABEL(_kern_idtr)
+	/* Setup stack */
+	xor %eax, %eax
+	mov %bx, %ax
+	shl $4, %eax
+	add $(UKERNBASE + 0x1000), %eax
+	mov %eax, %esp
+	call sysboot_ap
+1:	hlt
+	jmp 1b
 
 	.data
 haltstring: 

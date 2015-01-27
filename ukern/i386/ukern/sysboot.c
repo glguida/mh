@@ -3,11 +3,15 @@
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
 #include <ukern/pfndb.h>
+#include <ukern/fixmems.h>
+#include <ukern/heap.h>
+#include <ukern/vmap.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
 #include <ukern/kern.h>
 
 char *_boot_cmdline = NULL;
+void _load_tss(unsigned int);
 
 struct e820e {
 	uint64_t addr;
@@ -15,6 +19,12 @@ struct e820e {
 	uint32_t type;
 	uint32_t acpi;
 } __packed *p;
+
+void platform_init(void)
+{
+    acpi_findrootptr();
+    acpi_init();
+}
 
 #define E820_START       ((struct e820e *)UKERN_BSMAP16)
 #define E820_FOREACH(_p)				\
@@ -75,17 +85,35 @@ sysboot(void)
 	 i++)
 	pfndb_add(i, PFNT_SYSTEM);
 
-    printf("Booting...\n");
-    kern_boot();
-}
+    pginit();
+    fixmems_init();
+    pmap_init();
 
-void arch_init()
-{
-    acpi_findrootptr();
-    acpi_init();
+    printf("Booting...\n");
+    pmap_boot();
+
+    heap_init();
+    vmap_init();
+    vmap_free(KVA_SVMAP, VMAPSIZE);
+
+    platform_init();
 
     /* Finish up initialization quickly.
        We can now setup per-cpu data. */
     _load_tss(thiscpu());
+    cpu_wakeup_aps();
+
+    kern_boot();
 }
+
+void sysboot_ap(void)
+{
+
+    pmap_boot();
+    _load_tss(thiscpu());
+    printf("CPU %d on.\n", thiscpu());
+
+    kern_bootap();
+}
+
 

@@ -8,23 +8,18 @@
 #include <lib/lib.h>
 #include "kern.h"
 
-void arch_init(void);
+#include <machine/uk/cpu.h>
+
+void
+kern_bootap(void)
+{
+}
 
 void
 kern_boot(void)
 {
-
-    pginit();
-    fixmems_init();
-    pmap_boot();
-
-    heap_init();
-    vmap_init();
-    vmap_free(KVA_SVMAP, VMAPSIZE);
-
+    
     pfndb_printranges();
     pfndb_printstats();
     printf("kernel loaded at va %08lx:%08lx\n", UKERNTEXTOFF, UKERNEND);
-
-    arch_init();
 }
