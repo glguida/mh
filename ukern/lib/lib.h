@@ -8,6 +8,7 @@
 
 int (*putc)(int);
 void *memset(void *b, int c, size_t len);
+void *memcpy(void *d, void *s, size_t len);
 int vprintf(const char *fmt, va_list ap);
 int printf(const char *, ...) __printflike(1, 2);
 void _setputcfn(int(*)(int));
