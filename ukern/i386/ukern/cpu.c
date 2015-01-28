@@ -2,16 +2,17 @@
 #include <machine/uk/lapic.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
+#include <ukern/heap.h>
 #include <lib/lib.h>
 #include "i386.h"
 
 int number_cpus = 0;
-struct cpuinfo cpus[UKERN_MAX_CPUS];
 int cpu_phys_to_id[UKERN_MAX_PHYSCPUS] = { -1,};
+struct cpu_info *cpus[UKERN_MAX_CPUS] = { 0, };
 
 extern char _ap_start, _ap_end;
 
-struct cpuinfo *
+struct cpu_info *
 cpu_get(unsigned id)
 {
 
@@ -22,14 +23,14 @@ cpu_get(unsigned id)
 	dprintf("Requested non-active cpu %d\n", id);
 	return NULL;
     }
-    return cpus + id;
+    return cpus[id];
 }
 
 int
 cpu_add(uint16_t physid, uint16_t acpiid)
 {
     int id;
-    struct cpuinfo *cpu;
+    struct cpu_info *cpu;
 
     if (physid >= UKERN_MAX_PHYSCPUS) {
 	printf("CPU Phys ID %02x too big. Skipping.\n", physid);
@@ -42,14 +43,29 @@ cpu_add(uint16_t physid, uint16_t acpiid)
     }
 
     id = number_cpus++;
-    cpu = cpus + id;
-
     dprintf("Adding CPU %d (P:%d, A:%d)\n", id, physid, acpiid);
 
+    cpu = heap_alloc(sizeof(struct cpu_info));
+    cpu->cpu_id = id;
     cpu->phys_id = physid;
     cpu->acpi_id = acpiid;
-
+    cpu->self = cpu;
+    cpus[id] = cpu;
     cpu_phys_to_id[physid] = id;
+
+    return id;
+}
+
+int
+cpu_number_from_lapic(void)
+{
+    unsigned physid, id;
+    extern int cpu_phys_to_id[UKERN_MAX_PHYSCPUS];
+
+    physid = lapic_getcurrent();
+    dbgassert(physid < UKERN_MAX_PHYSCPUS);
+    id = cpu_phys_to_id[physid];
+    dbgassert(id < UKERN_MAX_CPUS);
     return id;
 }
 
@@ -57,12 +73,13 @@ void
 cpu_wakeup_aps(void)
 {
     int i;
-    struct cpuinfo *cpu;
+    struct cpu_info *cpu;
+    unsigned cpuid = cpu_number_from_lapic();
 
     cmos_write(0xf, 0xa); // Shutdown causes warm reset.
 
     for (i = 0; i < number_cpus; i++) {
-	if (i == thiscpu())
+	if (i == cpuid)
 	    continue;
 	cpu = cpu_get(i);
 

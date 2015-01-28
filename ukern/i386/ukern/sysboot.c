@@ -11,7 +11,7 @@
 #include <ukern/kern.h>
 
 char *_boot_cmdline = NULL;
-void _load_tss(unsigned int);
+void _load_segs(unsigned int, struct cpu_info **cpu);
 
 struct e820e {
 	uint64_t addr;
@@ -33,7 +33,7 @@ void platform_init(void)
 void
 sysboot(void)
 {
-    unsigned i;
+    unsigned i, cpuid;
     void *lpfndb;
     uint32_t pfn_maxmem = 0;
     uint32_t pfn_maxaddr = 0;
@@ -97,23 +97,29 @@ sysboot(void)
     vmap_free(KVA_SVMAP, VMAPSIZE);
 
     platform_init();
+    __insn_barrier(); /* LAPIC now mapped */
 
     /* Finish up initialization quickly.
        We can now setup per-cpu data. */
-    _load_tss(thiscpu());
-    cpu_wakeup_aps();
+    cpuid = cpu_number_from_lapic();
+    _load_segs(cpuid, &cpu_get(cpuid)->self);
+    __insn_barrier(); /* FS: now valid */
 
+    cpu_wakeup_aps();
     kern_boot();
 }
 
 void sysboot_ap(void)
 {
+    unsigned cpuid;
 
     pmap_boot();
-    _load_tss(thiscpu());
-    printf("CPU %d on.\n", thiscpu());
+    __insn_barrier(); /* LAPIC now mapped */
+
+    cpuid = cpu_number_from_lapic();
+    _load_segs(cpuid, &cpu_get(cpuid)->self);
+    __insn_barrier(); /* FS: now valid */
+    printf("CPU %d on.\n", cpu_number());
 
     kern_bootap();
 }
-
-

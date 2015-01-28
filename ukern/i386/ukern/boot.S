@@ -164,26 +164,47 @@ ENTRY(_setup_boot_gdt)
 	add $8, %eax
 	ret
 
-	.globl _C_LABEL(_load_tss)
-_C_LABEL(_load_tss):
+	.globl _C_LABEL(_load_segs)
+_C_LABEL(_load_segs):
 	push  %ebp
 	mov   %esp, %ebp
+	/* TSS (5 + 2*n) */
 	movl  8(%ebp), %eax
-	shl   $3, %eax
+	shl   $4, %eax
 	add $(UKERNBASE + UKERN_BGDTABLE + (5 * 8)), %eax
 	movl $0, (%eax)
 	movl $0, 4(%eax)
-	movl $(UKERNBASE +_C_LABEL(_bsp_tss)), %ecx
-	movw %cx, 2(%eax)
+	movl $_C_LABEL(_bsp_tss), %ecx
 	movw $104, (%eax)
+	movw %cx, 2(%eax)
 	shr  $16, %ecx
 	movb %cl, 4(%eax)
 	movb %ch, 7(%eax)
 	orl  $0x00408900, 4(%eax)
 	mov  8(%ebp), %eax
+	shl  $1, %eax
 	add  $5, %eax
 	shl  $3, %eax
 	ltr  %ax
+	/* FS (5 + 2*n + 1)*/
+	mov  8(%ebp), %ecx
+	mov  %ecx, %eax
+	shl  $4, %eax
+	add $(UKERNBASE + UKERN_BGDTABLE + ((5 + 1) * 8)), %eax
+	movl $0, (%eax)
+	movl $0, 4(%eax)
+	movw $4, (%eax)
+	movl 0xc(%ebp), %ecx
+	movw %cx, 2(%eax)
+	shr  $16, %ecx
+	movb %cl, 4(%eax)
+	movb %ch, 7(%eax)
+	orl  $0x00409200, 4(%eax)
+	movl 8(%ebp), %eax
+	shl  $1, %eax
+	add  $(5+1), %eax
+	shl  $3, %eax
+	mov  %ax, %fs
 	pop  %ebp
 	ret
 
