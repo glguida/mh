@@ -5,15 +5,18 @@
 #include <uk/types.h>
 #include <uk/assert.h>
 #include <machine/uk/lapic.h>
+#include <i386/ukern/i386.h>
 
 #define UKERN_MAX_CPUS 64
 #define UKERN_MAX_PHYSCPUS 64
 
 struct cpu_info {
-    uint32_t cpu_id; /* fs:0 */
-    void     *current; /* fs:4 */
-    uint16_t phys_id;
-    uint16_t acpi_id;
+    uint32_t   cpu_id; /* fs:0 */
+    void       *current; /* fs:4 */
+    struct tss tss;
+
+    uint16_t   phys_id;
+    uint16_t   acpi_id;
     struct cpu_info *self;
 };
 

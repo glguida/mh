@@ -174,7 +174,7 @@ _C_LABEL(_load_segs):
 	add $(UKERNBASE + UKERN_BGDTABLE + (5 * 8)), %eax
 	movl $0, (%eax)
 	movl $0, 4(%eax)
-	movl $_C_LABEL(_bsp_tss), %ecx
+	movl 0xc(%ebp), %ecx
 	movw $104, (%eax)
 	movw %cx, 2(%eax)
 	shr  $16, %ecx
@@ -194,7 +194,7 @@ _C_LABEL(_load_segs):
 	movl $0, (%eax)
 	movl $0, 4(%eax)
 	movw $4, (%eax)
-	movl 0xc(%ebp), %ecx
+	movl 0x10(%ebp), %ecx
 	movw %cx, 2(%eax)
 	shr  $16, %ecx
 	movb %cl, 4(%eax)

@@ -11,7 +11,7 @@
 #include <ukern/kern.h>
 
 char *_boot_cmdline = NULL;
-void _load_segs(unsigned int, struct cpu_info **cpu);
+void _load_segs(unsigned int, struct tss *, struct cpu_info **cpu);
 
 struct e820e {
 	uint64_t addr;
@@ -102,7 +102,7 @@ sysboot(void)
     /* Finish up initialization quickly.
        We can now setup per-cpu data. */
     cpuid = cpu_number_from_lapic();
-    _load_segs(cpuid, &cpu_get(cpuid)->self);
+    _load_segs(cpuid, &cpu_get(cpuid)->tss, &cpu_get(cpuid)->self);
     __insn_barrier(); /* FS: now valid */
 
     cpu_wakeup_aps();
@@ -117,7 +117,7 @@ void sysboot_ap(void)
     __insn_barrier(); /* LAPIC now mapped */
 
     cpuid = cpu_number_from_lapic();
-    _load_segs(cpuid, &cpu_get(cpuid)->self);
+    _load_segs(cpuid, &cpu_get(cpuid)->tss, &cpu_get(cpuid)->self);
     __insn_barrier(); /* FS: now valid */
     printf("CPU %d on.\n", cpu_number());
 

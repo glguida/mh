@@ -6,6 +6,7 @@
 #include <lib/lib.h>
 #include "i386.h"
 
+
 int number_cpus = 0;
 int cpu_phys_to_id[UKERN_MAX_PHYSCPUS] = { -1,};
 struct cpu_info *cpus[UKERN_MAX_CPUS] = { 0, };
@@ -50,6 +51,7 @@ cpu_add(uint16_t physid, uint16_t acpiid)
     cpu->phys_id = physid;
     cpu->acpi_id = acpiid;
     cpu->self = cpu;
+    cpu->tss.iomap = 108;
     cpus[id] = cpu;
     cpu_phys_to_id[physid] = id;
 
