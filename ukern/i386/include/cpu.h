@@ -49,7 +49,7 @@ int cpu_number_from_lapic(void);
     movl %fs:0, _reg;				\
     movl (_reg), _reg
 
-#define T_CURRENT(_reg)			\
+#define CURRENT_THREAD(_reg)			\
     movl %fs:0, _reg;				\
     movl 4(_reg), _reg
 
