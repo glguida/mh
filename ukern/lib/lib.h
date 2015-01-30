@@ -15,6 +15,10 @@ void _setputcfn(int(*)(int));
 int fls(int);
 int ffs(int);
 
+int _setjmp(jmp_buf);
+void _longjmp(jmp_buf, int);
+void _setupjmp(jmp_buf, void (*)(void), void *);
+
 #ifdef __DEBUG
 #define dprintf(...) do { printf(__VA_ARGS__); } while(0)
 #else

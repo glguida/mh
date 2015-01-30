@@ -7,6 +7,10 @@ typedef unsigned long long  paddr_t;
 typedef u_long              vaddr_t;
 typedef unsigned            pfn_t;
 
+#if defined(_UKERNEL)
 
+typedef unsigned long jmp_buf[6];
+
+#endif
 
 #endif
