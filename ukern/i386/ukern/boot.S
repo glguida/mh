@@ -108,6 +108,7 @@ multiboot_entry:
 	addl $UKERNBASE, vptrscrsrc
 	addl $UKERNBASE, vptrscrdst
 
+	call _C_LABEL(_clear_bss)
 	call sysboot
 halt:
 	pushl $haltstring
@@ -133,6 +134,17 @@ print:
 	cmp $0, %al
 	loopne 1b
 	ret
+
+ENTRY(_clear_bss)
+	push %edi
+	mov $0x0, %eax
+	mov $_ebss, %ecx
+	sub $_sbss, %ecx
+	mov $_sbss, %edi
+	rep stosl
+	pop %edi
+	ret
+END(_clear_bss)
 
 ENTRY(_setup_boot_gdt)
 	/* Zero whole page */
@@ -295,8 +307,4 @@ LABEL(_ukern_end)
 stackbtm:
 	.skip 4096
 stacktop:
-	.skip 512
-LABEL(_bsp_tss)
-	.skip 102
-	.hword 104 // IOMAP over the edge.
 
