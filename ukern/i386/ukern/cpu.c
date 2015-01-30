@@ -50,8 +50,9 @@ cpu_add(uint16_t physid, uint16_t acpiid)
     cpu->cpu_id = id;
     cpu->phys_id = physid;
     cpu->acpi_id = acpiid;
-    cpu->self = cpu;
     cpu->tss.iomap = 108;
+    cpu->softirq = 0;
+    cpu->self = cpu;
     cpus[id] = cpu;
     cpu_phys_to_id[physid] = id;
 

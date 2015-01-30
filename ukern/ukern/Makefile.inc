@@ -1,5 +1,5 @@
 VPATH+= ukern
-SRCS+= kern.c pfndb.c pgalloc.c fixmems.c heap.c vmap.c
+SRCS+= addrspc.c kern.c pfndb.c pgalloc.c fixmems.c heap.c vmap.c thread.c
 
 CUSTOBJS+= $(OBJDIR)/fixmem.o $(OBJDIR)/structs.o
 

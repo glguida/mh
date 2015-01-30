@@ -49,4 +49,12 @@ cmos_write(uint16_t addr, uint16_t val)
 		  :: "r"(addr), "r"(val));
 }
 
+static inline void
+pic_off(void)
+{
+    asm volatile ("outb %0, $0x21\n\t"
+		  "outb %0, $0xa1\n\t"
+		  :: "r"(0xff));
+}
+
 #endif

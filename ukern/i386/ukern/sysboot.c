@@ -6,9 +6,13 @@
 #include <ukern/fixmems.h>
 #include <ukern/heap.h>
 #include <ukern/vmap.h>
+#include <ukern/thread.h>
+#include <ukern/addrspc.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
 #include <ukern/kern.h>
+#include "i386.h"
+
 
 char *_boot_cmdline = NULL;
 void _load_segs(unsigned int, struct tss *, struct cpu_info **cpu);
@@ -24,6 +28,7 @@ void platform_init(void)
 {
     acpi_findrootptr();
     acpi_init();
+    pic_off();
 }
 
 #define E820_START       ((struct e820e *)UKERN_BSMAP16)
@@ -33,8 +38,10 @@ void platform_init(void)
 void
 sysboot(void)
 {
-    unsigned i, cpuid;
     void *lpfndb;
+    unsigned i, cpuid;
+    struct pmap *pmap;
+    struct addrspc *as;
     uint32_t pfn_maxmem = 0;
     uint32_t pfn_maxaddr = 0;
 
@@ -90,7 +97,7 @@ sysboot(void)
     pmap_init();
 
     printf("Booting...\n");
-    pmap_boot();
+    pmap = pmap_boot();
 
     heap_init();
     vmap_init();
@@ -105,15 +112,20 @@ sysboot(void)
     _load_segs(cpuid, &cpu_get(cpuid)->tss, &cpu_get(cpuid)->self);
     __insn_barrier(); /* FS: now valid */
 
-    cpu_wakeup_aps();
+    addrspc_init();
+    thread_init();
+    as = addrspc_boot(pmap);
+    thread_boot(as);
     kern_boot();
 }
 
 void sysboot_ap(void)
 {
     unsigned cpuid;
+    struct pmap *pmap;
+    struct addrspc *as;
 
-    pmap_boot();
+    pmap = pmap_boot();
     __insn_barrier(); /* LAPIC now mapped */
 
     cpuid = cpu_number_from_lapic();
@@ -121,5 +133,8 @@ void sysboot_ap(void)
     __insn_barrier(); /* FS: now valid */
     printf("CPU %d on.\n", cpu_number());
 
+    as = addrspc_boot(pmap);
+    thread_boot(as);
     kern_bootap();
 }
+

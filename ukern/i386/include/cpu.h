@@ -4,6 +4,7 @@
 #ifndef _ASSEMBLER
 #include <uk/types.h>
 #include <uk/assert.h>
+#include <uk/queue.h>
 #include <machine/uk/lapic.h>
 #include <i386/ukern/i386.h>
 
@@ -11,12 +12,15 @@
 #define UKERN_MAX_PHYSCPUS 64
 
 struct cpu_info {
-    uint32_t   cpu_id; /* fs:0 */
-    void       *current; /* fs:4 */
-    struct tss tss;
+    uint32_t      cpu_id;   /* fs:0 */
+    struct thread *current; /* fs:4 */
+    struct thread *idle_thread;
+    TAILQ_HEAD(, thread) resched;
+    struct tss    tss;
+    uint64_t      softirq;
 
-    uint16_t   phys_id;
-    uint16_t   acpi_id;
+    uint16_t      phys_id;
+    uint16_t      acpi_id;
     struct cpu_info *self;
 };
 
@@ -25,7 +29,7 @@ struct cpu_info *cpu_get(unsigned id);
 void cpu_wakeup_aps(void);
 
 static inline struct cpu_info *
-cpu_info(void)
+current_cpu(void)
 {
     struct cpu_info *ptr;
 
@@ -34,9 +38,9 @@ cpu_info(void)
 }
 
 int cpu_number_from_lapic(void);
-#define cpu_number() (cpu_info()->cpu_id)
-#define cpu_current() (cpu_info()->current)
-#define cpu_setcurrent(_current) (cpu_info()->current = (_current))
+#define cpu_number() (current_cpu()->cpu_id)
+#define current_thread() (current_cpu()->current)
+#define set_current_thread(_th) (current_cpu()->current = (_th))
 
 
 #else /* _ASSEMBLER */
@@ -45,7 +49,7 @@ int cpu_number_from_lapic(void);
     movl %fs:0, _reg;				\
     movl (_reg), _reg
 
-#define CPU_CURRENT(_reg)			\
+#define T_CURRENT(_reg)			\
     movl %fs:0, _reg;				\
     movl 4(_reg), _reg
 
