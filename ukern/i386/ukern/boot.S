@@ -108,6 +108,7 @@ multiboot_entry:
 	addl $UKERNBASE, vptrscrsrc
 	addl $UKERNBASE, vptrscrdst
 
+	call _C_LABEL(_fixup_gdt)
 	call _C_LABEL(_clear_bss)
 	call sysboot
 halt:
@@ -175,6 +176,19 @@ ENTRY(_setup_boot_gdt)
 	movl $0x00009201, 4(%eax)
 	add $8, %eax
 	ret
+
+ENTRY(_fixup_gdt)
+	mov $UKERN_BGDTABLE + UKERNBASE + (8 * 3), %eax
+	/* User 32-bit code */
+	movl $0x0000ffff, (%eax)
+	movl $0x00cffa00, 4(%eax)
+	add $8, %eax
+	/* User 32-bit data */
+	movl $0x0000ffff, (%eax)
+	movl $0x00cff200, 4(%eax)
+	add $8, %eax
+	ret
+END(_fixup_gdt)
 
 	.globl _C_LABEL(_load_segs)
 _C_LABEL(_load_segs):
@@ -281,6 +295,8 @@ apsetup: /* bx:	AP Bootstrap Segment */
 	/* Reload GDT and IDT */
 	lgdt UKERN_BGDTREG
 	lidt _C_LABEL(_kern_idtr)
+	ljmp $KCS, $1f
+1:
 	/* Setup stack */
 	xor %eax, %eax
 	mov %bx, %ax

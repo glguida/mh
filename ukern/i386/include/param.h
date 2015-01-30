@@ -69,6 +69,10 @@
 
 #define KCS 0x08
 #define KDS 0x10
+#define UCS 0x1b
+#define UDS 0x23
+
+/* Boot time 16 bit segs */
 #define CS16  0x18
 #define RDS16 0x20
 
