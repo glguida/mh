@@ -98,7 +98,18 @@ pmap_commit(struct pmap *pmap)
     spinunlock(&pmap->lock);
 }
 
-struct pmap*
+void
+pmap_switch(struct pmap *pmap)
+{
+    struct pmap *oldpmap;
+
+    oldpmap = pmap_current();
+    pmap->refcnt++;
+    __setpdptr(pmap->pdptr);
+    oldpmap->refcnt--;
+}
+
+struct pmap *
 pmap_boot(void)
 {
     struct pmap *bpmap;
