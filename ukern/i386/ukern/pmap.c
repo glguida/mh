@@ -19,33 +19,35 @@ __regparm void __setpdptr(void *);
 #define pmap_current()						\
     ((struct pmap *)((uintptr_t)UKERNBASE + __getpdptr()	\
 		     - offsetof(struct pmap, pdptr)))
-
 struct pmap *
 pmap_alloc(void)
 {
-    l1e_t *l1;
+    l1e_t *l1s;
     struct pmap *pmap;
 
-    l1 = (l1e_t *)alloc4k();
-    if (l1 == NULL)
+    l1s = (l1e_t *)alloc12k();
+    if (l1s == NULL)
 	return NULL;
+    memset(l1s, 0, 12 * 1024);
 
     pmap = structs_alloc(&pmap_cache);
     if (pmap == NULL) {
-	free4k(l1);
+	free12k(l1s);
 	return NULL;
     }
 
-    memset(l1, 0, 4096);
-    /* (l1 + LINOFF) must always be the copy of PDPTR */
-    l1[LINOFF + 2] = mklinl1e(DEUKERNBASE(l1), 
-			      PG_A | PG_D | PG_W | PG_P);
-    l1[LINOFF + 3] = mklinl1e(DEUKERNBASE(pmap_kernel_l1), 
-			      PG_A | PG_D | PG_W | PG_P);
+    l1s[NPTES * 2 + LINOFF + 0] = mklinl1e(DEUKERNBASE(l1s),
+					 PG_A | PG_D | PG_W | PG_P);
+    l1s[NPTES * 2 + LINOFF + 1] = mklinl1e(DEUKERNBASE(l1s + NPTES),
+					 PG_A | PG_D | PG_W | PG_P);
+    l1s[NPTES * 2 + LINOFF + 2] = mklinl1e(DEUKERNBASE(l1s + NPTES * 2),
+					 PG_A | PG_D | PG_W | PG_P);
+    l1s[NPTES * 2 + LINOFF + 3] = mklinl1e(DEUKERNBASE(pmap_kernel_l1),
+					 PG_A | PG_D | PG_W | PG_P);
 
-    pmap->pdptr[0] = 0;
-    pmap->pdptr[1] = 0;
-    pmap->pdptr[2] = mkl2e(DEUKERNBASE(l1), PG_P);
+    pmap->pdptr[0] = mkl2e(DEUKERNBASE(l1s), PG_P);
+    pmap->pdptr[1] = mkl2e(DEUKERNBASE(l1s + 512), PG_P);
+    pmap->pdptr[2] = mkl2e(DEUKERNBASE(l1s + 1024), PG_P);
     pmap->pdptr[3] = mkl2e(DEUKERNBASE(pmap_kernel_l1), PG_P);
 
     pmap->lock = 0;

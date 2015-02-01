@@ -13,17 +13,21 @@ int fixmem_register(struct slab *sc, char *name, size_t objsize,
 void fixmem_deregister(struct slab *sc);
 void fixmem_dumpstats(void);
 
-#define setup_fixmem(_sc, _pow)					\
-  fixmem_register((_sc), "fixmem" #_pow, 1L<<(_pow), NULL, 0)
+#define setup_fixmem(_sc, _sz)					\
+  fixmem_register((_sc), "fixmem" #_sz, (_sz), NULL, 0)
 #define fini_fixmem(_sc)			\
   fixmem_deregister((_sc))
 
 
 extern struct slab m4k;
+extern struct slab m12k;
 
 void fixmems_init();
 
 #define alloc4k() fixmem_alloc_opq(&m4k, NULL)
 #define free4k(_p) fixmem_free(_p)
+
+#define alloc12k() fixmem_alloc_opq(&m12k, NULL)
+#define free12k(_p) fixmem_free(_p)
 
 #endif
