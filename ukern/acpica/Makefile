@@ -1,5 +1,5 @@
-SRCROOT=../../
-MKDIR=$(SRCROOT)/mk
+SRCROOT=../..
+include $(SRCROOT)/mk/mk.conf
 OBJDIR=$(SRCROOT)/ukern/acpica/.objdir
 ALL_PREDEP = exts
 EXTS += acpica
@@ -8,7 +8,7 @@ ifneq ($(DEBUG)z,z)
 CFLAGS+= -DACPICA_DEBUG
 endif
 
-include $(MKDIR)/ukern.mk
+include $(MAKEDIR)/ukern.mk
 
 LIBNAME=kacpica
 NOINST=y
@@ -69,8 +69,8 @@ SRCS+= psxface.c pstree.c psparse.c \
 	psopcode.c psloop.c
 VPATH+= $(EXTSDIR)/acpica/parser/
 
-include $(MKDIR)/obj.mk
-include $(MKDIR)/exts.mk
-include $(MKDIR)/lib.mk
-include $(MKDIR)/def.mk
+include $(MAKEDIR)/obj.mk
+include $(MAKEDIR)/exts.mk
+include $(MAKEDIR)/lib.mk
+include $(MAKEDIR)/def.mk
 

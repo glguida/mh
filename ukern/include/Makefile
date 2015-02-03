@@ -1,9 +1,8 @@
-SRCROOT=../../
-CURDIR=include
-MKDIR=$(SRCROOT)/mk
-include $(MKDIR)/rules.mk
+SRCROOT=../..
+include $(SRCROOT)/mk/mk.conf
 
-INCS= assert.h cdefs.h cdefs_elf.h types.h locks.h param.h stdarg.h stdbool.h
+INCS= assert.h cdefs.h cdefs_elf.h types.h locks.h param.h stdarg.h stdbool.h \
+	elf.h
 
 #From NetBSD
 INCS+= queue.h rbtree.h
@@ -11,5 +10,5 @@ INCS+= queue.h rbtree.h
 INCDIR= uk
 INCSUBDIRS=
 
-include $(MKDIR)/inc.mk
-include $(MKDIR)/def.mk
+include $(MAKEDIR)/inc.mk
+include $(MAKEDIR)/def.mk

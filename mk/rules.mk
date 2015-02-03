@@ -1,4 +1,3 @@
-include $(SRCROOT)/ukern.config
 
 EXTSDIR=$(SRCROOT)/exts
 EXTSRCDIR=$(SRCROOT)/exts
@@ -20,11 +19,11 @@ else
 CFLAGS+= -O2 -g
 endif
 
-include $(MKDIR)/$(MACHINE)/rules.mk
-
 do_all: all
 
 ifneq ($(SUBDIRS_MKINC)z, z)
 include $(addsuffix /Makefile.inc, $(SUBDIRS_MKINC))
 endif
+
+include $(MAKEDIR)/$(MACHINE)/rules.mk
 

@@ -1,6 +1,6 @@
 CFLAGS += -D_UKERNEL -I .
 ASFLAGS += -D_UKERNEL
-LDFLAGS += -T $(MKDIR)/ukern.ld
+LDFLAGS += -T $(MAKEDIR)/ukern.ld
 
-include $(MKDIR)/rules.mk
+include $(MAKEDIR)/rules.mk
 
