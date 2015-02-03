@@ -13,8 +13,8 @@
 #include <ukern/kern.h>
 #include "i386.h"
 
-
 char *_boot_cmdline = NULL;
+
 void _load_segs(unsigned int, struct tss *, struct cpu_info **cpu);
 
 struct e820e {
@@ -83,7 +83,7 @@ sysboot(void)
     pfndb_subst(PFNT_INVALID, PFNT_MMIO);
 
     /* Mark kernel as SYSTEM */
-    for (i = 0; i <= atop(trunc_page(UKERNEND - UKERNBASE)); i++)
+    for (i = 0; i <= atop(round_page(UKERNEND - UKERNBASE)); i++)
 	pfndb_add(i, PFNT_SYSTEM);
 
     /* Mark PFNDB as SYSTEM */
