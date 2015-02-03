@@ -28,5 +28,14 @@ SECTIONS
       *(.bss);
       _ebss = .;
    }
+
+   .init.elf :
+   {
+       _init_elf = .;
+       *(.init.elf);
+       _einit_elf = .;
+   }
+
    _end = .;
+
 }

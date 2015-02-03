@@ -6,7 +6,7 @@
 #define _BOOT_FLAGS       0x00000003
 
 #define MBIOFFSET_FLAGS   0
-#define _MBIF_CMDLINE     (1 << 3)
+#define _MBIF_CMDLINE     (1 << 2)
 #define MBIOFFSET_CMDLINE 16
 
 ENTRY(start)
@@ -142,7 +142,7 @@ ENTRY(_clear_bss)
 	mov $_ebss, %ecx
 	sub $_sbss, %ecx
 	mov $_sbss, %edi
-	rep stosl
+	rep stosb
 	pop %edi
 	ret
 END(_clear_bss)
@@ -318,6 +318,12 @@ badbootstring_size = . - badbootstring
 
 LABEL(_ukern_end)
 	.long _end
+
+LABEL(_init_start)
+	.long _init_elf
+
+LABEL(_init_end)
+	.long _einit_elf
 
 	.align 4096
 stackbtm:
