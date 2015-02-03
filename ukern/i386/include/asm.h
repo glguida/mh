@@ -16,9 +16,12 @@
 #define END(y)          .size y, . - y
 
 #define WEAK_ALIAS(alias,sym)			\
-  .weak alias; 					\
+  .weak alias;					\
   alias = sym
- 
+
+#define STRONG_ALIAS(alias,sym)			\
+  .globl alias;					\
+  alias = sym
 
 #endif /* _ASSEMBLER */
 
