@@ -26,12 +26,21 @@ struct pmap *pmap_boot(void);
 struct pmap *pmap_alloc(void);
 void pmap_switch(struct pmap *pmap);
 
-#define PROT_KERNWRX   PROT_KERNX | PG_A | PG_D | PG_W | PG_D
-#define PROT_KERNWR    PROT_KERN | PG_A | PG_D | PG_W | PG_D
-#define PROT_KERN      PG_P | PG_NX
+#define PROT_KERNWRX   (PROT_KERNX | PG_A | PG_D | PG_W | PG_D)
+#define PROT_KERNWR    (PROT_KERN | PG_A | PG_D | PG_W | PG_D)
+#define PROT_KERN      (PG_P | PG_NX)
 #define PROT_KERNX     PG_P
 #define PROT_GLOBAL    PG_G
+#define PROT_USER      (PG_U | PG_NX | PG_P)
+#define PROT_USER_WR   (PG_W | PG_U | PG_NX | PG_P)
+#define PROT_USER_WRX  (PG_W | PG_U | PG_P)
+typedef unsigned pmap_prot_t;
 
+#define FAULT_P 1
+#define FAULT_W 2
+#define FAULT_U 4
+#define FAULT_X 8
+typedef unsigned pmap_fault_t;
 
 void pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
 void pmap_commit(struct pmap *pmap);
