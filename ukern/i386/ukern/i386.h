@@ -42,7 +42,7 @@ _delay(void)
 }
 
 static inline void
-cmos_write(uint16_t addr, uint16_t val)
+cmos_write(uint8_t addr, uint8_t val)
 {
     asm volatile ("outb %0, $0x70\n\t"
 		  "outb %0, $0x71\n\t"
@@ -52,9 +52,12 @@ cmos_write(uint16_t addr, uint16_t val)
 static inline void
 pic_off(void)
 {
-    asm volatile ("outb %0, $0x21\n\t"
-		  "outb %0, $0xa1\n\t"
-		  :: "r"(0xff));
+#define pic_write(_p1, _p2) do {		\
+    asm volatile ("outb %0, $0x21\n\t" :: "r"((uint8_t)_p1));	\
+    asm volatile ("outb %0, $0xa1\n\t" :: "r"((uint8_t)_p2));	\
+  } while (0)
+
+  pic_write(0xff, 0xff);
 }
 
 #endif
