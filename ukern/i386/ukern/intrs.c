@@ -1,4 +1,8 @@
 #include <uk/types.h>
+#include <machine/uk/cpu.h>
+#include <machine/uk/param.h>
+#include <ukern/thread.h>
+#include <ukern/addrspc.h>
 #include <lib/lib.h>
 
 struct intframe {
@@ -70,21 +74,55 @@ int
 xcpt_entry(uint32_t vect, struct intframe *f)
 {
 
-    printf("\nException #%2u at %02x:%08x", vect, f->cs, f->eip);
+    printf("\nException #%2u at %02x:%08x, addr %08x",
+	   vect, f->cs, f->eip, f->cr2);
     if (vect < 20) 
 	printf(": %s\n", exceptions[vect]);
     else
 	printf("\n");
 
-    framedump(f);
+    if (f->cs == UCS) {
+	int rc;
+
+	switch (vect) {
+	case 14:
+	    rc = addrspc_pagefault(f->cr2, 0/*XXX:*/);
+	    if (!rc)
+		return 0;
+	    goto _usrerr;
+	default:
+	_usrerr:
+	    /* XXX: kill process instead */
+	    printf("unhandled exception!\n");
+	    framedump(f);
+	    goto _hlt;
+	}
+    } else {
+	/* XXX: Kernel bug. panic and block other cpus */
+	framedump(f);
+	goto _hlt;
+    }
+
     return 0;
+
+  _hlt:
+    asm volatile("cli; hlt");
+    /* Not reached */
+    return -1;
 }
 
 int
 intr_entry(uint32_t vect, struct intframe *f)
 {
+    int usrint = !!(f->cs == UCS);
 
-    printf("\nUnknown exception %2u\n", vect);
+    if (usrint)
+	current_thread()->frame = f;
+
+    printf("\nUnknown interrupt %2u\n", vect);
     framedump(f);
+
+    if (usrint)
+	current_thread()->frame = NULL;
     return 0;
 }
