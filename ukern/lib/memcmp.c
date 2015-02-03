@@ -4,7 +4,7 @@
 int
 memcmp(void *s1, void *s2, size_t n)
 {
-    unsigned char *p1, *p2;
+    char *p1 = s1, *p2 = s2;
 
     if (!n)
 	return 0;
