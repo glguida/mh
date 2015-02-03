@@ -3,9 +3,12 @@ ALL_TARGET+= $(PROGNAME)
 CLEAN_TARGET+= clean_$(PROGNAME)
 INSTALL_TARGET+= install_$(PROGNAME)
 
+# Fixup existing LDFLAGS by adding -WL, as we're going to link with cc
+LDFLAGS= $(addprefix -Wl,$(LDFAGS))
+
 # Standard programs options
 CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include
-CFLAGS+= -T $(SRCROOT)/make/elf_i386.ld
+CFLAGS+= -T $(SRCROOT)/mk/elf_i386.ld
 ASFLAGS+= -isystem $(INSTALLDIR)/usr/include
 LDFLAGS+= -B $(INSTALLDIR)/lib -B $(INSTALLDIR)/usr/lib
 
@@ -13,7 +16,7 @@ LDFLAGS+= -B $(INSTALLDIR)/lib -B $(INSTALLDIR)/usr/lib
 LDFLAGS+= -L $(INSTALLDIR)/lib/sys
 CRT0= $(INSTALLDIR)/lib/sys/crt0.o
 CRTEND=
-LDADD+= -lcsu
+LDADD+= -lcrt
 
 $(PROGNAME): $(OBJS)
 	$(CC) -o $(PROGNAME) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(CRT0) $(OBJS) $(LDADD) $(CRTEND)

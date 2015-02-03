@@ -3,7 +3,7 @@ OUTPUT_ARCH(i386)
 ENTRY(_start)
 SECTIONS
 {
-   .text 0x1000 :
+   .text 0x200000 :
    {
       _scode = .;
       *(.text)
@@ -11,13 +11,13 @@ SECTIONS
       *(.rodata.str?.*)
       _ecode = .;
     }
-    .data ALIGN (4096) :
+    .data ALIGN (0x200000) :
     {
       *(.data)
       *(.comment)
       _edata = .;
     }
-    .bss ALIGN (4096) :
+    .bss ALIGN (0x200000) :
     {
       *(.bss)
       *(.comm)
