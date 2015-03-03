@@ -75,7 +75,7 @@ ___slabgethdr(void *obj)
     unsigned pfn;
     uintptr_t addr = (uintptr_t)obj;
 
-    pfn = trunc_page(addr);
+    pfn = vatop(addr);
     assert(pfndb_type(pfn) == PFNT_FIXMEM);
     return pfndb_getptr(pfn);
 }
