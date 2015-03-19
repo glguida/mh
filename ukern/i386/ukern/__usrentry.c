@@ -1,8 +1,7 @@
 #include <uk/types.h>
 #include <machine/uk/param.h>
 #include <machine/uk/cpu.h>
-#include <ukern/thread.h>
-#include <ukern/usrentry.h>
+#include <ukern/kern.h>
 #include <lib/lib.h>
 
 void __usrentry_enter(void *frame)

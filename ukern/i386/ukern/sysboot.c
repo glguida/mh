@@ -6,7 +6,6 @@
 #include <ukern/fixmems.h>
 #include <ukern/heap.h>
 #include <ukern/vmap.h>
-#include <ukern/thread.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
 #include <ukern/kern.h>

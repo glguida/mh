@@ -1,7 +1,7 @@
 #include <uk/types.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
-#include <ukern/thread.h>
+#include <ukern/kern.h>
 #include <lib/lib.h>
 
 struct intframe {

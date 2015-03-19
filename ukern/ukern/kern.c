@@ -5,7 +5,6 @@
 #include <ukern/fixmems.h>
 #include <ukern/heap.h>
 #include <ukern/vmap.h>
-#include <ukern/thread.h>
 #include <ukern/structs.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
@@ -31,7 +30,7 @@ lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
 
-struct thread *thnew(void (*__start) (void))
+static struct thread *thnew(void (*__start) (void))
 {
 	struct thread *th;
 
@@ -45,7 +44,7 @@ struct thread *thnew(void (*__start) (void))
 	return th;
 }
 
-void thfree(struct thread *th)
+static void thfree(struct thread *th)
 {
 	/* thread must not be active, on any cpu */
 	pmap_free(th->pmap);
@@ -53,14 +52,7 @@ void thfree(struct thread *th)
 	structs_free(th);
 }
 
-void thdel(struct thread *th)
-{
-	assert(th == NULL || th == current_thread());
-
-
-}
-
-void thswitch(struct thread *th)
+static void thswitch(struct thread *th)
 {
 	if (!_setjmp(current_thread()->ctx)) {
 		pmap_switch(th->pmap);
@@ -70,19 +62,18 @@ void thswitch(struct thread *th)
 	}
 }
 
-int thpgfault(void)
+int thpgfault(vaddr_t va, unsigned long flags)
 {
 	return -1;
 }
 
 void cpu_softirq_raise(int id)
 {
-
 	printf("Raising softirq %d\n", id);
 	current_cpu()->softirq |= id;
 }
 
-void do_resched(void);
+static void do_resched(void);
 
 void do_cpu_softirq(void)
 {
@@ -100,7 +91,7 @@ void do_cpu_softirq(void)
 	}
 }
 
-void do_resched(void)
+static void do_resched(void)
 {
 	struct thread *th, *tmp;
 
@@ -132,13 +123,32 @@ void schedule(void)
 {
 	struct thread *th = NULL, *oldth = current_thread();
 
-	if (oldth == current_cpu()->idle_thread)
+	if (oldth == current_cpu()->idle_thread) {
 		oldth = NULL;
+		goto _skip_resched;
+	}
 
+	switch (oldth->status) {
+	case THST_RUNNING:
+		spinlock(&sched_lock);
+		TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
+		spinunlock(&sched_lock);
+		break;
+	case THST_STOPPED:
+		spinlock(&sched_lock);
+		TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
+		spinunlock(&sched_lock);
+		break;
+	case THST_DELETED:
+		TAILQ_INSERT_TAIL(&current_cpu()->resched, oldth,
+				  sched_list);
+		cpu_softirq_raise(SOFTIRQ_RESCHED);
+		break;
+	}
+
+      _skip_resched:
 	/* Schedule per-cpu? Actually simpler */
 	spinlock(&sched_lock);
-	if (oldth && thread_is_runnable(oldth) && !thread_is_idle(oldth))
-		TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
 	if (!TAILQ_EMPTY(&running_threads)) {
 		th = TAILQ_FIRST(&running_threads);
 		TAILQ_REMOVE(&running_threads, th, sched_list);
@@ -166,12 +176,10 @@ void die(void)
 	}
 
 	th->status = THST_DELETED;
-	TAILQ_INSERT_TAIL(&current_cpu()->resched, th, sched_list);
-	cpu_softirq_raise(SOFTIRQ_RESCHED);
 	schedule();
 }
 
-void idle(void)
+static void idle(void)
 {
 	while (1) {
 		schedule();
@@ -217,7 +225,7 @@ static vaddr_t elfld(void *elfimg)
 	return (vaddr_t) hdr->entry;
 }
 
-void __initstart(void)
+static void __initstart(void)
 {
 	vaddr_t entry;
 	struct thread *th = current_thread();
@@ -230,19 +238,6 @@ void __initstart(void)
 	__insn_barrier();
 	__usrentry_enter(th->usrentry.data);
 	/* Not reached */
-}
-
-void test(void)
-{
-	int i;
-
-	while (1) {
-		if (i++ < 10)
-			printf("Init started! %d\n", i);
-		else
-			i = 100;
-		schedule();
-	}
 }
 
 void kern_boot(void)
@@ -268,7 +263,7 @@ void kern_boot(void)
 	TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
 	spinunlock(&sched_lock);
 
-	//cpu_wakeup_aps();
+	cpu_wakeup_aps();
 	idle();
 }
 
