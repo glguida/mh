@@ -6,19 +6,20 @@
 #include <machine/uk/pae.h>
 
 struct pmap {
-    /* Needs to be first and cache aligned (32-byte needed by HW) */
-    l2e_t  pdptr[NPDPTE];    
+	/* Needs to be first and cache aligned (32-byte needed by HW) */
+	l2e_t pdptr[NPDPTE];
+	l1e_t *l1s;
 
-    unsigned tlbflush;
-    cpumask_t cpumap;
-    unsigned refcnt;
-    lock_t   lock;
+	unsigned tlbflush;
+	cpumask_t cpumap;
+	unsigned refcnt;
+	lock_t lock;
 };
 
 struct pv_entry {
-    LIST_ENTRY(pv_entry) list_entry;
-    struct pmap *pmap;
-    unsigned    vfn;
+	LIST_ENTRY(pv_entry) list_entry;
+	struct pmap *pmap;
+	unsigned vfn;
 };
 
 void pmap_init(void);
@@ -42,11 +43,14 @@ typedef unsigned pmap_prot_t;
 #define FAULT_X 8
 typedef unsigned pmap_fault_t;
 
-void pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
+l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
+pfn_t pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa, unsigned flags);
 void pmap_commit(struct pmap *pmap);
 
-#define pmap_enter(_pmap, _va, _pa, _prot) pmap_setl1e((_pmap), (_va), \
-						       mkl1e((_pa), (_prot)))
+//#define pmap_enter(_pmap, _va, _pa, _prot) atop(pmap_setl1e((_pmap), (_va), mkl1e((_pa), (_prot))))
 #define pmap_clear(_pmap, _va) pmap_setl1e((_pmap), (_va), 0)
+#define pmap_current()                                          \
+    ((struct pmap *)((uintptr_t)UKERNBASE + __getpdptr()        \
+                     - offsetof(struct pmap, pdptr)))
 
 #endif

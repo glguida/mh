@@ -2,7 +2,6 @@
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <ukern/thread.h>
-#include <ukern/addrspc.h>
 #include <lib/lib.h>
 
 struct intframe {
@@ -86,7 +85,7 @@ xcpt_entry(uint32_t vect, struct intframe *f)
 
 	switch (vect) {
 	case 14:
-	    rc = addrspc_pagefault(f->cr2, 0/*XXX:*/);
+	    rc = thpgfault(f->cr2, 0/*XXX:*/);
 	    if (!rc)
 		return 0;
 	    goto _usrerr;
@@ -95,7 +94,8 @@ xcpt_entry(uint32_t vect, struct intframe *f)
 	    /* XXX: kill process instead */
 	    printf("unhandled exception!\n");
 	    framedump(f);
-	    goto _hlt;
+	    die();
+		/* Not reached */
 	}
     } else {
 	/* XXX: Kernel bug. panic and block other cpus */
@@ -123,6 +123,6 @@ intr_entry(uint32_t vect, struct intframe *f)
     framedump(f);
 
     if (usrint)
-	current_thread()->frame = NULL;
+	die();
     return 0;
 }

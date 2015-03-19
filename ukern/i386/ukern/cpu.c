@@ -54,6 +54,7 @@ cpu_add(uint16_t physid, uint16_t acpiid)
     cpu->softirq = 0;
     cpu->self = cpu;
     cpus[id] = cpu;
+	TAILQ_INIT(&cpu->resched);
     cpu_phys_to_id[physid] = id;
 
     return id;

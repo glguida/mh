@@ -21,6 +21,10 @@
  * DMAP_END:ffe00000     Kernel VA allocation range
  */
 
+#define USERBASE  __ULONG(0x00000000)
+#define THSTKBASE __ULONG(0xb0000000)
+#define THSTKEND  __ULONG(0xb7e00000)
+#define USEREND   __ULONG(0xb8000000)
 #define UKERNBASE __ULONG(0xc0000000)
 #define UKERNEND  _ukern_end
 #define DMAPSIZE  __ULONG(768 << 20)
@@ -30,7 +34,7 @@
 #define KVA_EVMAP __ULONG(0xffe00000)
 #define VMAPSIZE  __ULONG(KVA_EVMAP - KVA_SVMAP)
 
-#define UKERNCMPOFF     0x100000 /* 1Mb */
+#define UKERNCMPOFF     0x100000	/* 1Mb */
 #define UKERNTEXTOFF    (UKERNBASE + UKERNCMPOFF)
 
 /*
@@ -51,16 +55,16 @@
 #define HIGHSTRT         DMAPSIZE
 
 /* Temporary physical boot-time allocation physical address */
-#define UKERN_BCODE16   0x10000 /* 16bit code */
-#define UKERN_BSTCK16   0x2fffe /* 16bit stack */
-#define UKERN_BSMAP16   0x30000 /* E820 map */
+#define UKERN_BCODE16   0x10000	/* 16bit code */
+#define UKERN_BSTCK16   0x2fffe	/* 16bit stack */
+#define UKERN_BSMAP16   0x30000	/* E820 map */
 
-#define UKERN_BL3TABLE  0x50000 /* Temporary L3 table */
-#define UKERN_BL2TABLE  0x51000 /* Temporary L2 table */
-#define UKERN_BGDTREG   0x52000 /* Temporary GDT reg */
-#define UKERN_BGDTABLE  0x52030 /* Temporary GDT */
+#define UKERN_BL3TABLE  0x50000	/* Temporary L3 table */
+#define UKERN_BL2TABLE  0x51000	/* Temporary L2 table */
+#define UKERN_BGDTREG   0x52000	/* Temporary GDT reg */
+#define UKERN_BGDTABLE  0x52030	/* Temporary GDT */
 
-#define UKERN_APBOOTPG  0x60000 /* AP stack */
+#define UKERN_APBOOTPG  0x60000	/* AP stack */
 #define UKERN_APBOOT(x) (UKERN_APBOOTPG + ((x) * 4096))
 
 /* Non-temporary boot-time static memory allocation */
@@ -83,6 +87,6 @@
 extern unsigned long _ukern_end;
 #endif
 
-#endif /* _UKERNEL */
+#endif				/* _UKERNEL */
 
 #endif
