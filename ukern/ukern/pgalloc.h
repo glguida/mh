@@ -5,9 +5,9 @@
 #include <uk/queue.h>
 
 struct pgzentry {
-    LIST_ENTRY(pgzentry) list;
-    pfn_t addr;
-    size_t size;
+	LIST_ENTRY(pgzentry) list;
+	pfn_t addr;
+	size_t size;
 };
 
 #define GFP_LOKERN_ONLY 1

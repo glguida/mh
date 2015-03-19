@@ -23,6 +23,6 @@
   .globl alias;					\
   alias = sym
 
-#endif /* _ASSEMBLER */
+#endif				/* _ASSEMBLER */
 
 #endif

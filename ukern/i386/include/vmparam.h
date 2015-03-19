@@ -6,7 +6,7 @@
 #define PAGE_SIZE   (1 << PAGE_SHIFT)
 #define PAGE_MASK   (PAGE_SIZE - 1)
 
-#define trunc_page(x) (((x) >> PAGE_SHIFT) << PAGE_SHIFT) /* type-safe */
+#define trunc_page(x) (((x) >> PAGE_SHIFT) << PAGE_SHIFT)	/* type-safe */
 #define round_page(x) trunc_page((x) + PAGE_MASK)
 
 #ifndef _ASSEMBLER

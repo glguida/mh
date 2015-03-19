@@ -23,10 +23,10 @@
 #define L_EOI		0xb0
 #define L_LOGDEST	0xd0
 #define L_DESTFMT	0xe0
-#define L_MISC		0xf0 /* Spurious vector */
-#define L_ISR		0x100 /* 256 bit */
-#define L_TMR		0x180 /* 256 bit */
-#define L_IRR		0x200 /* 256 bit */
+#define L_MISC		0xf0	/* Spurious vector */
+#define L_ISR		0x100	/* 256 bit */
+#define L_TMR		0x180	/* 256 bit */
+#define L_IRR		0x200	/* 256 bit */
 #define L_ERR		0x280
 #define L_ICR_LO	0x300
 #define L_ICR_HI	0x310
@@ -44,30 +44,27 @@
 extern void *lapic_base;
 void lapic_init(paddr_t base);
 
-static inline void
-lapic_write(unsigned reg, uint32_t data)
+static inline void lapic_write(unsigned reg, uint32_t data)
 {
 
-    *((uint32_t *)(lapic_base + reg)) = data;
+	*((uint32_t *) (lapic_base + reg)) = data;
 }
 
-static inline uint32_t
-lapic_read(unsigned reg)
+static inline uint32_t lapic_read(unsigned reg)
 {
 
-    return *((uint32_t *)(lapic_base + reg));
+	return *((uint32_t *) (lapic_base + reg));
 }
 
-static inline void
-lapic_ipi(unsigned physid, uint8_t dlvr, uint8_t vct)
+static inline void lapic_ipi(unsigned physid, uint8_t dlvr, uint8_t vct)
 {
-    uint32_t hi, lo;
+	uint32_t hi, lo;
 
-    lo = 0x4000 | (dlvr & 0x7) << 8 | vct;
-    hi = (physid & 0xff) << 24;
+	lo = 0x4000 | (dlvr & 0x7) << 8 | vct;
+	hi = (physid & 0xff) << 24;
 
-    lapic_write(L_ICR_HI, hi);
-    lapic_write(L_ICR_LO, lo);
+	lapic_write(L_ICR_HI, hi);
+	lapic_write(L_ICR_LO, lo);
 }
 
 #define lapic_getcurrent(void)  (lapic_read(L_IDREG) >> 24)

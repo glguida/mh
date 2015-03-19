@@ -6,9 +6,9 @@
 
 #ifdef _UKERNEL
 
-__regparm void spinlock(lock_t *l);
-__regparm void spinunlock(lock_t *l);
+__regparm void spinlock(lock_t * l);
+__regparm void spinunlock(lock_t * l);
 
-#endif /* _UKERNEL */
+#endif				/* _UKERNEL */
 
 #endif

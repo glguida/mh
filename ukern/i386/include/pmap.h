@@ -44,7 +44,8 @@ typedef unsigned pmap_prot_t;
 typedef unsigned pmap_fault_t;
 
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
-pfn_t pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa, unsigned flags);
+pfn_t pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa,
+		 unsigned flags);
 void pmap_commit(struct pmap *pmap);
 
 //#define pmap_enter(_pmap, _va, _pa, _prot) atop(pmap_setl1e((_pmap), (_va), mkl1e((_pa), (_prot))))

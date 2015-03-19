@@ -5,11 +5,10 @@
 
 void *lapic_base = NULL;
 
-void
-lapic_init(paddr_t base)
+void lapic_init(paddr_t base)
 {
 
-    lapic_base = kvmap(base, LAPIC_SIZE);
-    dprintf("lapic (PA: %016llx) mapped at addr %p\n", base, lapic_base);
+	lapic_base = kvmap(base, LAPIC_SIZE);
+	dprintf("lapic (PA: %016llx) mapped at addr %p\n", base,
+		lapic_base);
 }
-

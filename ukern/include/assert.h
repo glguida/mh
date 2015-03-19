@@ -8,7 +8,7 @@
 #ifdef __DEBUG
 #define dbgassert(_e) do { if (!(_e)) panic("Assert failed: " #_e); } while(0)
 #else
-#define dbgassert(_e) 
+#define dbgassert(_e)
 #endif
 
 #endif

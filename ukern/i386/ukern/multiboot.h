@@ -51,82 +51,82 @@ typedef uint32_t u32;
 
 /* The symbol table for a.out.  */
 typedef struct {
-    u32 tabsize;
-    u32 strsize;
-    u32 addr;
-    u32 reserved;
+	u32 tabsize;
+	u32 strsize;
+	u32 addr;
+	u32 reserved;
 } aout_symbol_table_t;
 
 /* The section header table for ELF.  */
 typedef struct {
-    u32 num;
-    u32 size;
-    u32 addr;
-    u32 shndx;
+	u32 num;
+	u32 size;
+	u32 addr;
+	u32 shndx;
 } elf_section_header_table_t;
 
 /* The Multiboot information.  */
 typedef struct {
-    u32 flags;
+	u32 flags;
 
-    /* Valid if flags sets MBI_MEMLIMITS */
-    u32 mem_lower;
-    u32 mem_upper;
+	/* Valid if flags sets MBI_MEMLIMITS */
+	u32 mem_lower;
+	u32 mem_upper;
 
-    /* Valid if flags sets MBI_BOOTDEV */
-    u32 boot_device;
+	/* Valid if flags sets MBI_BOOTDEV */
+	u32 boot_device;
 
-    /* Valid if flags sets MBI_CMDLINE */
-    u32 cmdline;
+	/* Valid if flags sets MBI_CMDLINE */
+	u32 cmdline;
 
-    /* Valid if flags sets MBI_MODULES */
-    u32 mods_count;
-    u32 mods_addr;
+	/* Valid if flags sets MBI_MODULES */
+	u32 mods_count;
+	u32 mods_addr;
 
-    /* Valid if flags sets ... */
-    union {
-        aout_symbol_table_t aout_sym;        /* ... MBI_AOUT_SYMS */
-        elf_section_header_table_t elf_sec;  /* ... MBI_ELF_SYMS */
-    } u;
+	/* Valid if flags sets ... */
+	union {
+		aout_symbol_table_t aout_sym;	/* ... MBI_AOUT_SYMS */
+		elf_section_header_table_t elf_sec;	/* ... MBI_ELF_SYMS */
+	} u;
 
-    /* Valid if flags sets MBI_MEMMAP */
-    u32 mmap_length;
-    u32 mmap_addr;
+	/* Valid if flags sets MBI_MEMMAP */
+	u32 mmap_length;
+	u32 mmap_addr;
 
-    /* Valid if flags sets MBI_DRIVES */
-    u32 drives_length;
-    u32 drives_addr;
+	/* Valid if flags sets MBI_DRIVES */
+	u32 drives_length;
+	u32 drives_addr;
 
-    /* Valid if flags sets MBI_BIOSCONFIG */
-    u32 config_table;
+	/* Valid if flags sets MBI_BIOSCONFIG */
+	u32 config_table;
 
-    /* Valid if flags sets MBI_LOADERNAME */
-    u32 boot_loader_name;
+	/* Valid if flags sets MBI_LOADERNAME */
+	u32 boot_loader_name;
 
-    /* Valid if flags sets MBI_APM */
-    u32 apm_table;
+	/* Valid if flags sets MBI_APM */
+	u32 apm_table;
 } multiboot_info_t;
 
 /* The module structure.  */
 typedef struct {
-    u32 mod_start;
-    u32 mod_end;
-    u32 string;
-    u32 reserved;
+	u32 mod_start;
+	u32 mod_end;
+	u32 string;
+	u32 reserved;
 } module_t;
 
 /* The memory map. Be careful that the offset 0 is base_addr_low
    but no size.  */
 typedef struct {
-    u32 size;
-    u32 base_addr_low;
-    u32 base_addr_high;
-    u32 length_low;
-    u32 length_high;
-    u32 type;
+	u32 size;
+	u32 base_addr_low;
+	u32 base_addr_high;
+	u32 length_low;
+	u32 length_high;
+	u32 type;
 } memory_map_t;
 
 
-#endif /* __ASSEMBLY__ */
+#endif				/* __ASSEMBLY__ */
 
-#endif /* __MULTIBOOT_H__ */
+#endif				/* __MULTIBOOT_H__ */

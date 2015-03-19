@@ -4,12 +4,12 @@
 #include <uk/cdefs.h>
 /* XXX: feature test? */
 
-typedef unsigned char  u_char;
+typedef unsigned char u_char;
 typedef unsigned short u_short;
-typedef unsigned int   u_int;
-typedef unsigned long  u_long;
+typedef unsigned int u_int;
+typedef unsigned long u_long;
 
-typedef unsigned long  uintptr_t;
+typedef unsigned long uintptr_t;
 
 #include <machine/uk/types.h>
 

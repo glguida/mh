@@ -11,17 +11,17 @@
 			      : NULL)
 
 struct ekheap {
-    int isfree;
-    size_t ulen;
-    LIST_ENTRY(ekheap) list;
-    LIST_ENTRY(ekheap) free_list;
+	int isfree;
+	size_t ulen;
+	 LIST_ENTRY(ekheap) list;
+	 LIST_ENTRY(ekheap) free_list;
 };
 
 struct kheap {
-    lock_t lock;
-    LIST_ENTRY(kheap) kheaps;
-    LIST_HEAD(, ekheap) list;
-    LIST_HEAD(, ekheap) free_list;
+	lock_t lock;
+	 LIST_ENTRY(kheap) kheaps;
+	 LIST_HEAD(, ekheap) list;
+	 LIST_HEAD(, ekheap) free_list;
 };
 
 lock_t kheaps_lock;
@@ -31,142 +31,136 @@ LIST_HEAD(, kheap) kheaps;
 #define UROUND(_s) (UNITS((_s) + sizeof(struct ekheap) - 1))
 #define HEAP_MAXALLOC (UNITS(PAGE_SIZE) - 1)
 
-static struct kheap *
-kheap_add(void)
+static struct kheap *kheap_add(void)
 {
-    pfn_t pfn = __allocpage(PFNT_HEAP);
-    struct kheap *hptr;
-    struct ekheap *eptr;
+	pfn_t pfn = __allocpage(PFNT_HEAP);
+	struct kheap *hptr;
+	struct ekheap *eptr;
 
-    /* Lock free, not connected */
-    hptr = pfndb_getptr(pfn);
-    hptr->lock = 0;
-    LIST_INIT(&hptr->list);
-    LIST_INIT(&hptr->free_list);
-    
-    eptr = (struct ekheap *)ptova(pfn);
-    eptr->isfree = 1;
-    eptr->ulen = UNITS(PAGE_SIZE); 
-    LIST_INSERT_HEAD(&hptr->list, eptr, list);
-    LIST_INSERT_HEAD(&hptr->free_list, eptr, free_list);
-    return hptr;
-}
+	/* Lock free, not connected */
+	hptr = pfndb_getptr(pfn);
+	hptr->lock = 0;
+	LIST_INIT(&hptr->list);
+	LIST_INIT(&hptr->free_list);
 
-static void *
-kheap_alloc(struct kheap *hptr, size_t sz)
-{
-    struct ekheap *eptr, *neptr;
-    unsigned udiff;
-    unsigned units = UROUND(sz) + 1; /* Account for hdr */
-
-    /* Splintering the heap is atomic. Long spinlock */
-    spinlock(&hptr->lock);
-    LIST_FOREACH(eptr, &hptr->free_list, free_list)
-	if (eptr->ulen >= units)
-	    break;
-
-    if (eptr == LIST_END(&hptr->free_list)) {
-	spinunlock(&hptr->lock);
-	return NULL;
-    }
-
-    assert(eptr->isfree);
-
-    udiff = eptr->ulen - units;
-    if (udiff) {
-	neptr = eptr + units;
-	neptr->isfree = 1;
-	neptr->ulen = udiff;
-
-	LIST_INSERT_AFTER(eptr, neptr, list);
-	LIST_INSERT_HEAD(&hptr->free_list, neptr, free_list);
-    }
-
-    LIST_REMOVE(eptr, free_list);
-    eptr->isfree = 0;
-    eptr->ulen = units;
-    spinunlock(&hptr->lock);
-
-    return eptr + 1;
-}
-
-static void
-kheap_free(void *ptr)
-{
-    unsigned pfn = vatop(ptr);
-    struct kheap *hptr;
-    struct ekheap *eptr, *peptr, *neptr;
-
-    assert(pfndb_type(pfn) == PFNT_HEAP);
-    hptr = (struct kheap *)pfndb_getptr(pfn);
-    eptr = (struct ekheap *)ptr - 1;
-
-    spinlock(&hptr->lock);
-    peptr = LIST_PREV(eptr, ekheap, list);
-    neptr = LIST_NEXT(eptr, list);
-    if (neptr && neptr->isfree) {
-	neptr->isfree = 0;
-	LIST_REMOVE(neptr, free_list);
-	LIST_REMOVE(neptr, list);
-	eptr->ulen += neptr->ulen;
-    }
-    if (peptr && peptr->isfree) {
-	LIST_REMOVE(eptr, list);
-	peptr->ulen += eptr->ulen;
-    } else {
-	eptr->isfree=1;
+	eptr = (struct ekheap *) ptova(pfn);
+	eptr->isfree = 1;
+	eptr->ulen = UNITS(PAGE_SIZE);
+	LIST_INSERT_HEAD(&hptr->list, eptr, list);
 	LIST_INSERT_HEAD(&hptr->free_list, eptr, free_list);
-    }
-    spinunlock(&hptr->lock);
+	return hptr;
 }
 
-void *
-heap_alloc(size_t size)
+static void *kheap_alloc(struct kheap *hptr, size_t sz)
 {
-    void *ptr = NULL;
-    struct kheap *hptr;
+	struct ekheap *eptr, *neptr;
+	unsigned udiff;
+	unsigned units = UROUND(sz) + 1;	/* Account for hdr */
 
-    if (size >= HEAP_MAXALLOC) {
-	panic("heap: size too big");
-	return NULL;
-    }
+	/* Splintering the heap is atomic. Long spinlock */
+	spinlock(&hptr->lock);
+	LIST_FOREACH(eptr, &hptr->free_list, free_list)
+		if (eptr->ulen >= units)
+		break;
 
-    spinlock(&kheaps_lock);
-    LIST_FOREACH(hptr, &kheaps, kheaps)
-      if ((ptr = kheap_alloc(hptr, size)) != NULL)
-	    break;
-    spinunlock(&kheaps_lock);
-    if (ptr != NULL)
+	if (eptr == LIST_END(&hptr->free_list)) {
+		spinunlock(&hptr->lock);
+		return NULL;
+	}
+
+	assert(eptr->isfree);
+
+	udiff = eptr->ulen - units;
+	if (udiff) {
+		neptr = eptr + units;
+		neptr->isfree = 1;
+		neptr->ulen = udiff;
+
+		LIST_INSERT_AFTER(eptr, neptr, list);
+		LIST_INSERT_HEAD(&hptr->free_list, neptr, free_list);
+	}
+
+	LIST_REMOVE(eptr, free_list);
+	eptr->isfree = 0;
+	eptr->ulen = units;
+	spinunlock(&hptr->lock);
+
+	return eptr + 1;
+}
+
+static void kheap_free(void *ptr)
+{
+	unsigned pfn = vatop(ptr);
+	struct kheap *hptr;
+	struct ekheap *eptr, *peptr, *neptr;
+
+	assert(pfndb_type(pfn) == PFNT_HEAP);
+	hptr = (struct kheap *) pfndb_getptr(pfn);
+	eptr = (struct ekheap *) ptr - 1;
+
+	spinlock(&hptr->lock);
+	peptr = LIST_PREV(eptr, ekheap, list);
+	neptr = LIST_NEXT(eptr, list);
+	if (neptr && neptr->isfree) {
+		neptr->isfree = 0;
+		LIST_REMOVE(neptr, free_list);
+		LIST_REMOVE(neptr, list);
+		eptr->ulen += neptr->ulen;
+	}
+	if (peptr && peptr->isfree) {
+		LIST_REMOVE(eptr, list);
+		peptr->ulen += eptr->ulen;
+	} else {
+		eptr->isfree = 1;
+		LIST_INSERT_HEAD(&hptr->free_list, eptr, free_list);
+	}
+	spinunlock(&hptr->lock);
+}
+
+void *heap_alloc(size_t size)
+{
+	void *ptr = NULL;
+	struct kheap *hptr;
+
+	if (size >= HEAP_MAXALLOC) {
+		panic("heap: size too big");
+		return NULL;
+	}
+
+	spinlock(&kheaps_lock);
+	LIST_FOREACH(hptr, &kheaps, kheaps)
+		if ((ptr = kheap_alloc(hptr, size)) != NULL)
+		break;
+	spinunlock(&kheaps_lock);
+	if (ptr != NULL)
+		return ptr;
+
+	hptr = kheap_add();
+	ptr = kheap_alloc(hptr, size);
+
+	spinlock(&kheaps_lock);
+	LIST_INSERT_HEAD(&kheaps, hptr, kheaps);
+	spinunlock(&kheaps_lock);
+
 	return ptr;
-
-    hptr = kheap_add();
-    ptr = kheap_alloc(hptr, size);
-
-    spinlock(&kheaps_lock);
-    LIST_INSERT_HEAD(&kheaps, hptr, kheaps);
-    spinunlock(&kheaps_lock);
-
-    return ptr;
 }
 
-void
-heap_free(void *ptr)
+void heap_free(void *ptr)
 {
 
-    kheap_free(ptr);
+	kheap_free(ptr);
 }
 
 void heap_init(void)
 {
 
-    assert(sizeof(struct kheap) < sizeof(ipfn_t));
+	assert(sizeof(struct kheap) < sizeof(ipfn_t));
 
-    kheaps_lock = 0;
-    LIST_INIT(&kheaps);
+	kheaps_lock = 0;
+	LIST_INIT(&kheaps);
 }
 
-void
-heap_shrink(void)
+void heap_shrink(void)
 {
 
 #warning implement me

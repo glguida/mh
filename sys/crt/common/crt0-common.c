@@ -3,9 +3,9 @@ int main(int argc, char *argv[]);
 void ___start(void)
 {
 	int argc = 0;
-	char *argv[] = {};
+	char *argv[] = { };
 
 	main(argc, argv);
 	/* XXX: DO EXIT! */
-	while(1);
+	while (1);
 }

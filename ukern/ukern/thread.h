@@ -29,7 +29,7 @@ struct thread {
 
 	uint16_t flags;
 	uint16_t status;
-	TAILQ_ENTRY(thread) sched_list;
+	 TAILQ_ENTRY(thread) sched_list;
 };
 
 #if 0

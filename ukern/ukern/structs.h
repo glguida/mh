@@ -6,10 +6,10 @@
 
 int structs_grow(struct slab *);
 int structs_shring(struct slab *);
-void * structs_alloc_opq(struct slab *, void *);
+void *structs_alloc_opq(struct slab *, void *);
 void structs_free(void *);
 int structs_register(struct slab *sc, char *name, size_t objsize,
-		     void (*ctr)(void *, void *, int), int cachealign);
+		     void (*ctr) (void *, void *, int), int cachealign);
 void structs_deregister(struct slab *sc);
 void structs_dumpstats(void);
 

@@ -9,7 +9,7 @@ int fixmem_shrink(struct slab *sc);
 void *fixmem_alloc_opq(struct slab *sc, void *opq);
 void fixmem_free(void *ptr);
 int fixmem_register(struct slab *sc, char *name, size_t objsize,
-		     void (*ctr)(void *, void *, int), int cachealign);
+		    void (*ctr) (void *, void *, int), int cachealign);
 void fixmem_deregister(struct slab *sc);
 void fixmem_dumpstats(void);
 

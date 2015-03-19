@@ -20,66 +20,64 @@ __regparm void __setpdptr(void *);
 #define pmap_current()						\
     ((struct pmap *)((uintptr_t)UKERNBASE + __getpdptr()	\
 		     - offsetof(struct pmap, pdptr)))
-struct pmap *
-pmap_alloc(void)
+struct pmap *pmap_alloc(void)
 {
-    l1e_t *l1s;
-    struct pmap *pmap;
+	l1e_t *l1s;
+	struct pmap *pmap;
 
-    l1s = (l1e_t *)alloc12k();
-    if (l1s == NULL)
-	return NULL;
-    memset(l1s, 0, 12 * 1024);
+	l1s = (l1e_t *) alloc12k();
+	if (l1s == NULL)
+		return NULL;
+	memset(l1s, 0, 12 * 1024);
 
-    pmap = structs_alloc(&pmap_cache);
-    if (pmap == NULL) {
-	free12k(l1s);
-	return NULL;
-    }
+	pmap = structs_alloc(&pmap_cache);
+	if (pmap == NULL) {
+		free12k(l1s);
+		return NULL;
+	}
 
-    l1s[NPTES * 2 + LINOFF + 0] = mklinl1e(DEUKERNBASE(l1s),
-					 PG_A | PG_D | PG_W | PG_P);
-    l1s[NPTES * 2 + LINOFF + 1] = mklinl1e(DEUKERNBASE(l1s + NPTES),
-					 PG_A | PG_D | PG_W | PG_P);
-    l1s[NPTES * 2 + LINOFF + 2] = mklinl1e(DEUKERNBASE(l1s + NPTES * 2),
-					 PG_A | PG_D | PG_W | PG_P);
-    l1s[NPTES * 2 + LINOFF + 3] = mklinl1e(DEUKERNBASE(pmap_kernel_l1),
-					 PG_A | PG_D | PG_W | PG_P);
+	l1s[NPTES * 2 + LINOFF + 0] = mklinl1e(DEUKERNBASE(l1s),
+					       PG_A | PG_D | PG_W | PG_P);
+	l1s[NPTES * 2 + LINOFF + 1] = mklinl1e(DEUKERNBASE(l1s + NPTES),
+					       PG_A | PG_D | PG_W | PG_P);
+	l1s[NPTES * 2 + LINOFF + 2] =
+		mklinl1e(DEUKERNBASE(l1s + NPTES * 2),
+			 PG_A | PG_D | PG_W | PG_P);
+	l1s[NPTES * 2 + LINOFF + 3] =
+		mklinl1e(DEUKERNBASE(pmap_kernel_l1),
+			 PG_A | PG_D | PG_W | PG_P);
 
-    pmap->pdptr[0] = mkl2e(DEUKERNBASE(l1s), PG_P);
-    pmap->pdptr[1] = mkl2e(DEUKERNBASE(l1s + 512), PG_P);
-    pmap->pdptr[2] = mkl2e(DEUKERNBASE(l1s + 1024), PG_P);
-    pmap->pdptr[3] = mkl2e(DEUKERNBASE(pmap_kernel_l1), PG_P);
-    pmap->l1s = l1s;
+	pmap->pdptr[0] = mkl2e(DEUKERNBASE(l1s), PG_P);
+	pmap->pdptr[1] = mkl2e(DEUKERNBASE(l1s + 512), PG_P);
+	pmap->pdptr[2] = mkl2e(DEUKERNBASE(l1s + 1024), PG_P);
+	pmap->pdptr[3] = mkl2e(DEUKERNBASE(pmap_kernel_l1), PG_P);
+	pmap->l1s = l1s;
 
-    pmap->lock = 0;
-    pmap->refcnt = 0;
+	pmap->lock = 0;
+	pmap->refcnt = 0;
 
-    return pmap;
+	return pmap;
 }
 
-void
-pmap_free(struct pmap *pmap)
+void pmap_free(struct pmap *pmap)
 {
 	assert(pmap != NULL && pmap != pmap_current());
 	free12k(pmap->l1s);
 	structs_free(pmap);
 }
 
-static void
-__setl1e(l1e_t *l1p, l1e_t l1e)
+static void __setl1e(l1e_t * l1p, l1e_t l1e)
 {
-    volatile uint32_t *ptr = (volatile uint32_t *)l1p;
+	volatile uint32_t *ptr = (volatile uint32_t *) l1p;
 
-    *ptr = 0;
-    *++ptr = l1e >> 32;
-    *--ptr = l1e & 0xffffffff;
+	*ptr = 0;
+	*++ptr = l1e >> 32;
+	*--ptr = l1e & 0xffffffff;
 }
 
-l1e_t
-pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
+l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
 {
-    l1e_t ol1e, *l1p;
+	l1e_t ol1e, *l1p;
 
 	if (pmap == NULL)
 		pmap = pmap_current();
@@ -90,16 +88,16 @@ pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
 	else
 		panic("set to different pmap voluntarily not supported.");
 
-    	spinlock(&pmap->lock);
-    	ol1e = *l1p;
-    	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
-    	__setl1e(l1p, nl1e);
-    	spinunlock(&pmap->lock);
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
 	return ol1e;
 }
 
 pfn_t
-pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa, unsigned flags)
+pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, unsigned flags)
 {
 	l1e_t ol1e;
 
@@ -110,70 +108,66 @@ pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa, unsigned flags)
 		return PFN_INVALID;
 }
 
-void
-pmap_commit(struct pmap *pmap)
+void pmap_commit(struct pmap *pmap)
 {
 
-    if (pmap == NULL)
-	pmap = pmap_current();
+	if (pmap == NULL)
+		pmap = pmap_current();
 
-    spinlock(&pmap->lock);
-    if (pmap->tlbflush & TLBF_GLOBAL)
-	__flush_tlbs(-1, TLBF_GLOBAL);
-    else if (pmap->tlbflush & TLBF_LOCAL)
-	__flush_tlbs(pmap->cpumap, TLBF_LOCAL);
-    pmap->tlbflush = 0;
-    spinunlock(&pmap->lock);
+	spinlock(&pmap->lock);
+	if (pmap->tlbflush & TLBF_GLOBAL)
+		__flush_tlbs(-1, TLBF_GLOBAL);
+	else if (pmap->tlbflush & TLBF_LOCAL)
+		__flush_tlbs(pmap->cpumap, TLBF_LOCAL);
+	pmap->tlbflush = 0;
+	spinunlock(&pmap->lock);
 }
 
-void
-pmap_switch(struct pmap *pmap)
+void pmap_switch(struct pmap *pmap)
 {
-    struct pmap *oldpmap;
+	struct pmap *oldpmap;
 
-    oldpmap = pmap_current();
-    pmap->refcnt++;
-    __setpdptr(pmap->pdptr);
-    oldpmap->refcnt--;
+	oldpmap = pmap_current();
+	pmap->refcnt++;
+	__setpdptr(pmap->pdptr);
+	oldpmap->refcnt--;
 }
 
-struct pmap *
-pmap_boot(void)
+struct pmap *pmap_boot(void)
 {
-    struct pmap *bpmap;
+	struct pmap *bpmap;
 
-    /* Safe now to alloc a pmap */
-    bpmap =  pmap_alloc();
-    if (bpmap == NULL)
-	panic("BPMAP: FAILED");
+	/* Safe now to alloc a pmap */
+	bpmap = pmap_alloc();
+	if (bpmap == NULL)
+		panic("BPMAP: FAILED");
 
-    /* Set pmap current */
-    /* No need for per-cpu pointer, exactly what CR3 is, minus
-       the offset of pdptr in pmap. Incidentally, it is zero now. */
-    bpmap->refcnt++;
-    __setpdptr(bpmap->pdptr);
+	/* Set pmap current */
+	/* No need for per-cpu pointer, exactly what CR3 is, minus
+	   the offset of pdptr in pmap. Incidentally, it is zero now. */
+	bpmap->refcnt++;
+	__setpdptr(bpmap->pdptr);
 
-    return bpmap;
+	return bpmap;
 }
 
-void
-pmap_init(void)
+void pmap_init(void)
 {
-    int i;
-    l1e_t *kl1;
+	int i;
+	l1e_t *kl1;
 
-    setup_structcache(&pmap_cache, pmap);
+	setup_structcache(&pmap_cache, pmap);
 
-    /* Initialise kernel pagetable */
-    pmap_kernel_l1 = alloc4k();
-    if (pmap_kernel_l1 < 0)
-	panic("BOOTL1: Alloc failed");
+	/* Initialise kernel pagetable */
+	pmap_kernel_l1 = alloc4k();
+	if (pmap_kernel_l1 < 0)
+		panic("BOOTL1: Alloc failed");
 
-    kl1 = (void *)pmap_kernel_l1;
-    for (i = KL1_SDMAP; i < KL1_EDMAP; i++)
-	kl1[i] = mkl1e((i * PAGE_SIZE), PG_A | PG_D | PG_W | PG_P);
-    for (; i < NPTES; i++)
-	kl1[i] = 0;
+	kl1 = (void *) pmap_kernel_l1;
+	for (i = KL1_SDMAP; i < KL1_EDMAP; i++)
+		kl1[i] = mkl1e((i * PAGE_SIZE), PG_A | PG_D | PG_W | PG_P);
+	for (; i < NPTES; i++)
+		kl1[i] = 0;
 
-    /* Safe now to alloc a pmap */
+	/* Safe now to alloc a pmap */
 }

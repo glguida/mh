@@ -667,11 +667,10 @@ struct {								\
  * this by changing the head/tail sentinal values, but see the note above
  * this one.
  */
-static __inline const void * __launder_type(const void *);
-static __inline const void *
-__launder_type(const void *__x)
+static __inline const void *__launder_type(const void *);
+static __inline const void *__launder_type(const void *__x)
 {
-	__asm __volatile("" : "+r" (__x));
+	__asm __volatile("":"+r"(__x));
 	return __x;
 }
 
@@ -830,6 +829,6 @@ struct {								\
 	(((elm)->field.cqe_prev == CIRCLEQ_ENDC(head))			\
 	    ? ((head)->cqh_last)					\
 	    : (elm->field.cqe_prev))
-#endif /* !_KERNEL */
+#endif				/* !_KERNEL */
 
-#endif	/* !_SYS_QUEUE_H_ */
+#endif				/* !_SYS_QUEUE_H_ */

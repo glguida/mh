@@ -3,11 +3,10 @@
 
 void platform_init(void);
 
-static inline void
-platform_wait(void)
+static inline void platform_wait(void)
 {
 
-    asm volatile("sti\n\thlt");
+	asm volatile ("sti\n\thlt");
 }
 
 #endif

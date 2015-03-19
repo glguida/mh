@@ -4,10 +4,10 @@
 #include <uk/queue.h>
 
 typedef struct pgzone {
-    LIST_ENTRY(pgzone) list;
-    u_long type;
-    u_long ppn;
-    u_long size;
+	LIST_ENTRY(pgzone) list;
+	u_long type;
+	u_long ppn;
+	u_long size;
 } pgzone_t;
 
 #define GFP_LOKERN_ONLY 1
