@@ -1,3 +1,4 @@
 CFLAGS+= -m32
 ASFLAGS+= -m32
-LDFLAGS+= -melf_i386
+KERNLDFLAGS+= -melf_i386
+USRLDFLAGS+= -Wl,-melf_i386

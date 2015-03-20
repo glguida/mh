@@ -1,4 +1,14 @@
+#include <microkernel.h>
+
+void putc(int c)
+{
+	sys_putc('a');
+}
+
 int main()
 {
-	asm volatile ("int $0x80\n");
+	int i;
+
+	for (i = 0; i < 100; i++)
+		putc('a');
 }

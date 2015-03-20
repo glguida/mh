@@ -1,5 +1,6 @@
 #include <machine/asm.h>
 #include <machine/vmparam.h>
+#include <uk/sys.h>
 
 .data
 .comm stack, PAGE_SIZE
@@ -13,6 +14,8 @@ _ENTRY(__start)
 	call	_C_LABEL(___start)
 
 ___endloop:
+	mov $SYS_DIE, %eax
+	int $0x80
 	jmp ___endloop;
 
 

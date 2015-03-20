@@ -12,9 +12,13 @@
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
 #include <lib/lib.h>
+#include <uk/sys.h>
 #include "kern.h"
 
-void __usrentry_setup(struct usrentry *ue, vaddr_t ip);
+
+void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
+void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
+			unsigned long arg1, unsigned long arg2);
 void __usrentry_enter(void *frame);
 
 static struct slab threads;
@@ -64,7 +68,20 @@ static void thswitch(struct thread *th)
 
 int thpgfault(vaddr_t va, unsigned long flags)
 {
-	return -1;
+	struct thread *th = current_thread();
+
+	if (!(th->flags & THFL_XCPTENTRY))
+		return -1;
+
+	if (th->flags & THFL_IN_XCPTENTRY)
+		return -1;
+
+	__usrentry_setxcpt(&th->xcptentry, XCPT_PGFAULT, va, flags);
+	th->flags |= THFL_IN_XCPTENTRY;
+	__insn_barrier();
+	__usrentry_enter(th->xcptentry.data);
+	/* Not reached */
+	return 0;
 }
 
 void cpu_softirq_raise(int id)
@@ -78,7 +95,6 @@ static void do_resched(void);
 void do_cpu_softirq(void)
 {
 	uint64_t si;
-	struct thread *th, *tmp;
 
 	while (current_cpu()->softirq) {
 		si = current_cpu()->softirq;
@@ -233,7 +249,7 @@ static void __initstart(void)
 
 	printf("Starting init\n");
 	entry = elfld(_init_start);
-	__usrentry_setup(&th->usrentry, entry);
+	__usrentry_setup(&th->usrentry, entry, 0);
 	th->flags |= THFL_IN_USRENTRY;
 	__insn_barrier();
 	__usrentry_enter(th->usrentry.data);

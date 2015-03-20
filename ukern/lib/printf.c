@@ -3,11 +3,14 @@
 #include <lib/lib.h>
 
 extern int _boot_putc(int);
+extern int _boot_sysputc(int);
 int (*putc) (int) = _boot_putc;
+int (*sysputc) (int) = _boot_sysputc;
 
-void _setputcfn(int (*fn) (int))
+void _setputcfn(int (*fn) (int), int (*sysfn) (int))
 {
 	putc = fn;
+	sysputc = sysfn;
 }
 
 int __printflike(1, 2) printf(const char *fmt, ...)

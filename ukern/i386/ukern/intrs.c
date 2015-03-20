@@ -2,6 +2,7 @@
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <ukern/kern.h>
+#include <uk/sys.h>
 #include <lib/lib.h>
 
 struct intframe {
@@ -112,15 +113,35 @@ int xcpt_entry(uint32_t vect, struct intframe *f)
 
 int intr_entry(uint32_t vect, struct intframe *f)
 {
+	int ret;
 	int usrint = !!(f->cs == UCS);
 
-	if (usrint)
-		current_thread()->frame = f;
 
-	printf("\nUnknown interrupt %2u\n", vect);
-	framedump(f);
+	if (!usrint || vect != 0x80) {
+		printf("\nUnhandled interrupt %2u\n", vect);
+		framedump(f);
+		if (usrint)
+			die();
+		return 0;
+	}
 
-	if (usrint)
-		die();
+	current_thread()->frame = f;
+	switch (f->eax) {
+	case SYS_PUTC:
+		ret = sys_putc(f->edi);
+		break;
+	case SYS_DIE:
+		ret = sys_die();
+		break;
+	case SYS_XCPTENTRY:
+		ret = sys_xcptentry(f->edi, f->esi);
+		break;
+	default:
+		ret = -1;
+		break;
+	}
+
+	f->eax = ret;
+	current_thread()->frame = NULL;
 	return 0;
 }

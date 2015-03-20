@@ -1,11 +1,12 @@
 SRCROOT=../..
+MKDIR=$(SRCROOT)/mk
 SUBDIRS_MKINC= common
 SUBDIRS_MKINC+= ${MACHINE}
-include $(SRCROOT)/mk/mk.conf
+include $(MKDIR)/mk.conf
 
 LIBNAME= crt
 LIBDIR= /lib/sys
 
-include $(MAKEDIR)/obj.mk
-include $(MAKEDIR)/lib.mk
-include $(MAKEDIR)/def.mk
+include $(MKDIR)/obj.mk
+include $(MKDIR)/lib.mk
+include $(MKDIR)/def.mk

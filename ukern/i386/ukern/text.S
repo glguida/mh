@@ -1,6 +1,7 @@
 #include <machine/uk/asm.h>
 
 WEAK_ALIAS(_boot_putc, b800_putc)
+WEAK_ALIAS(_boot_sysputc, b800_sysputc)
 
 	.data
 ENTRY(base)
@@ -21,8 +22,18 @@ END(vptr)
 ENTRY(vptrmax)
 	.long 0xb8000 + 80 * 25 * 2
 END(vptrmax)
-	
+
+/* HACK AHEAD */
+
+ENTRY(b800_sysputc)
+	mov $2, %ah
+	jmp .LPRINT
+
 ENTRY(b800_putc)
+	mov $4, %ah
+	jmp .LPRINT
+
+.LPRINT:
 	push  %ebp
 	mov   %esp, %ebp
 	movb  8(%ebp), %al
@@ -31,7 +42,6 @@ ENTRY(b800_putc)
 	jb    1f
 	
 	/* print */
-	mov   $1, %ah
 	movw  %ax, (%ecx)
 	add   $2, %ecx
 	jmp   .Lupdate

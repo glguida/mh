@@ -6,6 +6,4 @@ void ___start(void)
 	char *argv[] = { };
 
 	main(argc, argv);
-	/* XXX: DO EXIT! */
-	while (1);
 }

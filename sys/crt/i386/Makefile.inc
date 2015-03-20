@@ -1,6 +1,6 @@
 VPATH+= i386
 SRCS+= 
-INSTALL_TARGET+= install_crt0.o
+ALL_TARGET+= install_crt0.o
 CLEAN_TARGET+= clean_crt0.o
 
 .PHONY: install_crt0.o clean_crt0.o

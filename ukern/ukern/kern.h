@@ -5,16 +5,20 @@
 #include <uk/queue.h>
 #include <machine/uk/pmap.h>
 
+void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
+void __usrentry_enter(void *frame);
 
 #define THST_RUNNING 0
 #define THST_RUNNABLE 1
 #define THST_STOPPED 2
 #define THST_DELETED 3
 
-#define _THFL_STOPREQ 0
-#define THFL_STOPREQ (1 << _THFL_STOPREQ)
-#define _THFL_IN_USRENTRY 1
+#define _THFL_IN_USRENTRY 0
 #define THFL_IN_USRENTRY (1 << _THFL_IN_USRENTRY)
+#define _THFL_IN_XCPTENTRY 1
+#define THFL_IN_XCPTENTRY (1 << _THFL_IN_XCPTENTRY)
+#define _THFL_XCPTENTRY 2
+#define THFL_XCPTENTRY (1 << _THFL_XCPTENTRY)
 
 #define thread_is_idle(_th) (_th == current_cpu()->idle_thread)
 
@@ -24,6 +28,7 @@ struct thread {
 
 	void *stack_4k, *frame;
 	struct usrentry usrentry;
+	struct usrentry xcptentry;
 
 	uint16_t flags;
 	uint16_t status;

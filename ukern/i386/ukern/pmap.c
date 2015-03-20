@@ -12,7 +12,6 @@
 struct slab pmap_cache;
 l1e_t *pmap_kernel_l1;
 
-uintptr_t __getpdptr(void);
 __regparm void __setpdptr(void *);
 
 #define DEUKERNBASE(_p) ((uintptr_t)(_p) - UKERNBASE)

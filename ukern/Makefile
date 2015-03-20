@@ -23,7 +23,7 @@ ukern: $(OBJS)
 		--add-section .init.elf=$(INSTALLDIR)/sys/init \
 		--set-section-flags .init.elf=alloc,load,data \
 		 $(OBJDIR)/init.elf.o 
-	$(LD) $(LDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(OBJDIR)/init.elf.o $(LIBS)
+	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(OBJDIR)/init.elf.o $(LIBS)
 
 ALL_TARGET+= ukern
 

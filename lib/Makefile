@@ -1,6 +1,6 @@
-SRCROOT=.
+SRCROOT=..
 MKDIR=$(SRCROOT)/mk
-SUBDIRS+= include lib sys ukern
+SUBDIRS+= libuk
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk

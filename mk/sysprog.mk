@@ -1,10 +1,7 @@
 .PHONY: clean_$(PROGNAME) install_$(PROGNAME)
-ALL_TARGET+= $(PROGNAME)
+ALL_TARGET+= install_$(PROGNAME)
 CLEAN_TARGET+= clean_$(PROGNAME)
 INSTALL_TARGET+= install_$(PROGNAME)
-
-# Fixup existing LDFLAGS by adding -WL, as we're going to link with cc
-LDFLAGS= $(addprefix -Wl,$(LDFAGS))
 
 # Standard programs options
 CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include
@@ -19,12 +16,12 @@ CRTEND=
 LDADD+= -lcrt
 
 $(PROGNAME): $(OBJS)
-	$(CC) -o $(PROGNAME) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(CRT0) $(OBJS) $(LDADD) $(CRTEND)
+	$(CC) -o $(PROGNAME) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(USRLDFLAGS) $(CRT0) $(OBJS) $(LDADD) $(CRTEND)
 
 clean_$(PROGNAME):
 	-rm $(OBJS) $(PROGNAME)
 
-install_$(PROGNAME):
+install_$(PROGNAME): $(PROGNAME)
 	install -d $(INSTALLDIR)/$(PROGDIR)
 	install -m 0544 $(PROGNAME) $(INSTALLDIR)/$(PROGDIR)/$(PROGNAME)
 

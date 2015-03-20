@@ -1,5 +1,5 @@
-.PHONY: clean_lib$(LIBNAME) install_lib$(LIBAME)
-ALL_TARGET+= lib$(LIBNAME).a
+.PHONY: clean_lib$(LIBNAME) install_lib$(LIBNAME)
+ALL_TARGET+= install_lib$(LIBNAME)
 CLEAN_TARGET+= clean_lib$(LIBNAME)
 ifeq ($(NOINST)z, z)
 	INSTALL_TARGET+= install_lib$(LIBNAME)

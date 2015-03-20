@@ -14,7 +14,21 @@ void __usrentry_enter(void *frame)
 	___usrentry_enter(frame);
 }
 
-void __usrentry_setup(struct usrentry *ue, vaddr_t ip)
+void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
+			unsigned long arg1, unsigned long arg2)
+{
+	unsigned long *ptr = (unsigned long *) ue->data;
+
+	/* eax: xcpt
+	 * edi: arg1
+	 * esi: arg2
+	 */
+	ptr[11] = xcpt;
+	ptr[4] = arg1;
+	ptr[5] = arg2;
+}
+
+void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp)
 {
 	unsigned long *ptr = (unsigned long *) ue->data;
 
@@ -40,6 +54,6 @@ void __usrentry_setup(struct usrentry *ue, vaddr_t ip)
 	ptr[13] = ip;		/* EIP */
 	ptr[14] = UCS;		/* CS */
 	ptr[15] = 0x202;	/* EFLAGS */
-	ptr[16] = 0;		/* ESP */
+	ptr[16] = sp;		/* ESP */
 	ptr[17] = UDS;		/* SS */
 }
