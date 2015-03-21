@@ -37,7 +37,6 @@ void sysboot(void)
 {
 	void *lpfndb;
 	unsigned i, cpuid;
-	struct pmap *pmap;
 	uint32_t pfn_maxmem = 0;
 	uint32_t pfn_maxaddr = 0;
 
@@ -93,7 +92,7 @@ void sysboot(void)
 	pmap_init();
 
 	printf("Booting...\n");
-	pmap = pmap_boot();
+	pmap_boot();
 
 	heap_init();
 	vmap_init();
@@ -114,10 +113,8 @@ void sysboot(void)
 void sysboot_ap(void)
 {
 	unsigned cpuid;
-	struct pmap *pmap;
-	struct addrspc *as;
 
-	pmap = pmap_boot();
+	pmap_boot();
 	__insn_barrier();	/* LAPIC now mapped */
 
 	cpuid = cpu_number_from_lapic();

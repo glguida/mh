@@ -19,6 +19,7 @@
 void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
 void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
 			unsigned long arg1, unsigned long arg2);
+void __usrentry_save(struct usrentry *ue, void *frame);
 void __usrentry_enter(void *frame);
 
 static struct slab threads;
@@ -75,6 +76,14 @@ int thpgfault(vaddr_t va, unsigned long flags)
 
 	if (th->flags & THFL_IN_XCPTENTRY)
 		return -1;
+
+	__usrentry_save(&th->usrentry, current_thread()->frame);	
+	th->flags &= ~THFL_IN_USRENTRY;
+	__usrentry_setxcpt(&th->xcptentry, XCPT_PGFAULT, va, flags);
+	th->flags |= THFL_IN_XCPTENTRY;
+	__insn_barrier();
+	__usrentry_enter(th->xcptentry.data);
+	/* Not reached */
 	return 0;
 }
 
@@ -245,7 +254,6 @@ static void __initstart(void)
 	struct thread *th = current_thread();
 	extern void *_init_start;
 
-	printf("Starting init\n");
 	entry = elfld(_init_start);
 	__usrentry_setup(&th->usrentry, entry, 0);
 	th->flags |= THFL_IN_USRENTRY;

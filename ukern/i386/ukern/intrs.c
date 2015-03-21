@@ -5,10 +5,6 @@
 #include <uk/sys.h>
 #include <lib/lib.h>
 
-void __usrentry_save(struct usrentry *ue, void *frame);
-void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
-			unsigned long arg1, unsigned long arg2);
-
 struct intframe {
 	/* segments */
 	uint16_t ds;
@@ -76,33 +72,20 @@ void framedump(struct intframe *f)
 
 int xcpt_entry(uint32_t vect, struct intframe *f)
 {
-
 	printf("\nException #%2u at %02x:%08x, addr %08x",
 	       vect, f->cs, f->eip, f->cr2);
+
 	if (vect < 20)
 		printf(": %s\n", exceptions[vect]);
 	else
 		printf("\n");
 
 	if (f->cs == UCS) {
-		int rc;
-
 		switch (vect) {
 		case 14:
-			rc = thpgfault(f->cr2, 0 /*XXX: */ );
-			if (!rc) {
-				struct thread *th = current_thread();
-
-				__usrentry_save(&th->usrentry, f);
-				th->flags &= ~THFL_IN_USRENTRY;
-				__usrentry_setxcpt(&th->xcptentry,
-						   XCPT_PGFAULT, f->cr2,
-						   0 /* XXX: */ );
-				th->flags |= THFL_IN_XCPTENTRY;
-				__insn_barrier();
-				__usrentry_enter(th->xcptentry.data);
-				/* Not reached */
-			}
+			current_thread()->frame = f;
+			thpgfault(f->cr2, 0 /*XXX: */ );
+			current_thread()->frame = NULL;
 			goto _usrerr;
 		default:
 		      _usrerr:
@@ -128,8 +111,8 @@ int xcpt_entry(uint32_t vect, struct intframe *f)
 
 int intr_entry(uint32_t vect, struct intframe *f)
 {
-	int ret;
 	int usrint = !!(f->cs == UCS);
+
 	struct thread *th = current_thread();
 
 	if (!usrint || vect != 0x80) {
@@ -140,34 +123,8 @@ int intr_entry(uint32_t vect, struct intframe *f)
 		return 0;
 	}
 
-	current_thread()->frame = f;
-	switch (f->eax) {
-	case SYS_PUTC:
-		ret = sys_putc(f->edi);
-		break;
-	case SYS_DIE:
-		ret = sys_die();
-		break;
-	case SYS_XCPTENTRY:
-		ret = sys_xcptentry(f->edi, f->esi);
-		break;
-	case SYS_XCPTRET:
-		if (!(th->flags & THFL_IN_XCPTENTRY)
-		    || !(th->flags & THFL_XCPTENTRY)
-		    || f->edi) {
-			die();
-			break;
-		}
-		th->flags &= ~THFL_IN_XCPTENTRY;
-		__insn_barrier();
-		__usrentry_enter(th->usrentry.data);
-		/* Not reached */
-	default:
-		ret = -1;
-		break;
-	}
-
-	f->eax = ret;
-	current_thread()->frame = NULL;
+	th->frame = f;
+	f->eax = sys_call(f->eax, f->edi, f->esi);
+	th->frame = NULL;
 	return 0;
 }
