@@ -12,7 +12,7 @@ typedef unsigned pfn_t;
 typedef unsigned long jmp_buf[6];
 
 struct usrentry {
-	char data[17 * 4];
+	char data[18 * 4];
 };
 
 #endif

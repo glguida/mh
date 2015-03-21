@@ -57,3 +57,8 @@ void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp)
 	ptr[16] = sp;		/* ESP */
 	ptr[17] = UDS;		/* SS */
 }
+
+void __usrentry_save(struct usrentry *ue, void *frame)
+{
+	memcpy(ue->data, frame, sizeof(ue->data));
+}

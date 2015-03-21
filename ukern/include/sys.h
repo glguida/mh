@@ -4,6 +4,7 @@
 
 #define SYS_DIE 0
 #define SYS_XCPTENTRY 1
+#define SYS_XCPTRET 2
 
 /* System-processes only */
 #define SYS_PUTC 0x1000

@@ -5,6 +5,10 @@
 #include <uk/sys.h>
 #include <lib/lib.h>
 
+void __usrentry_save(struct usrentry *ue, void *frame);
+void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
+			unsigned long arg1, unsigned long arg2);
+
 struct intframe {
 	/* segments */
 	uint16_t ds;
@@ -86,8 +90,19 @@ int xcpt_entry(uint32_t vect, struct intframe *f)
 		switch (vect) {
 		case 14:
 			rc = thpgfault(f->cr2, 0 /*XXX: */ );
-			if (!rc)
-				return 0;
+			if (!rc) {
+				struct thread *th = current_thread();
+
+				__usrentry_save(&th->usrentry, f);
+				th->flags &= ~THFL_IN_USRENTRY;
+				__usrentry_setxcpt(&th->xcptentry,
+						   XCPT_PGFAULT, f->cr2,
+						   0 /* XXX: */ );
+				th->flags |= THFL_IN_XCPTENTRY;
+				__insn_barrier();
+				__usrentry_enter(th->xcptentry.data);
+				/* Not reached */
+			}
 			goto _usrerr;
 		default:
 		      _usrerr:
@@ -115,7 +130,7 @@ int intr_entry(uint32_t vect, struct intframe *f)
 {
 	int ret;
 	int usrint = !!(f->cs == UCS);
-
+	struct thread *th = current_thread();
 
 	if (!usrint || vect != 0x80) {
 		printf("\nUnhandled interrupt %2u\n", vect);
@@ -136,6 +151,17 @@ int intr_entry(uint32_t vect, struct intframe *f)
 	case SYS_XCPTENTRY:
 		ret = sys_xcptentry(f->edi, f->esi);
 		break;
+	case SYS_XCPTRET:
+		if (!(th->flags & THFL_IN_XCPTENTRY)
+		    || !(th->flags & THFL_XCPTENTRY)
+		    || f->edi) {
+			die();
+			break;
+		}
+		th->flags &= ~THFL_IN_XCPTENTRY;
+		__insn_barrier();
+		__usrentry_enter(th->usrentry.data);
+		/* Not reached */
 	default:
 		ret = -1;
 		break;

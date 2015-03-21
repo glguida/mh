@@ -16,3 +16,20 @@ int sys_putc(int ch)
 	__syscall1(SYS_PUTC, ch, ret);
 	return ret;
 }
+
+int sys_xcptentry(void (*func) (void), void *stack)
+{
+	int ret;
+
+	__syscall2(SYS_XCPTENTRY, (unsigned long) func,
+		   (unsigned long) stack, ret);
+	return ret;
+}
+
+int __dead sys_xcptreturn(int ret)
+{
+	int dummy;
+
+	__syscall1(SYS_XCPTRET, ret, dummy);
+	/* Not reached */
+}

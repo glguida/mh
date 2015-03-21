@@ -75,12 +75,6 @@ int thpgfault(vaddr_t va, unsigned long flags)
 
 	if (th->flags & THFL_IN_XCPTENTRY)
 		return -1;
-
-	__usrentry_setxcpt(&th->xcptentry, XCPT_PGFAULT, va, flags);
-	th->flags |= THFL_IN_XCPTENTRY;
-	__insn_barrier();
-	__usrentry_enter(th->xcptentry.data);
-	/* Not reached */
 	return 0;
 }
 
@@ -206,10 +200,13 @@ static void idle(void)
 
 static void populate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 {
+	int i;
 	pfn_t pfn;
 
-	pfn = __allocpage(PFNT_USER);
-	pmap_enter(NULL, addr, ptoa(pfn), prot);
+	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
+		pfn = __allocpage(PFNT_USER);
+		pmap_enter(NULL, addr + i * PAGE_SIZE, ptoa(pfn), prot);
+	}
 	pmap_commit(NULL);
 }
 
@@ -232,7 +229,8 @@ static vaddr_t elfld(void *elfimg)
 			       ph->fsize);
 		}
 		if (ph->msize - ph->fsize > 0) {
-			populate(ph->va, ph->fsize, PROT_USER_WRX);
+			populate(ph->va + ph->fsize, ph->msize - ph->fsize,
+				 PROT_USER_WRX);
 			memset((void *) (ph->va + ph->fsize), 0,
 			       ph->msize - ph->fsize);
 		}
