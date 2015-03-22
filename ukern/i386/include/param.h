@@ -15,7 +15,7 @@
 
 /* i386 Virtual Address Space Map:
  *
- * 00000000:bfffffff     User mappings
+ * 00000000:b7ffffff     User mappings
  * c0000000:UKERNEND     Kernel code and data
  * c0000000:DMAP_END     Kernel 1:1 direct mapping
  * DMAP_END:ffe00000     Kernel VA allocation range
