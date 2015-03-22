@@ -26,16 +26,21 @@ struct thread {
 	jmp_buf ctx;
 	struct pmap *pmap;
 
-	void *stack_4k, *frame;
 	struct usrentry usrentry;
 	struct usrentry xcptentry;
+	void *stack_4k;
+	void *frame;
+	void *xcptframe;
 
 	uint16_t flags;
 	uint16_t status;
 	 TAILQ_ENTRY(thread) sched_list;
 };
 
-int thpgfault(vaddr_t, unsigned long);
+extern int usrpgfault;
+int wruser(void *, void *, size_t);
+
+int thxcpt(unsigned xcpt);
 void kern_boot(void);
 void kern_bootap(void);
 
@@ -43,6 +48,6 @@ void cpu_softirq_raise(int);
 void do_cpu_softirq(void);
 
 void schedule(void);
-void die(void);
+void die(void) __dead;
 
 #endif

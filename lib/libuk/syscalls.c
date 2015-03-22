@@ -17,12 +17,12 @@ int sys_putc(int ch)
 	return ret;
 }
 
-int sys_xcptentry(void (*func) (void), void *stack)
+int sys_xcptentry(void (*func) (void), void *frame, void *stack)
 {
 	int ret;
 
-	__syscall2(SYS_XCPTENTRY, (unsigned long) func,
-		   (unsigned long) stack, ret);
+	__syscall3(SYS_XCPTENTRY, (unsigned long) func,
+		   (unsigned long) frame, (unsigned long) stack, ret);
 	return ret;
 }
 

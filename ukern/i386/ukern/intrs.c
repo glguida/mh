@@ -70,33 +70,39 @@ void framedump(struct intframe *f)
 	       f->ds, f->es, f->fs, f->gs);
 }
 
+static unsigned vect_to_xcpt(uint32_t vect)
+{
+	switch (vect) {
+	case 14:
+		return XCPT_PGFAULT;
+	default:
+		return -1;
+	}
+}
+
 int xcpt_entry(uint32_t vect, struct intframe *f)
 {
-	printf("\nException #%2u at %02x:%08x, addr %08x",
-	       vect, f->cs, f->eip, f->cr2);
+	current_thread()->frame = f;
 
-	if (vect < 20)
-		printf(": %s\n", exceptions[vect]);
-	else
-		printf("\n");
+
 
 	if (f->cs == UCS) {
-		switch (vect) {
-		case 14:
-			current_thread()->frame = f;
-			thpgfault(f->cr2, 0 /*XXX: */ );
-			current_thread()->frame = NULL;
-			goto _usrerr;
-		default:
-		      _usrerr:
-			/* XXX: kill process instead */
-			printf("unhandled exception!\n");
-			framedump(f);
-			die();
-			/* Not reached */
-		}
+		thxcpt(vect_to_xcpt(vect));
+		die();
 	} else {
-		/* XXX: Kernel bug. panic and block other cpus */
+		if (usrpgfault && (vect == 14)) {
+			printf("Jumping!\n");
+			_longjmp(current_cpu()->usrpgfaultctx, 1);
+
+		}
+
+		printf("\nException #%2u at %02x:%08x, addr %08x",
+		       vect, f->cs, f->eip, f->cr2);
+
+		if (vect < 20)
+			printf(": %s\n", exceptions[vect]);
+		else
+			printf("\n");
 		framedump(f);
 		goto _hlt;
 	}
@@ -104,6 +110,7 @@ int xcpt_entry(uint32_t vect, struct intframe *f)
 	return 0;
 
       _hlt:
+	/* XXX: Kernel bug. panic and block other cpus */
 	asm volatile ("cli; hlt");
 	/* Not reached */
 	return -1;
@@ -124,7 +131,7 @@ int intr_entry(uint32_t vect, struct intframe *f)
 	}
 
 	th->frame = f;
-	f->eax = sys_call(f->eax, f->edi, f->esi);
+	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
 	th->frame = NULL;
 	return 0;
 }

@@ -15,10 +15,14 @@ static int sys_die(void)
 	return 0;
 }
 
-static int sys_xcptentry(vaddr_t entry, vaddr_t stack)
+static int sys_xcptentry(vaddr_t entry, vaddr_t frame, vaddr_t stack)
 {
 	struct thread *th = current_thread();
 
+	if (!__usraddr(entry) || !__usraddr(frame) || !__usraddr(stack))
+		return -1;
+
+	th->xcptframe = (void *)frame;
 	__usrentry_setup(&th->xcptentry, entry, stack);
 	th->flags |= THFL_XCPTENTRY;
 	return 0;
@@ -29,8 +33,10 @@ static int sys_xcptreturn(unsigned long ret)
 	struct thread *th = current_thread();
 
 	if (!(th->flags & THFL_IN_XCPTENTRY)
-		|| !(th->flags & THFL_XCPTENTRY)
-		|| ret) {
+	    || !(th->flags & THFL_XCPTENTRY)
+	    || ret
+	    || usercpy(th->usrentry.data, th->xcptframe,
+		       sizeof(struct usrentry))) {
 		die();
 		return 0;
 	}
@@ -43,15 +49,15 @@ static int sys_xcptreturn(unsigned long ret)
 	return 0;
 }
 
-int sys_call(int sc, unsigned long a1, unsigned long a2)
+int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 {
-	switch(sc) {
+	switch (sc) {
 	case SYS_PUTC:
 		return sys_putc(a1);
 	case SYS_DIE:
 		return sys_die();
 	case SYS_XCPTENTRY:
-		return sys_xcptentry(a1, a2);
+		return sys_xcptentry(a1, a2, a3);
 	case SYS_XCPTRET:
 		return sys_xcptreturn(a1);
 	default:

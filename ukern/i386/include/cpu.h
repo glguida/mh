@@ -18,6 +18,7 @@ struct cpu_info {
 	 TAILQ_HEAD(, thread) resched;
 	struct tss tss;
 	uint64_t softirq;
+	jmp_buf usrpgfaultctx;
 
 	uint16_t phys_id;
 	uint16_t acpi_id;

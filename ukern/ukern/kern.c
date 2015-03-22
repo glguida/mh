@@ -15,17 +15,14 @@
 #include <uk/sys.h>
 #include "kern.h"
 
-
 void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
-void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
-			unsigned long arg1, unsigned long arg2);
+void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt);
 void __usrentry_save(struct usrentry *ue, void *frame);
 void __usrentry_enter(void *frame);
 
 static struct slab threads;
 
 static lock_t sched_lock = 0;
-
 static TAILQ_HEAD(thread_list, thread) running_threads =
 TAILQ_HEAD_INITIALIZER(running_threads);
 static TAILQ_HEAD(, thread) stopped_threads =
@@ -34,6 +31,25 @@ TAILQ_HEAD_INITIALIZER(stopped_threads);
 lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
+
+int usrpgfault = 0;
+
+int usercpy(void *dst, void *src, size_t sz)
+{
+	usrpgfault = 1;
+	__insn_barrier();
+
+	if (_setjmp(current_cpu()->usrpgfaultctx)) {
+		printf("buh!\n");
+		usrpgfault = 0;
+		return -1;
+	}
+
+	memcpy(dst, src, sz);
+	__insn_barrier();
+	usrpgfault = 0;
+	return 0;
+}
 
 static struct thread *thnew(void (*__start) (void))
 {
@@ -67,25 +83,31 @@ static void thswitch(struct thread *th)
 	}
 }
 
-int thpgfault(vaddr_t va, unsigned long flags)
+int thxcpt(unsigned xcpt)
 {
 	struct thread *th = current_thread();
 
-	if (!(th->flags & THFL_XCPTENTRY))
+	if (!
+	    ((th->flags & (THFL_XCPTENTRY | THFL_IN_XCPTENTRY)) ==
+	     (THFL_XCPTENTRY)))
 		return -1;
 
-	if (th->flags & THFL_IN_XCPTENTRY)
+	if (usercpy
+	    (th->xcptframe, current_thread()->frame,
+	     sizeof(struct usrentry)))
 		return -1;
 
-	__usrentry_save(&th->usrentry, current_thread()->frame);	
 	th->flags &= ~THFL_IN_USRENTRY;
-	__usrentry_setxcpt(&th->xcptentry, XCPT_PGFAULT, va, flags);
+	__usrentry_setxcpt(&th->xcptentry, xcpt);
 	th->flags |= THFL_IN_XCPTENTRY;
 	__insn_barrier();
 	__usrentry_enter(th->xcptentry.data);
 	/* Not reached */
 	return 0;
 }
+
+
+
 
 void cpu_softirq_raise(int id)
 {
@@ -180,7 +202,7 @@ void schedule(void)
 	thswitch(th);
 }
 
-void die(void)
+__dead void die(void)
 {
 	pfn_t pfn;
 	vaddr_t va;

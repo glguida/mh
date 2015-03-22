@@ -8,6 +8,8 @@
 #define __aligned(x) __attribute__((__aligned__(x)))
 #define __section(x) __attribute__((__section__(x)))
 
+#define __dead __attribute__((__noreturn__))
+
 #define __insn_barrier() __asm__ volatile("":::"memory")
 
 #define __printflike(fmtarg, vararg)	\

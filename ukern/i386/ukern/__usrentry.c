@@ -4,28 +4,22 @@
 #include <ukern/kern.h>
 #include <lib/lib.h>
 
+void ___usrentry_enter(void *frame);
+
 void __usrentry_enter(void *frame)
 {
-	void ___usrentry_enter(void *frame);
-
 	current_cpu()->tss.esp0 =
 		(uint32_t) current_thread()->stack_4k + 0xff0;
 	current_cpu()->tss.ss0 = KDS;
 	___usrentry_enter(frame);
 }
 
-void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt,
-			unsigned long arg1, unsigned long arg2)
+void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt)
 {
 	unsigned long *ptr = (unsigned long *) ue->data;
 
-	/* eax: xcpt
-	 * edi: arg1
-	 * esi: arg2
-	 */
+	/* eax: xcpt */
 	ptr[11] = xcpt;
-	ptr[4] = arg1;
-	ptr[5] = arg2;
 }
 
 void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp)

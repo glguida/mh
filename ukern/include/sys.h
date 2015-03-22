@@ -12,7 +12,7 @@
 #define XCPT_PGFAULT 0
 
 #ifdef _UKERNEL
-int sys_call(int sc, unsigned long a1, unsigned long a2);
+int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3);
 #endif
 
 #endif
