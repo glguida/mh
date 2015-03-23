@@ -1,11 +1,12 @@
 #include <microkernel.h>
+#include <syslib.h>
 
 void putc(int c)
 {
 	sys_putc(c);
 }
 
-int sys_sighandler(int sighandler, unsigned long a1, unsigned long a2)
+int sys_sighandler(int sighandler, struct usrentry frame)
 {
 	int i;
 
@@ -23,8 +24,11 @@ int main()
 
 	siginit();
 
+
+	printf("Hello!\n");
 	for (i = 0; i < 100; i++)
 		putc('a');
+      asm("":::"memory");
 	f();
 
 
