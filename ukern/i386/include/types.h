@@ -7,10 +7,6 @@ typedef unsigned long long paddr_t;
 typedef u_long vaddr_t;
 typedef unsigned pfn_t;
 
-struct usrentry {
-	char data[18 * 4];
-};
-
 #if defined(_UKERNEL)
 
 typedef unsigned long jmp_buf[6];

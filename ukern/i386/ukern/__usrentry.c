@@ -4,55 +4,50 @@
 #include <ukern/kern.h>
 #include <lib/lib.h>
 
-void ___usrentry_enter(void *frame);
-
-void __usrentry_enter(void *frame)
+void __xcptframe_enter(struct xcptframe *f)
 {
 	current_cpu()->tss.esp0 =
 		(uint32_t) current_thread()->stack_4k + 0xff0;
 	current_cpu()->tss.ss0 = KDS;
-	___usrentry_enter(frame);
+	___usrentry_enter((void *) f);
 }
 
-void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt)
+void __xcptframe_setxcpt(struct xcptframe *f, unsigned long xcpt)
 {
-	unsigned long *ptr = (unsigned long *) ue->data;
-
-	/* eax: xcpt */
-	ptr[11] = xcpt;
+	f->eax = xcpt;
 }
 
-void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp)
+
+int __xcptframe_usrupdate(struct xcptframe *f, struct xcptframe *usrf)
 {
-	unsigned long *ptr = (unsigned long *) ue->data;
+	int ret;
 
-	memset(ue->data, 0, 17 * 4);
-	ptr[0] = (UDS << 16) | UDS;	/* DS, ES */
-	ptr[1] = (UDS << 16) | UDS;	/* FS, GS */
+	ret = usercpy(&f->edi, &usrf->edi, 40 /* edi to eip */ );
+	if (ret)
+		return -1;
 
-	/*
-	 * ptr[2]: cr3;
-	 * ptr[3]: cr2;
-	 * ptr[4]: edi;
-	 * ptr[5]: esi;
-	 * ptr[6]: ebp;
-	 * ptr[7]: esp (ign);
-	 * ptr[8]: ebx;
-	 * ptr[9]: edx;
-	 * ptr[10]: ecx;
-	 * ptr[11]: eax;
-	 * ptr[12]: error (fake);
-	 */
+	ret = usercpy(&f->esp, &usrf->esp, 4);
+	if (ret)
+		return -1;
 
-	/* IRET FRAME */
-	ptr[13] = ip;		/* EIP */
-	ptr[14] = UCS;		/* CS */
-	ptr[15] = 0x202;	/* EFLAGS */
-	ptr[16] = sp;		/* ESP */
-	ptr[17] = UDS;		/* SS */
+	return 0;
 }
 
-void __usrentry_save(struct usrentry *ue, void *frame)
+void __xcptframe_setup(struct xcptframe *f, vaddr_t ip, vaddr_t sp)
 {
-	memcpy(ue->data, frame, sizeof(ue->data));
+	memset(f, 0, sizeof(*f));
+	f->ds = UDS;
+	f->es = UDS;
+	f->fs = UDS;
+	f->gs = UDS;
+	f->eip = ip;
+	f->cs = UCS;
+	f->eflags = 0x202;
+	f->esp = sp;
+	f->ss = UDS;
+}
+
+void __usrentry_save(struct xcptframe *f, void *ptr)
+{
+	memcpy(f, ptr, sizeof(*f));
 }

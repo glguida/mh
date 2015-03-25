@@ -1,6 +1,6 @@
-SRCROOT=..
+SRCROOT=../..
 MKDIR=$(SRCROOT)/mk
-SUBDIRS+= lib crt init
+SUBDIRS+= libsys
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk

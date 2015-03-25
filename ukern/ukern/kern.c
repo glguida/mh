@@ -15,10 +15,11 @@
 #include <uk/sys.h>
 #include "kern.h"
 
-void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
-void __usrentry_setxcpt(struct usrentry *ue, unsigned long xcpt);
-void __usrentry_save(struct usrentry *ue, void *frame);
-void __usrentry_enter(void *frame);
+void __xcptframe_setup(struct xcptframe *f, vaddr_t ip, vaddr_t sp);
+void __xcptframe_setxcpt(struct xcptframe *f, unsigned long xcpt);
+void __xcptframe_save(struct xcptframe *f, void *frame);
+void __xcptframe_usrupdate(struct xcptframe *f, vaddr_t usrframe);
+void __xcptframe_enter(struct xcptframe *f);
 
 static struct slab threads;
 
@@ -94,20 +95,17 @@ int thxcpt(unsigned xcpt)
 
 	if (usercpy
 	    (th->xcptframe, current_thread()->frame,
-	     sizeof(struct usrentry)))
+	     sizeof(struct xcptframe)))
 		return -1;
 
 	th->flags &= ~THFL_IN_USRENTRY;
-	__usrentry_setxcpt(&th->xcptentry, xcpt);
+	__xcptframe_setxcpt(&th->xcptentry, xcpt);
 	th->flags |= THFL_IN_XCPTENTRY;
 	__insn_barrier();
-	__usrentry_enter(th->xcptentry.data);
+	__xcptframe_enter(&th->xcptentry);
 	/* Not reached */
 	return 0;
 }
-
-
-
 
 void cpu_softirq_raise(int id)
 {
@@ -277,10 +275,10 @@ static void __initstart(void)
 	extern void *_init_start;
 
 	entry = elfld(_init_start);
-	__usrentry_setup(&th->usrentry, entry, 0);
+	__xcptframe_setup(&th->usrentry, entry, 0);
 	th->flags |= THFL_IN_USRENTRY;
 	__insn_barrier();
-	__usrentry_enter(th->usrentry.data);
+	__xcptframe_enter(&th->usrentry);
 	/* Not reached */
 }
 

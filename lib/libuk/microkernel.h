@@ -10,6 +10,6 @@ __dead void sys_die();
 
 int sys_putc(int ch);
 
-extern int sys_sighandler(int, struct usrentry frame);
+extern int sys_sighandler(int, struct xcptframe frame);
 
 #endif

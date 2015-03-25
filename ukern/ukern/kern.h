@@ -4,9 +4,7 @@
 #include <uk/types.h>
 #include <uk/queue.h>
 #include <machine/uk/pmap.h>
-
-void __usrentry_setup(struct usrentry *ue, vaddr_t ip, vaddr_t sp);
-void __usrentry_enter(void *frame);
+#include <uk/sys.h>
 
 #define THST_RUNNING 0
 #define THST_RUNNABLE 1
@@ -26,8 +24,8 @@ struct thread {
 	jmp_buf ctx;
 	struct pmap *pmap;
 
-	struct usrentry usrentry;
-	struct usrentry xcptentry;
+	struct xcptframe usrentry;
+	struct xcptframe xcptentry;
 	void *stack_4k;
 	void *frame;
 	void *xcptframe;

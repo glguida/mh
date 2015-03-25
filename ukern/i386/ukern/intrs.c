@@ -5,6 +5,7 @@
 #include <uk/sys.h>
 #include <lib/lib.h>
 
+#if 0
 struct intframe {
 	/* segments */
 	uint16_t ds;
@@ -18,7 +19,7 @@ struct intframe {
 	uint32_t edi;
 	uint32_t esi;
 	uint32_t ebp;
-	uint32_t esp;
+	uint32_t espx;
 	uint32_t ebx;
 	uint32_t edx;
 	uint32_t ecx;
@@ -28,10 +29,10 @@ struct intframe {
 	uint32_t eip;
 	uint32_t cs;
 	uint32_t eflags;
-	uint32_t espx;
+	uint32_t esp;
 	uint32_t ss;
 } __packed;
-
+#endif
 char *exceptions[] = {
 	"Divide by zero exception",
 	"Debug exception",
@@ -55,7 +56,7 @@ char *exceptions[] = {
 	"SIMD Floating-Point Exception",
 };
 
-void framedump(struct intframe *f)
+void framedump(struct xcptframe *f)
 {
 
 	printf("\tCR3: %08x\tCR2: %08x\terr: %08x\n",
@@ -80,7 +81,7 @@ static unsigned vect_to_xcpt(uint32_t vect)
 	}
 }
 
-int xcpt_entry(uint32_t vect, struct intframe *f)
+int xcpt_entry(uint32_t vect, struct xcptframe *f)
 {
 	current_thread()->frame = f;
 
@@ -116,7 +117,7 @@ int xcpt_entry(uint32_t vect, struct intframe *f)
 	return -1;
 }
 
-int intr_entry(uint32_t vect, struct intframe *f)
+int intr_entry(uint32_t vect, struct xcptframe *f)
 {
 	int usrint = !!(f->cs == UCS);
 

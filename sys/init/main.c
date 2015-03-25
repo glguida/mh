@@ -6,17 +6,37 @@ void putc(int c)
 	sys_putc(c);
 }
 
-int sys_sighandler(int sighandler, struct usrentry frame)
+int test()
 {
-	int i;
-
-	for (i = 0; i < 20; i++)
-		putc('E');
-
-	return -1;
+	printf("\tFixed up!\n");
 }
 
-void (*f) (void) = NULL;
+int sys_sighandler(int sighandler, struct xcptframe frame)
+{
+	int i;
+	static unsigned long esp, ebp;
+
+	printf("Exception %d, va = %p\n", sighandler, frame.cr2);
+
+	if (frame.cr2 == -1) {
+		frame.eip = (uintptr_t) test;
+		frame.ebp = ebp;
+		frame.esp = esp;
+	} else {
+		char *p = &frame;
+		int i;
+		esp = frame.esp;
+		ebp = frame.ebp;
+
+		for (i = 0; i < sizeof(struct xcptframe); i++)
+			*p++ = -1;
+	}
+	return 0;
+}
+
+void (*f) (void) = (void (*)(void)) 0x50500505;
+
+
 
 int main()
 {
