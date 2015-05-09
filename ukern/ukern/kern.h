@@ -32,7 +32,14 @@ struct thread {
 
 	uint16_t flags;
 	uint16_t status;
-	 TAILQ_ENTRY(thread) sched_list;
+	TAILQ_ENTRY(thread) sched_list;
+};
+
+struct cpu {
+	struct thread *idle_thread;
+	TAILQ_HEAD(, thread) resched;
+	uint64_t softirq;
+	jmp_buf usrpgfaultctx;
 };
 
 extern int usrpgfault;
@@ -42,6 +49,7 @@ int thxcpt(unsigned xcpt);
 void kern_boot(void);
 void kern_bootap(void);
 
+struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
 void do_cpu_softirq(void);
 

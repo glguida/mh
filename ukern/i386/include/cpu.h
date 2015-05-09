@@ -12,24 +12,23 @@
 #define UKERN_MAX_PHYSCPUS 64
 
 struct cpu_info {
+	/* Must be first */
 	uint32_t cpu_id;	/* fs:0 */
-	struct thread *current;	/* fs:4 */
-	struct thread *idle_thread;
-	 TAILQ_HEAD(, thread) resched;
-	struct tss tss;
-	uint64_t softirq;
-	jmp_buf usrpgfaultctx;
+	struct thread *thread;	/* fs:4 */
+	struct cpu *cpu;
 
 	uint16_t phys_id;
 	uint16_t acpi_id;
+	struct tss tss;
 	struct cpu_info *self;
 };
 
 int cpu_add(uint16_t physid, uint16_t acpiid);
-struct cpu_info *cpu_get(unsigned id);
+struct cpu_info *cpuinfo_get(unsigned id);
 void cpu_wakeup_aps(void);
+int cpu_number_from_lapic(void);
 
-static inline struct cpu_info *current_cpu(void)
+static inline struct cpu_info *current_cpuinfo(void)
 {
 	struct cpu_info *ptr;
 
@@ -37,10 +36,34 @@ static inline struct cpu_info *current_cpu(void)
 	return ptr;
 }
 
-int cpu_number_from_lapic(void);
-#define cpu_number() (current_cpu()->cpu_id)
-#define current_thread() (current_cpu()->current)
-#define set_current_thread(_th) (current_cpu()->current = (_th))
+static inline int cpu_number(void)
+{
+	struct cpu_info *ptr;
+
+	asm volatile ("movl %%fs:0, %0\n":"=r" (ptr));
+        return ptr->cpu_id;
+}
+
+static inline struct cpu *current_cpu(void)
+{
+	struct cpu_info *ptr;
+
+	asm volatile ("movl %%fs:0, %0\n":"=r" (ptr));
+	return ptr->cpu;
+}
+
+static inline struct thread *current_thread(void)
+{
+	struct cpu_info *ptr;
+
+	asm volatile ("movl %%fs:0, %0\n":"=r" (ptr));
+	return ptr->thread;
+}
+
+static inline void set_current_thread(struct thread *t)
+{
+	current_cpuinfo()->thread = t;
+}
 
 
 #else				/* _ASSEMBLER */

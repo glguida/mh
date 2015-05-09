@@ -6,9 +6,9 @@
 
 void __xcptframe_enter(struct xcptframe *f)
 {
-	current_cpu()->tss.esp0 =
+	current_cpuinfo()->tss.esp0 =
 		(uint32_t) current_thread()->stack_4k + 0xff0;
-	current_cpu()->tss.ss0 = KDS;
+	current_cpuinfo()->tss.ss0 = KDS;
 	___usrentry_enter((void *) f);
 }
 

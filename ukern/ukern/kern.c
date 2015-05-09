@@ -107,6 +107,17 @@ int thxcpt(unsigned xcpt)
 	return 0;
 }
 
+struct cpu *cpu_setup(int id)
+{
+	struct cpu *cpu;
+
+	cpu = heap_alloc(sizeof(struct cpu));
+	cpu->idle_thread = NULL;
+       	TAILQ_INIT(&cpu->resched);
+	cpu->softirq = 0;
+	return cpu;
+}
+
 void cpu_softirq_raise(int id)
 {
 	printf("Raising softirq %d\n", id);

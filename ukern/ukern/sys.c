@@ -19,7 +19,10 @@ static int sys_xcptentry(vaddr_t entry, vaddr_t frame, vaddr_t stack)
 {
 	struct thread *th = current_thread();
 
-	if (!__usraddr(entry) || !__usraddr(frame) || !__usraddr(stack))
+	if (!__usraddr(entry)
+            || !__usraddr(frame)
+            || !__usraddr(frame + sizeof(struct xcptframe))
+            || !__usraddr(stack))
 		return -1;
 
 	th->xcptframe = (void *) frame;

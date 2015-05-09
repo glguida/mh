@@ -11,9 +11,10 @@ int number_cpus = 0;
 int cpu_phys_to_id[UKERN_MAX_PHYSCPUS] = { -1, };
 struct cpu_info *cpus[UKERN_MAX_CPUS] = { 0, };
 
+
 extern char _ap_start, _ap_end;
 
-struct cpu_info *cpu_get(unsigned id)
+struct cpu_info *cpuinfo_get(unsigned id)
 {
 
 	if (id >= UKERN_MAX_CPUS) {
@@ -26,10 +27,11 @@ struct cpu_info *cpu_get(unsigned id)
 	return cpus[id];
 }
 
+int cpu_setup(int);
 int cpu_add(uint16_t physid, uint16_t acpiid)
 {
 	int id;
-	struct cpu_info *cpu;
+	struct cpu_info *cpuinfo;
 
 	if (physid >= UKERN_MAX_PHYSCPUS) {
 		printf("CPU Phys ID %02x too big. Skipping.\n", physid);
@@ -44,16 +46,17 @@ int cpu_add(uint16_t physid, uint16_t acpiid)
 	id = number_cpus++;
 	dprintf("Adding CPU %d (P:%d, A:%d)\n", id, physid, acpiid);
 
-	cpu = heap_alloc(sizeof(struct cpu_info));
-	cpu->cpu_id = id;
-	cpu->phys_id = physid;
-	cpu->acpi_id = acpiid;
-	cpu->tss.iomap = 108;
-	cpu->softirq = 0;
-	cpu->self = cpu;
-	cpus[id] = cpu;
-	TAILQ_INIT(&cpu->resched);
+	cpuinfo = heap_alloc(sizeof(struct cpu_info));
+	cpuinfo->cpu_id = id;
+	cpuinfo->thread = NULL;
+	cpuinfo->cpu = cpu_setup(id);
+	cpuinfo->phys_id = physid;
+	cpuinfo->acpi_id = acpiid;
+	cpuinfo->tss.iomap = 108;
+	cpuinfo->self = cpuinfo;
+	cpus[id] = cpuinfo;
 	cpu_phys_to_id[physid] = id;
+
 
 	return id;
 }
@@ -81,7 +84,7 @@ void cpu_wakeup_aps(void)
 	for (i = 0; i < number_cpus; i++) {
 		if (i == cpuid)
 			continue;
-		cpu = cpu_get(i);
+		cpu = cpuinfo_get(i);
 
 		printf("Waking up CPU %02d...", i);
 
