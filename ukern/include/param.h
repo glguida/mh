@@ -9,6 +9,6 @@
 #include <machine/uk/param.h>
 #endif
 
-#define __usraddr(_a) (((_a) >= USERBASE) && ((_a) < USEREND))
+#define __usraddr(_a) (((_a) >= USERBASE) && ((_a) <= USEREND))
 
 #endif

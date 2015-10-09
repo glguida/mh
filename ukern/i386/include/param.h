@@ -22,9 +22,12 @@
  */
 
 #define USERBASE  __ULONG(0x00000000)
-#define THSTKBASE __ULONG(0xb0000000)
-#define THSTKEND  __ULONG(0xb7e00000)
-#define USEREND   __ULONG(0xb8000000)
+#define USRSHBASE __ULONG(0x00000000)
+#define USRSHEND  __ULONG(0xafffffff)
+#define USRTHBASE __ULONG(0xb0000000)
+#define THSTKBASE __ULONG(0xb6000000)
+#define THSTKTOP  __ULONG(0xb8000000)
+#define USEREND   __ULONG(0xb7ffffff)
 #define UKERNBASE __ULONG(0xc0000000)
 #define UKERNEND  _ukern_end
 #define DMAPSIZE  __ULONG(768 << 20)

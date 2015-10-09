@@ -113,7 +113,7 @@ struct cpu *cpu_setup(int id)
 
 	cpu = heap_alloc(sizeof(struct cpu));
 	cpu->idle_thread = NULL;
-       	TAILQ_INIT(&cpu->resched);
+	TAILQ_INIT(&cpu->resched);
 	cpu->softirq = 0;
 	return cpu;
 }
@@ -219,7 +219,7 @@ __dead void die(void)
 
 	/* In the future, remove shared mapping  before */
 	/* clear user mappings */
-	for (va = USERBASE; va < USEREND; va += PAGE_SIZE) {
+	for (va = USERBASE; va <= USEREND; va += PAGE_SIZE) {
 		pfn = pmap_enter(th->pmap, va, 0, 0);
 		if (pfn != PFN_INVALID)
 			__freepage(pfn);
