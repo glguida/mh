@@ -3,18 +3,14 @@
 
 #include <uk/types.h>
 #include <uk/param.h>
+#include <machine/uk/ukparam.h>
 
-#define KPDPTE 3
-#define NPDPTE 4
-
-#define NPTES  512
-
-#define L2SHIFT    30
+#define L2SHIFT    L2_SHIFT
 #define L2MASK     (0x3 << L2SHIFT)
 #define L2OFF(_a)  (((uintptr_t)(_a) & L2MASK) >> L2SHIFT)
 #define L2VA(_a)   (((_a) & 0x3) << L2SHIFT)
 
-#define L1SHIFT    21
+#define L1SHIFT    L1_SHIFT
 #define L1MASK     (0x1ff << L1SHIFT)
 #define L1OFF(_a)  (((uintptr_t)(_a) & L1MASK) >> L1SHIFT)
 #define L1VA(_a)   (((_a) & 0x1ff) << L1SHIFT)
@@ -27,7 +23,6 @@
 
 #define KL1_SDMAP  L1OFF(KVA_SDMAP)
 #define KL1_EDMAP  L1OFF(KVA_EDMAP)
-#define NPTES      512
 
 #define PG_P       1
 #define PG_W       2
@@ -41,8 +36,6 @@
 #else
 #define PG_NX      0
 #endif
-
-#define LINOFF    (NPTES - 4)
 
 #define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_l0))
 #define __val1tbl(_va) ((l1e_t *)__paeoffva(2, LINOFF+ 2, LINOFF + L2OFF(_va)))

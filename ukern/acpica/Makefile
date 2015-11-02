@@ -69,6 +69,10 @@ SRCS+= psxface.c pstree.c psparse.c \
 	psopcode.c psloop.c
 VPATH+= $(EXTSDIR)/acpica/parser/
 
+UKINCDIR= acpica
+UKINCS= acpica.h
+
+include $(MAKEDIR)/ukinc.mk
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/exts.mk
 include $(MAKEDIR)/lib.mk

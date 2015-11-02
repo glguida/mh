@@ -2,8 +2,8 @@
 #include <uk/queue.h>
 #include <uk/param.h>
 #include <machine/uk/locks.h>
-#include <ukern/pgalloc.h>
-#include <ukern/pfndb.h>
+#include <uk/pgalloc.h>
+#include <uk/pfndb.h>
 
 #define __PFNMAX(_p) ((_p) < pfndb_max() ? (_p) : pfndb_max())
 

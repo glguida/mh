@@ -1,7 +1,8 @@
-/*	$NetBSD: printf.c,v 1.18 2011/07/17 20:54:52 joerg Exp $	*/
+/* *INDENT-OFF* */ /* Imported from NetBSD */
+/*	$NetBSD: stdarg.h,v 1.3 2012/07/19 22:46:41 pooka Exp $	*/
 
 /*-
- * Copyright (c) 1993
+ * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,25 +29,40 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)printf.c	8.1 (Berkeley) 6/11/93
+ *	@(#)stdarg.h	8.1 (Berkeley) 6/10/93
  */
 
-#include <sys/cdefs.h>
-#include <sys/types.h>
-#include <sys/stdarg.h>
+#ifndef _SYS_STDARG_H_
+#define	_SYS_STDARG_H_
 
-#ifndef _DREX_SOURCE
-#include "stand.h"
-#else
-#include "syslib.h"
+#include <sys/ansi.h>
+#include <sys/featuretest.h>
+
+#ifdef __lint__
+#define __builtin_next_arg(t)		((t) ? 0 : 0)
+#define	__builtin_va_start(a, l)	((a) = (va_list)(void *)&(l))
+#define	__builtin_va_arg(a, t)		((a) ? (t) 0 : (t) 0)
+#define	__builtin_va_end(a)		/* nothing */
+#define	__builtin_va_copy(d, s)		((d) = (s))
+#elif !(__GNUC_PREREQ__(4, 5) || \
+    (__GNUC_PREREQ__(4, 4) && __GNUC_PATCHLEVEL__ > 2))
+#define __builtin_va_start(ap, last)    __builtin_stdarg_start((ap), (last))
 #endif
 
-void
-printf(const char *fmt, ...)
-{
-	va_list ap;
+#ifndef __VA_LIST_DECLARED
+typedef __va_list va_list;
+#define __VA_LIST_DECLARED
+#endif
 
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
+#define	va_start(ap, last)	__builtin_va_start((ap), (last))
+#define	va_arg			__builtin_va_arg
+#define	va_end(ap)		__builtin_va_end(ap)
+#define	__va_copy(dest, src)	__builtin_va_copy((dest), (src))
+
+#if !defined(_ANSI_SOURCE) && \
+    (defined(_ISOC99_SOURCE) || (__STDC_VERSION__ - 0) >= 199901L || \
+     defined(_NETBSD_SOURCE))
+#define	va_copy(dest, src)	__va_copy((dest), (src))
+#endif
+
+#endif /* !_SYS_STDARG_H_ */

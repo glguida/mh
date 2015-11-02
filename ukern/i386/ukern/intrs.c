@@ -1,7 +1,7 @@
 #include <uk/types.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
-#include <ukern/kern.h>
+#include <uk/kern.h>
 #include <uk/sys.h>
 #include <lib/lib.h>
 

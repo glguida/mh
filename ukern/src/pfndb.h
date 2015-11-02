@@ -1,8 +1,8 @@
 #ifndef __uk_pfndb_h
 #define __uk_pfndb_h
 
-#include <ukern/pgalloc.h>
-#include <ukern/slab.h>
+#include <uk/pgalloc.h>
+#include <uk/slab.h>
 
 typedef struct {
 	uint8_t type;

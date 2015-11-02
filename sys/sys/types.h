@@ -1,3 +1,4 @@
+/* *INDENT-OFF* */ /* Imported from NetBSD */
 /*	$NetBSD: types.h,v 1.91 2013/12/12 17:53:03 matt Exp $	*/
 
 /*-
@@ -51,67 +52,67 @@
 #include <sys/ansi.h>
 
 #ifndef	int8_t
-typedef __int8_t int8_t;
+typedef	__int8_t	int8_t;
 #define	int8_t		__int8_t
 #endif
 
 #ifndef	uint8_t
-typedef __uint8_t uint8_t;
+typedef	__uint8_t	uint8_t;
 #define	uint8_t		__uint8_t
 #endif
 
 #ifndef	int16_t
-typedef __int16_t int16_t;
+typedef	__int16_t	int16_t;
 #define	int16_t		__int16_t
 #endif
 
 #ifndef	uint16_t
-typedef __uint16_t uint16_t;
+typedef	__uint16_t	uint16_t;
 #define	uint16_t	__uint16_t
 #endif
 
 #ifndef	int32_t
-typedef __int32_t int32_t;
+typedef	__int32_t	int32_t;
 #define	int32_t		__int32_t
 #endif
 
 #ifndef	uint32_t
-typedef __uint32_t uint32_t;
+typedef	__uint32_t	uint32_t;
 #define	uint32_t	__uint32_t
 #endif
 
 #ifndef	int64_t
-typedef __int64_t int64_t;
+typedef	__int64_t	int64_t;
 #define	int64_t		__int64_t
 #endif
 
 #ifndef	uint64_t
-typedef __uint64_t uint64_t;
+typedef	__uint64_t	uint64_t;
 #define	uint64_t	__uint64_t
 #endif
 
-typedef uint8_t u_int8_t;
-typedef uint16_t u_int16_t;
-typedef uint32_t u_int32_t;
-typedef uint64_t u_int64_t;
+typedef	uint8_t		u_int8_t;
+typedef	uint16_t	u_int16_t;
+typedef	uint32_t	u_int32_t;
+typedef	uint64_t	u_int64_t;
 
 #include <machine/endian.h>
 
-#if defined(_NETBSD_SOURCE)
-typedef unsigned char u_char;
-typedef unsigned short u_short;
-typedef unsigned int u_int;
-typedef unsigned long u_long;
+#if defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
+typedef	unsigned char	u_char;
+typedef	unsigned short	u_short;
+typedef	unsigned int	u_int;
+typedef	unsigned long	u_long;
 
-typedef unsigned char unchar;	/* Sys V compatibility */
-typedef unsigned short ushort;	/* Sys V compatibility */
-typedef unsigned int uint;	/* Sys V compatibility */
-typedef unsigned long ulong;	/* Sys V compatibility */
+typedef unsigned char	unchar;		/* Sys V compatibility */
+typedef	unsigned short	ushort;		/* Sys V compatibility */
+typedef	unsigned int	uint;		/* Sys V compatibility */
+typedef unsigned long	ulong;		/* Sys V compatibility */
 #endif
 
-typedef uint64_t u_quad_t;	/* quads */
-typedef int64_t quad_t;
-typedef quad_t *qaddr_t;
+typedef	uint64_t	u_quad_t;	/* quads */
+typedef	int64_t		quad_t;
+typedef	quad_t *	qaddr_t;
 
 /*
  * The types longlong_t and u_longlong_t exist for use with the
@@ -123,81 +124,81 @@ typedef quad_t *qaddr_t;
  * the C99 types int64_t and uint64_t instead.
  */
 
-typedef int64_t longlong_t;	/* for XDR */
-typedef uint64_t u_longlong_t;	/* for XDR */
+typedef	int64_t		longlong_t;	/* for XDR */
+typedef	uint64_t	u_longlong_t;	/* for XDR */
 
-typedef int64_t blkcnt_t;	/* fs block count */
-typedef int32_t blksize_t;	/* fs optimal block size */
+typedef	int64_t		blkcnt_t;	/* fs block count */
+typedef	int32_t		blksize_t;	/* fs optimal block size */
 
 #ifndef	fsblkcnt_t
-typedef __fsblkcnt_t fsblkcnt_t;	/* fs block count (statvfs) */
+typedef	__fsblkcnt_t	fsblkcnt_t;	/* fs block count (statvfs) */
 #define fsblkcnt_t	__fsblkcnt_t
 #endif
 
 #ifndef	fsfilcnt_t
-typedef __fsfilcnt_t fsfilcnt_t;	/* fs file count */
+typedef	__fsfilcnt_t	fsfilcnt_t;	/* fs file count */
 #define fsfilcnt_t	__fsfilcnt_t
 #endif
 
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 /* We don't and shouldn't use caddr_t in the kernel anymore */
 #ifndef	caddr_t
-typedef __caddr_t caddr_t;	/* core address */
+typedef	__caddr_t	caddr_t;	/* core address */
 #define	caddr_t		__caddr_t
 #endif
 #endif
 
 #ifdef __daddr_t
-typedef __daddr_t daddr_t;	/* disk address */
+typedef	__daddr_t	daddr_t;	/* disk address */
 #undef __daddr_t
 #else
-typedef int64_t daddr_t;	/* disk address */
+typedef	int64_t		daddr_t;	/* disk address */
 #endif
 
-typedef uint64_t dev_t;		/* device number */
-typedef uint32_t fixpt_t;	/* fixed point number */
+typedef	uint64_t	dev_t;		/* device number */
+typedef	uint32_t	fixpt_t;	/* fixed point number */
 
 #ifndef	gid_t
-typedef __gid_t gid_t;		/* group id */
+typedef	__gid_t		gid_t;		/* group id */
 #define	gid_t		__gid_t
 #endif
 
-typedef int idtype_t;		/* type of the id */
-typedef uint32_t id_t;		/* group id, process id or user id */
-typedef uint64_t ino_t;		/* inode number */
-typedef long key_t;		/* IPC key (for Sys V IPC) */
+typedef	int		idtype_t;	/* type of the id */
+typedef	uint32_t	id_t;		/* group id, process id or user id */
+typedef	uint64_t	ino_t;		/* inode number */
+typedef	long		key_t;		/* IPC key (for Sys V IPC) */
 
 #ifndef	mode_t
-typedef __mode_t mode_t;	/* permissions */
+typedef	__mode_t	mode_t;		/* permissions */
 #define	mode_t		__mode_t
 #endif
 
-typedef uint32_t nlink_t;	/* link count */
+typedef	uint32_t	nlink_t;	/* link count */
 
 #ifndef	off_t
-typedef __off_t off_t;		/* file offset */
+typedef	__off_t		off_t;		/* file offset */
 #define	off_t		__off_t
 #endif
 
 #ifndef	pid_t
-typedef __pid_t pid_t;		/* process id */
+typedef	__pid_t		pid_t;		/* process id */
 #define	pid_t		__pid_t
 #endif
-typedef int32_t lwpid_t;	/* LWP id */
-typedef uint64_t rlim_t;	/* resource limit */
-typedef int32_t segsz_t;	/* segment size */
-typedef int32_t swblk_t;	/* swap offset */
+typedef int32_t		lwpid_t;	/* LWP id */
+typedef uint64_t	rlim_t;		/* resource limit */
+typedef	int32_t		segsz_t;	/* segment size */
+typedef	int32_t		swblk_t;	/* swap offset */
 
 #ifndef	uid_t
-typedef __uid_t uid_t;		/* user id */
+typedef	__uid_t		uid_t;		/* user id */
 #define	uid_t		__uid_t
 #endif
 
-typedef int mqd_t;
+typedef int		mqd_t;
 
-typedef unsigned long cpuid_t;
+typedef	unsigned long	cpuid_t;
 
-typedef int psetid_t;
+typedef	int		psetid_t;
 
 #if defined(_KERNEL) || defined(_STANDALONE)
 /*
@@ -213,7 +214,7 @@ typedef int psetid_t;
 /*
  * Deprecated Mach-style boolean_t type.  Should not be used by new code.
  */
-typedef int boolean_t;
+typedef int	boolean_t;
 #ifndef TRUE
 #define	TRUE	1
 #endif
@@ -221,7 +222,7 @@ typedef int boolean_t;
 #define	FALSE	0
 #endif
 
-#endif				/* _KERNEL || _STANDALONE */
+#endif /* _KERNEL || _STANDALONE */
 
 #if defined(_KERNEL) || defined(_LIBC)
 /*
@@ -230,12 +231,12 @@ typedef int boolean_t;
  * The SUSv2 semctl(2) takes variable arguments.
  */
 union __semun {
-	int val;		/* value for SETVAL */
-	struct semid_ds *buf;	/* buffer for IPC_STAT & IPC_SET */
-	unsigned short *array;	/* array for GETALL & SETALL */
+	int		val;		/* value for SETVAL */
+	struct semid_ds	*buf;		/* buffer for IPC_STAT & IPC_SET */
+	unsigned short	*array;		/* array for GETALL & SETALL */
 };
 #include <sys/stdint.h>
-#endif				/* _KERNEL || _LIBC */
+#endif /* _KERNEL || _LIBC */
 
 /*
  * These belong in unistd.h, but are placed here too to ensure that
@@ -247,13 +248,15 @@ union __semun {
 #define __OFF_T_SYSCALLS_DECLARED
 #ifndef _KERNEL
 #include <sys/cdefs.h>
-__BEGIN_DECLS off_t lseek(int, off_t, int);
-int ftruncate(int, off_t);
-int truncate(const char *, off_t);
+__BEGIN_DECLS
+off_t	 lseek(int, off_t, int);
+int	 ftruncate(int, off_t);
+int	 truncate(const char *, off_t);
 __END_DECLS
-#endif				/* !_KERNEL */
-#endif				/* __OFF_T_SYSCALLS_DECLARED */
-#endif				/* defined(_NETBSD_SOURCE) */
+#endif /* !_KERNEL */
+#endif /* __OFF_T_SYSCALLS_DECLARED */
+#endif /* defined(_NETBSD_SOURCE) */
+
 #if defined(_NETBSD_SOURCE)
 /* Major, minor numbers, dev_t's. */
 typedef int32_t __devmajor_t, __devminor_t;
@@ -269,52 +272,52 @@ typedef int32_t __devmajor_t, __devminor_t;
 #endif
 
 #ifdef	_BSD_CLOCK_T_
-typedef _BSD_CLOCK_T_ clock_t;
+typedef	_BSD_CLOCK_T_		clock_t;
 #undef	_BSD_CLOCK_T_
 #endif
 
 #ifdef	_BSD_PTRDIFF_T_
-typedef _BSD_PTRDIFF_T_ ptrdiff_t;
+typedef	_BSD_PTRDIFF_T_		ptrdiff_t;
 #undef	_BSD_PTRDIFF_T_
 #endif
 
 #ifdef	_BSD_SIZE_T_
-typedef _BSD_SIZE_T_ size_t;
+typedef	_BSD_SIZE_T_		size_t;
 #define _SIZE_T
 #undef	_BSD_SIZE_T_
 #endif
 
 #ifdef	_BSD_SSIZE_T_
-typedef _BSD_SSIZE_T_ ssize_t;
+typedef	_BSD_SSIZE_T_		ssize_t;
 #undef	_BSD_SSIZE_T_
 #endif
 
 #ifdef	_BSD_TIME_T_
-typedef _BSD_TIME_T_ time_t;
+typedef	_BSD_TIME_T_		time_t;
 #undef	_BSD_TIME_T_
 #endif
 
 #ifdef	_BSD_CLOCKID_T_
-typedef _BSD_CLOCKID_T_ clockid_t;
+typedef	_BSD_CLOCKID_T_		clockid_t;
 #undef	_BSD_CLOCKID_T_
 #endif
 
 #ifdef	_BSD_TIMER_T_
-typedef _BSD_TIMER_T_ timer_t;
+typedef	_BSD_TIMER_T_		timer_t;
 #undef	_BSD_TIMER_T_
 #endif
 
 #ifdef	_BSD_SUSECONDS_T_
-typedef _BSD_SUSECONDS_T_ suseconds_t;
+typedef	_BSD_SUSECONDS_T_	suseconds_t;
 #undef	_BSD_SUSECONDS_T_
 #endif
 
 #ifdef	_BSD_USECONDS_T_
-typedef _BSD_USECONDS_T_ useconds_t;
+typedef	_BSD_USECONDS_T_	useconds_t;
 #undef	_BSD_USECONDS_T_
 #endif
 
-#ifdef _NETBSD_SOURCE
+#if defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
 #include <sys/fd_set.h>
 
 #define	NBBY			8
@@ -331,19 +334,19 @@ typedef int pri_t;
  * common structures that cross subsystem boundaries here; others are mostly
  * used in the same place that the structure is defined.
  */
-struct lwp;
+struct	lwp;
 typedef struct lwp lwp_t;
-struct __ucontext;
-struct proc;
+struct	__ucontext;
+struct	proc;
 typedef struct proc proc_t;
-struct pgrp;
-struct rusage;
-struct file;
+struct	pgrp;
+struct	rusage;
+struct	file;
 typedef struct file file_t;
-struct buf;
+struct	buf;
 typedef struct buf buf_t;
-struct tty;
-struct uio;
+struct	tty;
+struct	uio;
 #endif
 
 #ifdef _KERNEL
@@ -359,4 +362,4 @@ struct uio;
 #endif
 #endif
 
-#endif				/* !_SYS_TYPES_H_ */
+#endif /* !_SYS_TYPES_H_ */

@@ -1,3 +1,4 @@
+#include <sys/stdint.h>
 #include <microkernel.h>
 #include <syslib.h>
 

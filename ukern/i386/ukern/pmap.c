@@ -4,9 +4,9 @@
 #include <machine/uk/pmap.h>
 #include <machine/uk/pae.h>
 #include <machine/uk/tlb.h>
-#include <ukern/fixmems.h>
-#include <ukern/structs.h>
-#include <ukern/pgalloc.h>
+#include <uk/fixmems.h>
+#include <uk/structs.h>
+#include <uk/pgalloc.h>
 #include <lib/lib.h>
 
 struct slab pmap_cache;

@@ -1,5 +1,5 @@
 #include <uk/types.h>
-#include <ukern/vmap.h>
+#include <uk/vmap.h>
 #include <lib/lib.h>
 #include <machine/uk/lapic.h>
 

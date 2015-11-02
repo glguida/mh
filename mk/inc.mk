@@ -3,18 +3,19 @@ ALL_TARGET+= includes
 
 ifneq ($(INCDIR)z,z)
 ALL_TARGET+= incdir
+incdir:
+	install -d ${INSTALLINCDIR}/${INCDIR}
+else
+incdir:
 endif
 
 ifneq ($(INCS)z,z)
 ALL_TARGET+= incs
-endif
-
-incdir:
-	install -d ${INSTALLINCDIR}/${INCDIR}
-
 incs:
 	install -m 0644 ${INCS} ${INSTALLINCDIR}/${INCDIR}/ 
-
+else
+incs:
+endif
 
 includes:
-	for dir in $(INCSUBDIRS); do $(MAKE) -C $$dir; done
+	for dir in $(INCSUBDIRS); do $(MAKE) -C $$dir includes incdir incs; done

@@ -1,5 +1,5 @@
 VPATH+= lib/
 SRCS+= printf.c memcmp.c
 
-VPATH+= bsd/libc
+# BSD
 SRCS+= rb.c

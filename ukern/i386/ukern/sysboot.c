@@ -2,13 +2,13 @@
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
-#include <ukern/pfndb.h>
-#include <ukern/fixmems.h>
-#include <ukern/heap.h>
-#include <ukern/vmap.h>
+#include <uk/pfndb.h>
+#include <uk/fixmems.h>
+#include <uk/heap.h>
+#include <uk/vmap.h>
 #include <acpica/acpica.h>
 #include <lib/lib.h>
-#include <ukern/kern.h>
+#include <uk/kern.h>
 #include "i386.h"
 
 char *_boot_cmdline = NULL;

@@ -1,4 +1,5 @@
-/*	$NetBSD: cdefs_elf.h,v 1.47 2014/12/08 20:50:11 joerg Exp $	*/
+/* *INDENT-OFF* */ /* Imported from NetBSD */
+/*	$NetBSD: cdefs_elf.h,v 1.44.2.1 2014/12/13 19:13:25 martin Exp $	*/
 
 /*
  * Copyright (c) 1995, 1996 Carnegie-Mellon University.
@@ -111,18 +112,6 @@
 	  ".popsection");
 
 #endif /* !__STDC__ */
-
-#if __arm__
-#define __ifunc(name, resolver) \
-	__asm(".globl	" _C_LABEL_STRING(#name) "\n" \
-	      ".type	" _C_LABEL_STRING(#name) ", %gnu_indirect_function\n" \
-	       _C_LABEL_STRING(#name) " = " _C_LABEL_STRING(#resolver))
-#else
-#define __ifunc(name, resolver) \
-	__asm(".globl	" _C_LABEL_STRING(#name) "\n" \
-	      ".type	" _C_LABEL_STRING(#name) ", @gnu_indirect_function\n" \
-	      _C_LABEL_STRING(#name) " = " _C_LABEL_STRING(#resolver))
-#endif
 
 #if __STDC__
 #define	__SECTIONSTRING(_sec, _str)					\

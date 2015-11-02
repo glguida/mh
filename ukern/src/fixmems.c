@@ -1,5 +1,5 @@
 #include <uk/types.h>
-#include <ukern/fixmems.h>
+#include <uk/fixmems.h>
 
 struct slab m4k;
 struct slab m12k;

@@ -35,17 +35,13 @@
  * Scaled down version of printf(3).
  */
 
-#ifndef _DREX_SOURCE
+
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/stdint.h>		/* XXX: for intptr_t */
-
+#ifndef _DREX_SOURCE
 #include "stand.h"
-#else
-#include <uk/cdefs.h>
-#include <uk/types.h>
-#include <uk/stdarg.h>
-
+#else /* _DREX_SOURCE */
 #include <microkernel.h>
 #include "syslib.h"
 
@@ -53,8 +49,7 @@ void putchar(int ch)
 {
 	sys_putc(ch);
 }
-
-#endif
+#endif /* _DREX_SOURCE */
 
 #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
 #define INTMAX_T	longlong_t

@@ -1,7 +1,7 @@
 #include <uk/types.h>
 #include <machine/uk/param.h>
 #include <machine/uk/cpu.h>
-#include <ukern/kern.h>
+#include <uk/kern.h>
 #include <lib/lib.h>
 
 void __xcptframe_enter(struct xcptframe *f)

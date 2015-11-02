@@ -1,6 +1,6 @@
 #include <machine/uk/cpu.h>
 #include <uk/sys.h>
-#include <ukern/kern.h>
+#include <uk/kern.h>
 #include <lib/lib.h>
 
 static int sys_putc(int ch)

@@ -1,9 +1,8 @@
 #ifndef _microkernel_h_
 #define _microkernel_h_
 
+#include <sys/types.h>
 #include <uk/sys.h>
-#include <uk/types.h>
-#include <machine/uk/vmparam.h>
 
 int sys_xcptentry(void (*)(void), void *, void *);
 __dead void sys_die();

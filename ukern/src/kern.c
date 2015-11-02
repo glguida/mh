@@ -1,11 +1,11 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <uk/elf.h>
-#include <ukern/pfndb.h>
-#include <ukern/fixmems.h>
-#include <ukern/heap.h>
-#include <ukern/vmap.h>
-#include <ukern/structs.h>
+#include <uk/pfndb.h>
+#include <uk/fixmems.h>
+#include <uk/heap.h>
+#include <uk/vmap.h>
+#include <uk/structs.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/locks.h>

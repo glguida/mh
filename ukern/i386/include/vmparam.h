@@ -1,7 +1,7 @@
 #ifndef __i386_vmparam_h
 #define __i386_vmparam_h
 
-#define PAGE_SHIFT   21
+#include <machine/uk/ukparam.h>
 
 #define PAGE_SIZE   (1 << PAGE_SHIFT)
 #define PAGE_MASK   (PAGE_SIZE - 1)

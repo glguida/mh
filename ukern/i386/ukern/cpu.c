@@ -2,7 +2,7 @@
 #include <machine/uk/lapic.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
-#include <ukern/heap.h>
+#include <uk/heap.h>
 #include <lib/lib.h>
 #include "i386.h"
 

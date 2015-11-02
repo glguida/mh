@@ -4,7 +4,7 @@
 #include <uk/param.h>
 #include <lib/lib.h>
 
-#include <ukern/pfndb.h>
+#include <uk/pfndb.h>
 
 static lock_t pfndblock;
 static ipfn_t *pfndb = NULL;

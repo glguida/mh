@@ -1,4 +1,5 @@
-/*	$NetBSD: cdefs.h,v 1.122 2014/09/05 05:44:50 matt Exp $	*/
+/* *INDENT-OFF* */ /* Imported from NetBSD */
+/*	$NetBSD: cdefs.h,v 1.121 2014/08/08 19:43:49 joerg Exp $	*/
 
 /* * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -89,32 +90,32 @@
 #define	___CONCAT(x,y)	__CONCAT(x,y)
 
 #if __STDC__ || defined(__cplusplus)
-#define	__P(protos)	protos	/* full-blown ANSI C */
+#define	__P(protos)	protos		/* full-blown ANSI C */
 #define	__CONCAT(x,y)	x ## y
 #define	__STRING(x)	#x
 
-#define	__const		const	/* define reserved names to standard */
+#define	__const		const		/* define reserved names to standard */
 #define	__signed	signed
 #define	__volatile	volatile
 #if defined(__cplusplus) || defined(__PCC__)
-#define	__inline	inline	/* convert to C++/C99 keyword */
+#define	__inline	inline		/* convert to C++/C99 keyword */
 #else
 #if !defined(__GNUC__) && !defined(__lint__)
-#define	__inline		/* delete GCC keyword */
-#endif				/* !__GNUC__  && !__lint__ */
-#endif				/* !__cplusplus */
+#define	__inline			/* delete GCC keyword */
+#endif /* !__GNUC__  && !__lint__ */
+#endif /* !__cplusplus */
 
-#else				/* !(__STDC__ || __cplusplus) */
-#define	__P(protos)	()	/* traditional C preprocessor */
+#else	/* !(__STDC__ || __cplusplus) */
+#define	__P(protos)	()		/* traditional C preprocessor */
 #define	__CONCAT(x,y)	x/**/y
 #define	__STRING(x)	"x"
 
 #ifndef __GNUC__
-#define	__const			/* delete pseudo-ANSI C keywords */
+#define	__const				/* delete pseudo-ANSI C keywords */
 #define	__inline
 #define	__signed
 #define	__volatile
-#endif				/* !__GNUC__ */
+#endif	/* !__GNUC__ */
 
 /*
  * In non-ANSI C environments, new programs will want ANSI-only C keywords
@@ -123,12 +124,12 @@
  * identifiers should define -DNO_ANSI_KEYWORDS.
  */
 #ifndef	NO_ANSI_KEYWORDS
-#define	const		__const	/* convert ANSI C keywords */
+#define	const		__const		/* convert ANSI C keywords */
 #define	inline		__inline
 #define	signed		__signed
 #define	volatile	__volatile
-#endif				/* !NO_ANSI_KEYWORDS */
-#endif				/* !(__STDC__ || __cplusplus) */
+#endif /* !NO_ANSI_KEYWORDS */
+#endif	/* !(__STDC__ || __cplusplus) */
 
 /*
  * Used for internal auditing of the NetBSD source tree.
@@ -149,7 +150,7 @@
 #define	__CTASSERT99(x, a, b)	__CTASSERT0(x, __CONCAT(__ctassert,a), \
 					       __CONCAT(_,b))
 #endif
-#define	__CTASSERT0(x, y, z)	__CTASSERT1(x, y, z)
+#define	__CTASSERT0(x, y, z)	__CTASSERT1(x, y, z) 
 #define	__CTASSERT1(x, y, z)	typedef char y ## z[/*CONSTCOND*/(x) ? 1 : -1] __unused
 
 /*
@@ -230,25 +231,25 @@
 #if __GNUC_PREREQ__(3, 0)
 #define	__noinline	__attribute__((__noinline__))
 #else
-#define	__noinline		/* nothing */
+#define	__noinline	/* nothing */
 #endif
 
 #if __GNUC_PREREQ__(3, 0)
 #define	__always_inline	__attribute__((__always_inline__))
 #else
-#define	__always_inline		/* nothing */
+#define	__always_inline	/* nothing */
 #endif
 
 #if __GNUC_PREREQ__(4, 1)
 #define	__returns_twice	__attribute__((__returns_twice__))
 #else
-#define	__returns_twice		/* nothing */
+#define	__returns_twice	/* nothing */
 #endif
 
 #if __GNUC_PREREQ__(4, 5)
 #define	__noclone	__attribute__((__noclone__))
 #else
-#define	__noclone		/* nothing */
+#define	__noclone	/* nothing */
 #endif
 
 /*
@@ -257,7 +258,7 @@
 #if __GNUC_PREREQ__(2, 7)
 #define	__unused	__attribute__((__unused__))
 #else
-#define	__unused		/* delete */
+#define	__unused	/* delete */
 #endif
 
 /*
@@ -275,7 +276,7 @@
  */
 #if (defined(_KERNEL) && defined(DIAGNOSTIC)) \
  || (!defined(_KERNEL) && !defined(NDEBUG))
-#define	__diagused		/* empty */
+#define	__diagused	/* empty */
 #else
 #define	__diagused	__unused
 #endif
@@ -285,7 +286,7 @@
  * unused in non-debug code.
  */
 #if defined(DEBUG)
-#define	__debugused		/* empty */
+#define	__debugused	/* empty */
 #else
 #define	__debugused	__unused
 #endif
@@ -293,7 +294,7 @@
 #if __GNUC_PREREQ__(3, 1)
 #define	__noprofile	__attribute__((__no_instrument_function__))
 #else
-#define	__noprofile		/* nothing */
+#define	__noprofile	/* nothing */
 #endif
 
 #if __GNUC_PREREQ__(4, 6) || defined(__clang__)
@@ -357,14 +358,14 @@
 
 #if defined(__lint__)
 #define	__packed	__packed
-#define	__aligned(x)		/* delete */
-#define	__section(x)		/* delete */
+#define	__aligned(x)	/* delete */
+#define	__section(x)	/* delete */
 #elif __GNUC_PREREQ__(2, 7) || defined(__PCC__)
 #define	__packed	__attribute__((__packed__))
 #define	__aligned(x)	__attribute__((__aligned__(x)))
 #define	__section(x)	__attribute__((__section__(x)))
 #elif defined(_MSC_VER)
-#define	__packed		/* ignore */
+#define	__packed	/* ignore */
 #else
 #define	__packed	error: no __packed for this compiler
 #define	__aligned(x)	error: no __aligned for this compiler
@@ -376,13 +377,13 @@
  * in GCC 2.92.
  */
 #if defined(__lint__)
-#define	__restrict		/* delete __restrict when not supported */
+#define	__restrict	/* delete __restrict when not supported */
 #elif __STDC_VERSION__ >= 199901L
 #define	__restrict	restrict
 #elif __GNUC_PREREQ__(2, 92)
 #define	__restrict	__restrict__
 #else
-#define	__restrict		/* delete __restrict when not supported */
+#define	__restrict	/* delete __restrict when not supported */
 #endif
 
 /*
@@ -397,14 +398,14 @@
 #else
 #define	__func__	""
 #endif
-#endif				/* !(__STDC_VERSION__ >= 199901L) */
+#endif /* !(__STDC_VERSION__ >= 199901L) */
 
 #if defined(_KERNEL)
 #if defined(NO_KERNEL_RCSIDS)
 #undef __KERNEL_RCSID
-#define	__KERNEL_RCSID(_n, _s)	/* nothing */
-#endif				/* NO_KERNEL_RCSIDS */
-#endif				/* _KERNEL */
+#define	__KERNEL_RCSID(_n, _s)		/* nothing */
+#endif /* NO_KERNEL_RCSIDS */
+#endif /* _KERNEL */
 
 #if !defined(_STANDALONE) && !defined(_KERNEL)
 #if defined(__GNUC__) || defined(__PCC__)
@@ -413,9 +414,9 @@
 #define	__RENAME(x)	__symbolrename(x)
 #else
 #error "No function renaming possible"
-#endif				/* __GNUC__ */
-#else				/* _STANDALONE || _KERNEL */
-#define	__RENAME(x)	no renaming in kernel/standalone environment
+#endif /* __GNUC__ */
+#else /* _STANDALONE || _KERNEL */
+#define	__RENAME(x)	no renaming in kernel or standalone environment
 #endif
 
 /*
@@ -480,7 +481,7 @@
 #else
 #define __printflike(fmtarg, firstvararg)	/* nothing */
 #define __scanflike(fmtarg, firstvararg)	/* nothing */
-#define __format_arg(fmtarg)	/* nothing */
+#define __format_arg(fmtarg)			/* nothing */
 #endif
 
 /*
@@ -555,7 +556,7 @@
 /* __BITS(m, n): bits m through n, m < n. */
 #define	__BITS(__m, __n)	\
 	((__BIT(MAX((__m), (__n)) + 1) - 1) ^ (__BIT(MIN((__m), (__n))) - 1))
-#endif				/* !__ASSEMBLER__ */
+#endif /* !__ASSEMBLER__ */
 
 /* find least significant bit that is set */
 #define	__LOWEST_SET_BIT(__mask) ((((__mask) - 1) & (__mask)) ^ (__mask))
@@ -586,15 +587,8 @@
     (~((1ULL << (sizeof(t) * NBBY)) - 1)) : 0ULL)
 
 #ifndef __ASSEMBLER__
-static __inline long long __zeroll(void)
-{
-	return 0;
-}
-
-static __inline unsigned long long __zeroull(void)
-{
-	return 0;
-}
+static __inline long long __zeroll(void) { return 0; }
+static __inline unsigned long long __zeroull(void) { return 0; }
 #else
 #define __zeroll() (0LL)
 #define __zeroull() (0ULL)
@@ -625,4 +619,4 @@ static __inline unsigned long long __zeroull(void)
 #define __type_fit(t, a) (__type_is_signed(t) ? \
     __type_fit_s(t, a) : __type_fit_u(t, a))
 
-#endif				/* !_SYS_CDEFS_H_ */
+#endif /* !_SYS_CDEFS_H_ */

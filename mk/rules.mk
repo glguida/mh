@@ -1,8 +1,9 @@
+INSTALLDIR=$(SRCROOT)/dist
 
 EXTSDIR=$(SRCROOT)/exts
 EXTSRCDIR=$(SRCROOT)/exts
-INSTALLDIR=$(SRCROOT)/dist
 INSTALLINCDIR= $(INSTALLDIR)/usr/include
+INSTALLUKINCDIR= $(INSTALLDIR)/usr/include/microkernel
 
 CFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
 	-fno-builtin -nostdinc -nostdlib -Wall \

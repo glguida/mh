@@ -1,4 +1,4 @@
-#include <uk/types.h>
+#include <machine/vmparam.h>
 #include <microkernel.h>
 
 extern void __sighdlr(void);
@@ -19,4 +19,4 @@ void siginit(void)
 	sys_xcptentry(__sighdlr, stkptr, stkptr);
 }
 
-int sys_sighandler(int, struct xcptframe frame) __weak_alias(sighandler);
+int sys_sighandler(int, struct xcptframe frame) __weak_alias(sighandler, sighandler);

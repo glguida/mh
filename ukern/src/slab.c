@@ -4,8 +4,8 @@
 #include <uk/queue.h>
 #include <uk/locks.h>
 #include <uk/assert.h>
-#include <ukern/pfndb.h>
-#include <ukern/pgalloc.h>
+#include <uk/pfndb.h>
+#include <uk/pgalloc.h>
 #include <lib/lib.h>
 
 
@@ -87,7 +87,7 @@ static void ___slabfree(void *addr)
 
 #elif __SLAB_STRUCTS
 
-#include <ukern/fixmems.h>
+#include <uk/fixmems.h>
 
 #define SLABFUNC_NAME "struct cache"
 #define SLABFUNC(_s) structs_##_s

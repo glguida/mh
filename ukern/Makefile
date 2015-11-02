@@ -5,10 +5,12 @@ OBJCOPY?=objcopy
 
 include ukern.config
 include $(MACHINE)/Makefile.inc
-SUBDIRS_MKINC+= lib/ ukern/
-SUBDIRS+= include acpica
+SUBDIRS_MKINC+= lib/ src/
+SUBDIRS+= src lib acpica
 include $(MAKEDIR)/ukern.mk
 
+include $(MAKEDIR)/inc.mk
+include $(MAKEDIR)/ukinc.mk
 include $(MAKEDIR)/exts.mk
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/subdir.mk

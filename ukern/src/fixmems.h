@@ -2,7 +2,7 @@
 #define __fixmems_h
 
 #include <uk/types.h>
-#include <ukern/slab.h>
+#include <uk/slab.h>
 
 int fixmem_grow(struct slab *sc);
 int fixmem_shrink(struct slab *sc);

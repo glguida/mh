@@ -4,8 +4,8 @@
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/locks.h>
-#include <ukern/structs.h>
-#include <ukern/vmap.h>
+#include <uk/structs.h>
+#include <uk/vmap.h>
 #include <lib/lib.h>
 
 

@@ -1,9 +1,9 @@
 #ifndef _syslib_h_
 #define _syslib_h_
 
-#include <uk/cdefs.h>
-#include <uk/types.h>
-#include <uk/stdarg.h>
+#include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/stdarg.h>
 
 void putchar(int c);
 void vprintf(const char *fmt, va_list ap);

@@ -2,7 +2,12 @@
 #define _i386_uk_sys_h_
 
 #ifndef _ASSEMBLER
+
+#ifdef _UKERNEL
 #include <machine/uk/int_types.h>
+#else
+#include <machine/int_types.h>
+#endif
 
 struct xcptframe {
 	/* segments */

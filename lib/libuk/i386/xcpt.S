@@ -1,4 +1,4 @@
-#include <machine/uk/asm.h>
+#include <machine/asm.h>
 
 ENTRY(__sighdlr)
 	push %eax

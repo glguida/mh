@@ -1,12 +1,12 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <uk/locks.h>
-#include "../ukern/heap.h"
-#include "../ukern/structs.h"
-#include "../ukern/vmap.h"
-#include "./acpica.h"
-
+#include <uk/heap.h>
+#include <uk/structs.h>
+#include <uk/vmap.h>
+#include "acpica.h"
 #include "acpi.h"
+
 extern ACPI_PHYSICAL_ADDRESS acpi_rdsp;
 
 
