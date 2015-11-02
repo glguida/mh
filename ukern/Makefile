@@ -18,16 +18,17 @@ LDFLAGS+= -Lacpica
 
 
 ukern: $(OBJS)
-	$(OBJCOPY) -I binary /dev/null -O elf32-i386 $(OBJDIR)/init.elf.o
-	$(OBJCOPY) -I elf32-i386 -B i386 \
+	$(OBJCOPY) -I elf32-i386 -O elf32-i386 \
+		--remove-section .init.elf \
 		--add-section .init.elf=$(INSTALLDIR)/sys/init \
 		--set-section-flags .init.elf=alloc,load,data \
-		 $(OBJDIR)/init.elf.o 
-	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(OBJDIR)/init.elf.o $(LIBS)
+		$(OBJDIR)/empty.o 
+	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(LIBS)
+
 
 ALL_TARGET+= ukern
 
 all: $(ALL_TARGET)
 
 clean: $(CLEAN_TARGET)
-	-rm $(INSTALLDIR)/ukern $(OBJS) $(OBJDIR)/init.elf.o
+	-rm $(INSTALLDIR)/ukern $(OBJS)
