@@ -6,7 +6,7 @@
 #include <uk/assert.h>
 #include <uk/queue.h>
 #include <machine/uk/lapic.h>
-#include <i386/ukern/i386.h>
+#include <machine/uk/i386.h>
 
 #define UKERN_MAX_CPUS 64
 #define UKERN_MAX_PHYSCPUS 64

@@ -2,6 +2,7 @@
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
+#include <machine/uk/i386.h>
 #include <uk/pfndb.h>
 #include <uk/fixmems.h>
 #include <uk/heap.h>
@@ -9,7 +10,6 @@
 #include <acpica/acpica.h>
 #include <lib/lib.h>
 #include <uk/kern.h>
-#include "i386.h"
 
 char *_boot_cmdline = NULL;
 

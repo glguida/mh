@@ -2,9 +2,10 @@
 #include <machine/uk/lapic.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
+#include <machine/uk/i386.h>
 #include <uk/heap.h>
 #include <lib/lib.h>
-#include "i386.h"
+
 
 
 int number_cpus = 0;
