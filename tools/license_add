@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Add license to source file.
+#
+# ./license_add <source>
+#
+# NB. Check for other licenses in the file and modify accordingly
+
+TMPFILE=`mktemp`
+
+cat tools/license_header $1 > ${TMPFILE}
+cp ${TMPFILE} $1
