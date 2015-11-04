@@ -67,6 +67,16 @@ static inline void lapic_ipi(unsigned physid, uint8_t dlvr, uint8_t vct)
 	lapic_write(L_ICR_LO, lo);
 }
 
+static inline void lapic_ipi_broadcast(uint8_t dlvr, uint8_t vct)
+{
+	uint32_t lo;
+
+	lo = (dlvr & 0x7) << 8 | vct
+		| /*ALLBUTSELF*/ 0x80000 | /*ASSERT*/ 0x4000;
+	lapic_write(L_ICR_HI, 0);
+	lapic_write(L_ICR_LO, lo);
+}
+
 #define lapic_getcurrent(void)  (lapic_read(L_IDREG) >> 24)
 
 #endif

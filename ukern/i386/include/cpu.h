@@ -23,10 +23,35 @@ struct cpu_info {
 	struct cpu_info *self;
 };
 
+extern cpumask_t cpus_active;
+
 int cpu_add(uint16_t physid, uint16_t acpiid);
 struct cpu_info *cpuinfo_get(unsigned id);
 void cpu_wakeup_aps(void);
 int cpu_number_from_lapic(void);
+
+void cpu_nmi(int cpu);
+void cpu_nmi_mask(cpumask_t map);
+void cpu_nmi_broadcast(void);
+void cpu_ipi(int cpu, uint8_t vct);
+void cpu_ipi_mask(cpumask_t map, uint8_t vct);
+void cpu_ipi_broadcast(uint8_t vct);
+
+#define foreach_cpumask(__mask, __op)					\
+	do {								\
+		int i = 0;						\
+		cpumask_t m = (__mask) & cpus_active;			\
+									\
+		/* https://xkcd.com/292/ */				\
+		/* allow safe use of continue */			\
+		goto _start;						\
+		while (m != 0) {					\
+			i++;						\
+			m >>= 1;					\
+		_start:							\
+			if (m & 1) __op;				\
+		};							\
+	} while(0)
 
 static inline struct cpu_info *current_cpuinfo(void)
 {

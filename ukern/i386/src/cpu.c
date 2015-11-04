@@ -6,12 +6,11 @@
 #include <uk/heap.h>
 #include <lib/lib.h>
 
+cpumask_t cpus_active = 0;
 
-
-int number_cpus = 0;
-int cpu_phys_to_id[UKERN_MAX_PHYSCPUS] = { -1, };
-struct cpu_info *cpus[UKERN_MAX_CPUS] = { 0, };
-
+static int number_cpus = 0;
+static int cpu_phys_to_id[UKERN_MAX_PHYSCPUS] = { -1, };
+static struct cpu_info *cpus[UKERN_MAX_CPUS] = { 0, };
 
 extern char _ap_start, _ap_end;
 
@@ -28,7 +27,8 @@ struct cpu_info *cpuinfo_get(unsigned id)
 	return cpus[id];
 }
 
-int cpu_setup(int);
+struct cpu *cpu_setup(int);
+
 int cpu_add(uint16_t physid, uint16_t acpiid)
 {
 	int id;
@@ -58,8 +58,50 @@ int cpu_add(uint16_t physid, uint16_t acpiid)
 	cpus[id] = cpuinfo;
 	cpu_phys_to_id[physid] = id;
 
+	cpus_active |= (1 << id);
 
 	return id;
+}
+
+void cpu_nmi(int cpu)
+{
+	struct cpu_info *ci = cpuinfo_get(cpu);
+
+	if (ci == NULL)
+		return;
+	lapic_ipi(ci->phys_id, APIC_DLVR_NMI, 0);
+}
+
+void cpu_nmi_broadcast(void)
+{
+	lapic_ipi_broadcast(APIC_DLVR_NMI, 0);
+}
+
+void cpu_nmi_mask(cpumask_t map)
+{
+
+	foreach_cpumask(map, cpu_nmi(i));
+}
+
+void cpu_ipi(int cpu, uint8_t vct)
+{
+	struct cpu_info *ci = cpuinfo_get(cpu);
+
+	if (ci == NULL)
+		return;
+	lapic_ipi(ci->phys_id, APIC_DLVR_FIX, vct);
+}
+
+void cpu_ipi_broadcast(uint8_t vct)
+{
+
+	lapic_ipi_broadcast(APIC_DLVR_FIX, vct);
+}
+
+void cpu_ipi_mask(cpumask_t map, uint8_t vct)
+{
+
+	foreach_cpumask(map, cpu_ipi(i, vct));
 }
 
 int cpu_number_from_lapic(void)
