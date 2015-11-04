@@ -218,12 +218,13 @@ __dead void die(void)
 	struct thread *th = current_thread();
 
 	/* In the future, remove shared mapping  before */
-	/* clear user mappings */
+	/* clearing user mappings */
 	for (va = USERBASE; va <= USEREND; va += PAGE_SIZE) {
 		pfn = pmap_enter(th->pmap, va, 0, 0);
 		if (pfn != PFN_INVALID)
 			__freepage(pfn);
 	}
+	pmap_commit(NULL);
 
 	th->status = THST_DELETED;
 	schedule();
@@ -307,16 +308,17 @@ void kern_boot(void)
 	th->stack_4k = NULL;
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
+	/* We are idle thread now. */
 
-	/* We are idle thread now. Create init */
+	cpu_wakeup_aps();
 
+
+	/* Create init */
 	th = thnew(__initstart);
-
 	spinlock(&sched_lock);
 	TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
 	spinunlock(&sched_lock);
 
-	cpu_wakeup_aps();
 	idle();
 }
 
