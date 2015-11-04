@@ -116,6 +116,8 @@ void sysboot_ap(void)
 
 	pmap_boot();
 	__insn_barrier();	/* LAPIC now mapped */
+	/* Enable LAPIC */
+	lapic_write(L_MISC, lapic_read(L_MISC) | 0x100);
 
 	cpuid = cpu_number_from_lapic();
 	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss, &cpuinfo_get(cpuid)->self);
