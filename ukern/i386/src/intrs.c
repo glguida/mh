@@ -5,34 +5,6 @@
 #include <uk/sys.h>
 #include <lib/lib.h>
 
-#if 0
-struct intframe {
-	/* segments */
-	uint16_t ds;
-	uint16_t es;
-	uint16_t fs;
-	uint16_t gs;
-	/* CRs    */
-	uint32_t cr2;
-	uint32_t cr3;
-	/* pushal */
-	uint32_t edi;
-	uint32_t esi;
-	uint32_t ebp;
-	uint32_t espx;
-	uint32_t ebx;
-	uint32_t edx;
-	uint32_t ecx;
-	uint32_t eax;
-	/* exception stack */
-	uint32_t err;
-	uint32_t eip;
-	uint32_t cs;
-	uint32_t eflags;
-	uint32_t esp;
-	uint32_t ss;
-} __packed;
-#endif
 char *exceptions[] = {
 	"Divide by zero exception",
 	"Debug exception",
@@ -85,7 +57,11 @@ int xcpt_entry(uint32_t vect, struct xcptframe *f)
 {
 	current_thread()->frame = f;
 
-
+	if (vect == 0x2) {
+		/* NMI Handler */
+		__flush_tlbs_on_nmi();
+		return 0;
+	}
 
 	if (f->cs == UCS) {
 		thxcpt(vect_to_xcpt(vect));
