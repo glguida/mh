@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Update NetBSD imported files to a new revision of NetBSD
+#
+# - to be run from source root
+# - nbsd/ is link to netbsd /usr/src
+#
+# tools/netbsd_update
+
+# copy original netbsd files
+awk '{ system("bash -c \" install -d `dirname "$2"`; install nbsd/"$1" "$2" \" "); }' tools/netbsd_imports
+
+# patch using diff
+patch -p1 < tools/netbsd.patch
+
+# add Imported from NetBSD line
+awk '{ system("bash -c \" cat tools/netbsd_header "$2" > /tmp/tmp.diff; cp /tmp/tmp.diff "$2" \" "); }' tools/netbsd_imports
+
+echo Now do a git diff and check those who changed version.

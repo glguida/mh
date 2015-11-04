@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
 /*	$NetBSD: subr_prf.c,v 1.24 2014/03/22 02:51:44 hkenken Exp $	*/
 
 /*-

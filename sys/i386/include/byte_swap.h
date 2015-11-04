@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
 /*	$NetBSD: byte_swap.h,v 1.15 2008/04/28 20:23:24 martin Exp $	*/
 
 /*-

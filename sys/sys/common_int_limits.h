@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
 /*	$NetBSD: common_int_limits.h,v 1.1 2014/07/25 21:43:13 joerg Exp $	*/
 
 /*-

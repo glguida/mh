@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
 /*      $NetBSD: bswap.h,v 1.16 2009/08/08 21:23:15 christos Exp $      */
 
 /* Written by Manuel Bouyer. Public domain */

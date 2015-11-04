@@ -1,0 +1,275 @@
+diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
+--- a/sys/i386/include/asm.h	2015-11-04 14:27:21.780925606 +0000
++++ b/sys/i386/include/asm.h	2015-11-04 14:27:22.805922622 +0000
+@@ -37,9 +37,11 @@
+ #ifndef _I386_ASM_H_
+ #define _I386_ASM_H_
+ 
++#ifndef _DREX_SOURCE
+ #ifdef _KERNEL_OPT
+ #include "opt_multiprocessor.h"
+ #endif
++#endif
+ 
+ #ifdef __PIC__
+ #define PIC_PROLOGUE	\
+diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
+--- a/sys/i386/include/types.h	2015-11-04 14:27:21.996924975 +0000
++++ b/sys/i386/include/types.h	2015-11-04 14:27:23.043921930 +0000
+@@ -34,9 +34,12 @@
+ #ifndef	_I386_MACHTYPES_H_
+ #define	_I386_MACHTYPES_H_
+ 
++#ifndef _DREX_SOURCE
+ #ifdef _KERNEL_OPT
+ #include "opt_xen.h"
+ #endif
++#endif /* _DREX_SOURCE */
++
+ #include <sys/cdefs.h>
+ #include <sys/featuretest.h>
+ #include <machine/int_types.h>
+@@ -47,7 +50,7 @@
+ } label_t;
+ #endif
+ 
+-#if defined(_NETBSD_SOURCE)
++#if defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
+ #if defined(_KERNEL)
+ 
+ /*
+@@ -83,7 +86,7 @@
+ #define	PRIxVADDR	"lx"
+ #define	PRIxVSIZE	"lx"
+ #define	PRIuVSIZE	"lu"
+-#endif /* _NETBSD_SOURCE */
++#endif /* _NETBSD_SOURCE || _DREX_SOURCE */
+ 
+ typedef int		pmc_evid_t;
+ typedef __uint64_t	pmc_ctr_t;
+diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
+--- a/sys/i386/include/vmparam.h	2015-11-04 14:27:21.842925425 +0000
++++ b/sys/i386/include/vmparam.h	2015-11-04 14:27:22.872922427 +0000
+@@ -37,8 +37,17 @@
+ #ifndef _I386_VMPARAM_H_
+ #define _I386_VMPARAM_H_
+ 
++#ifdef _DREX_SOURCE
++#include <machine/uk/ukparam.h>
++
++#define PDIR_SLOT_PTE (LPDPTE * NPTES + LINOFF)
++#define PDIR_SLOT_KERN KPDPTE
++#endif
++
++#ifndef _DREX_SOURCE
+ #include <sys/tree.h>
+ #include <sys/mutex.h>
++#endif
+ 
+ /*
+  * Machine dependent constants for 386.
+@@ -48,7 +57,10 @@
+  * Page size on the IA-32 is not variable in the traditional sense.
+  * We override the PAGE_* definitions to compile-time constants.
+  */
++
++#ifndef _DREX_SOURCE
+ #define	PAGE_SHIFT	12
++#endif
+ #define	PAGE_SIZE	(1 << PAGE_SHIFT)
+ #define	PAGE_MASK	(PAGE_SIZE - 1)
+ 
+@@ -105,21 +117,28 @@
+ #define	VM_MAX_ADDRESS		\
+ 	((vaddr_t)((PDIR_SLOT_PTE << L2_SHIFT) + (PDIR_SLOT_PTE << L1_SHIFT)))
+ #define	VM_MIN_KERNEL_ADDRESS	((vaddr_t)(PDIR_SLOT_KERN << L2_SHIFT))
++#ifndef _DREX_SOURCE
+ #define	VM_MAX_KERNEL_ADDRESS	((vaddr_t)((PDIR_SLOT_KERN + NKL2_MAX_ENTRIES) << L2_SHIFT))
++#endif /* _DREX_SOURCE */
+ 
+ /*
+  * The address to which unspecified mapping requests default
+  */
++#ifndef _DREX_SOURCE
+ #ifdef _KERNEL_OPT
+ #include "opt_uvm.h"
+ #include "opt_xen.h"
+ #endif
++#endif /* _DREX_SOURCE */
++
+ #define __USE_TOPDOWN_VM
+ #define VM_DEFAULT_ADDRESS_TOPDOWN(da, sz) \
+     trunc_page(USRSTACK - MAXSSIZ - (sz))
+ #define VM_DEFAULT_ADDRESS_BOTTOMUP(da, sz) \
+     round_page((vaddr_t)(da) + (vsize_t)MIN(maxdmap, MAXDSIZ_BU))
+ 
++#ifndef _DREX_SOURCE
++
+ /* XXX max. amount of KVM to be used by buffers. */
+ #ifndef VM_MAX_KERNEL_BUF
+ #define VM_MAX_KERNEL_BUF	(384 * 1024 * 1024)
+@@ -142,4 +161,6 @@
+ #endif /* XEN */
+ #define	VM_FREELIST_DEFAULT	0
+ 
++#endif /* _DREX_SOURCE */
++
+ #endif /* _I386_VMPARAM_H_ */
+diff -ru a/sys/lib/libsys/printf.c b/sys/lib/libsys/printf.c
+--- a/sys/lib/libsys/printf.c	2015-11-04 14:27:22.179924443 +0000
++++ b/sys/lib/libsys/printf.c	2015-11-04 14:27:23.243921350 +0000
+@@ -35,7 +35,11 @@
+ #include <sys/types.h>
+ #include <sys/stdarg.h>
+ 
++#ifndef _DREX_SOURCE
+ #include "stand.h"
++#else
++#include "syslib.h"
++#endif
+ 
+ void
+ printf(const char *fmt, ...)
+diff -ru a/sys/lib/libsys/subr_prf.c b/sys/lib/libsys/subr_prf.c
+--- a/sys/lib/libsys/subr_prf.c	2015-11-04 14:27:22.210924353 +0000
++++ b/sys/lib/libsys/subr_prf.c	2015-11-04 14:27:23.277921252 +0000
+@@ -38,8 +38,17 @@
+ #include <sys/cdefs.h>
+ #include <sys/types.h>
+ #include <sys/stdint.h>		/* XXX: for intptr_t */
+-
++#ifndef _DREX_SOURCE
+ #include "stand.h"
++#else /* _DREX_SOURCE */
++#include <microkernel.h>
++#include "syslib.h"
++
++void putchar(int ch)
++{
++	sys_putc(ch);
++}
++#endif /* _DREX_SOURCE */
+ 
+ #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
+ #define INTMAX_T	longlong_t
+diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
+--- a/sys/sys/endian.h	2015-11-04 14:27:21.657925965 +0000
++++ b/sys/sys/endian.h	2015-11-04 14:27:22.671923012 +0000
+@@ -91,7 +91,7 @@
+ #endif
+ 
+ 
+-#if defined(_XOPEN_SOURCE) || defined(_NETBSD_SOURCE)
++#if defined(_XOPEN_SOURCE) || defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
+ /*
+  *  Traditional names for byteorder.  These are defined as the numeric
+  *  sequences so that third party code can "#define XXX_ENDIAN" and not
+diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
+--- a/sys/sys/featuretest.h	2015-11-04 14:27:21.406926697 +0000
++++ b/sys/sys/featuretest.h	2015-11-04 14:27:22.344923963 +0000
+@@ -66,8 +66,9 @@
+ #endif
+ 
+ #if !defined(_ANSI_SOURCE) && !defined(_POSIX_C_SOURCE) && \
+-    !defined(_XOPEN_SOURCE) && !defined(_NETBSD_SOURCE)
+-#define _NETBSD_SOURCE 1
++    !defined(_XOPEN_SOURCE) && !defined(_NETBSD_SOURCE) && \
++    !defined(_DREX_SOURCE)
++#define _DREX_SOURCE 1L
+ #endif
+ 
+ #if ((_POSIX_C_SOURCE - 0) >= 199506L || (_XOPEN_SOURCE - 0) >= 500) && \
+diff -ru a/sys/sys/types.h b/sys/sys/types.h
+--- a/sys/sys/types.h	2015-11-04 14:27:21.548926283 +0000
++++ b/sys/sys/types.h	2015-11-04 14:27:22.557923343 +0000
+@@ -97,7 +97,7 @@
+ 
+ #include <machine/endian.h>
+ 
+-#if defined(_NETBSD_SOURCE)
++#if defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
+ typedef	unsigned char	u_char;
+ typedef	unsigned short	u_short;
+ typedef	unsigned int	u_int;
+@@ -316,7 +316,7 @@
+ #undef	_BSD_USECONDS_T_
+ #endif
+ 
+-#ifdef _NETBSD_SOURCE
++#if defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
+ #include <sys/fd_set.h>
+ 
+ #define	NBBY			8
+diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
+--- a/ukern/lib/rb.c	2015-11-04 14:27:22.301924088 +0000
++++ b/ukern/lib/rb.c	2015-11-04 14:27:23.360921011 +0000
+@@ -29,6 +29,17 @@
+  * POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
++#if defined(_DREX_SOURCE) && defined(_UKERNEL)
++#include <uk/types.h>
++#include <uk/assert.h>
++#include <uk/stdbool.h>
++#include <lib/lib.h>
++#ifdef RBDEBUG
++#define KASSERT(s) assert(s)
++#else
++#define KASSERT(s) do { } while (0)
++#endif
++#else
+ #if !defined(_KERNEL) && !defined(_STANDALONE)
+ #include <sys/types.h>
+ #include <stddef.h>
+@@ -44,6 +55,7 @@
+ #include <lib/libkern/libkern.h>
+ __KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
+ #endif
++#endif /* _DREX_SOURCE && _UKERNEL */
+ 
+ #ifdef _LIBC
+ __weak_alias(rb_tree_init, _rb_tree_init)
+@@ -61,11 +73,15 @@
+ #include "namespace.h"
+ #endif
+ 
++#if defined(_DREX_SOURCE) && defined(_UKERNEL)
++#include <uk/rbtree.h>
++#else
+ #ifdef RBTEST
+ #include "rbtree.h"
+ #else
+ #include <sys/rbtree.h>
+ #endif
++#endif
+ 
+ static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
+ static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
+diff -ru a/ukern/lib/rbtree.h b/ukern/lib/rbtree.h
+--- a/ukern/lib/rbtree.h	2015-11-04 14:27:22.240924266 +0000
++++ b/ukern/lib/rbtree.h	2015-11-04 14:27:23.310921156 +0000
+@@ -32,6 +32,16 @@
+ #ifndef _SYS_RBTREE_H_
+ #define	_SYS_RBTREE_H_
+ 
++#if defined(_DREX_SOURCE)
++#ifdef __DEBUG
++#define RBDEBUG
++#endif
++#include <uk/types.h>
++#include <uk/queue.h>
++#ifdef RBDEBUG
++#include <uk/stdbool.h>
++#endif
++#else
+ #if defined(_KERNEL) || defined(_STANDALONE)
+ #include <sys/types.h>
+ #else
+@@ -40,6 +50,7 @@
+ #endif
+ #include <sys/queue.h>
+ #include <sys/endian.h>
++#endif /* _DREX_SOURCE */
+ 
+ __BEGIN_DECLS
+ 
