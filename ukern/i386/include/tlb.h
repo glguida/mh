@@ -3,8 +3,9 @@
 
 #include <machine/uk/pmap.h>
 
+/* NB: the following value are OR'd when set. Take care on usage. */
 #define TLBF_NULL   0
-#define TLBF_LOCAL  1
+#define TLBF_NORMAL 1
 #define TLBF_GLOBAL 2
 
 #define restricts_permissions(_o, _n) 1
@@ -23,13 +24,12 @@ static __inline int __tlbflushp(l1e_t ol1e, l1e_t nl1e)
 	if (restricts_permissions(ol1e, nl1e))
 		goto flush;
 
-	return 0;
+	return TLBF_NULL;
 
       flush:
 	if ((l1eflags(ol1e) & PG_G) || (l1eflags(nl1e) & PG_G))
 		return TLBF_GLOBAL;
-
-	return TLBF_LOCAL;
+	return TLBF_NORMAL;
 }
 
 void __flush_tlbs(cpumask_t cpu, unsigned flags);

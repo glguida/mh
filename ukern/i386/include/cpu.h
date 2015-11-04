@@ -17,6 +17,8 @@ struct cpu_info {
 	struct thread *thread;	/* fs:4 */
 	struct cpu *cpu;
 
+	int tlbop; /* TLB shootdown */
+
 	uint16_t phys_id;
 	uint16_t acpi_id;
 	struct tss tss;

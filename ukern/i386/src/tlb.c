@@ -1,5 +1,21 @@
 #include <uk/types.h>
 #include <machine/uk/tlb.h>
+#include <machine/uk/cpu.h>
+
+static int __tlbcnt = 0;
+
+void __flush_tlbs_on_nmi(void)
+{
+	int tlbf = __sync_fetch_and_and(&current_cpuinfo()->tlbop, 0);
+
+
+	if (tlbf & TLBF_GLOBAL)
+		__flush_global_tlbs();
+	else if (tlbf & TLBF_NORMAL)
+		__flush_local_tlbs();
+
+	__sync_sub_and_fetch(&__tlbcnt, 1);
+}
 
 
 void __flush_local_tlbs(void)
@@ -18,14 +34,30 @@ void __flush_global_tlbs(void)
 		      "mov %%eax, %%cr4\n":::"eax");
 }
 
-void __flush_tlbs(cpumask_t cpumask, unsigned flags)
+void __flush_tlbs(cpumask_t cpumask, unsigned tlbf)
 {
 
-	if (flags & TLBF_GLOBAL) {
-		/* XXX: IPI ALL BUT SELF */
+	foreach_cpumask(cpumask, {
+			struct cpu_info *ci;
+
+			if (i == cpu_number())
+				continue;
+
+			ci = cpuinfo_get(i);
+			if (ci == NULL)
+				continue;
+			__sync_fetch_and_or(&ci->tlbop, tlbf);
+			__sync_add_and_fetch(&__tlbcnt, 1);
+			cpu_nmi(i);
+		});
+
+	if (tlbf & TLBF_GLOBAL)
 		__flush_global_tlbs();
-	} else {
-		/* XXX: IPI CPUMASK BUT SELF */
+	else if (tlbf & TLBF_NORMAL)
 		__flush_local_tlbs();
+
+	/* Synchronous wait */
+	while (__sync_add_and_fetch(&__tlbcnt, 0) != 0) {
+		asm volatile ("pause; pause; pause;");
 	}
 }

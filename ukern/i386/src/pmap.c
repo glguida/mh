@@ -4,6 +4,7 @@
 #include <machine/uk/pmap.h>
 #include <machine/uk/pae.h>
 #include <machine/uk/tlb.h>
+#include <machine/uk/cpu.h>
 #include <uk/fixmems.h>
 #include <uk/structs.h>
 #include <uk/pgalloc.h>
@@ -116,8 +117,8 @@ void pmap_commit(struct pmap *pmap)
 	spinlock(&pmap->lock);
 	if (pmap->tlbflush & TLBF_GLOBAL)
 		__flush_tlbs(-1, TLBF_GLOBAL);
-	else if (pmap->tlbflush & TLBF_LOCAL)
-		__flush_tlbs(pmap->cpumap, TLBF_LOCAL);
+	else if (pmap->tlbflush & TLBF_NORMAL)
+		__flush_tlbs(pmap->cpumap, TLBF_NORMAL);
 	pmap->tlbflush = 0;
 	spinunlock(&pmap->lock);
 }
@@ -128,8 +129,10 @@ void pmap_switch(struct pmap *pmap)
 
 	oldpmap = pmap_current();
 	pmap->refcnt++;
+	pmap->cpumap |= ((cpumask_t)1 << cpu_number());
 	__setpdptr(pmap->pdptr);
 	oldpmap->refcnt--;
+	oldpmap->cpumap &= ~((cpumask_t)1 << cpu_number());
 }
 
 struct pmap *pmap_boot(void)
