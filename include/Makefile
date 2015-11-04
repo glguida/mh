@@ -2,7 +2,7 @@ SRCROOT=..
 include $(SRCROOT)/mk/mk.conf
 
 INCSUBDIRS= $(MACHINE) $(SRCROOT)/ukern/src \
-	$(SRCROOT)/ukern/$(MACHINE)/include \
+	$(SRCROOT)/ukern/$(MACHINE)/src \
 	$(SRCROOT)/sys/sys \
 	$(SRCROOT)/sys/$(MACHINE)/include
 
