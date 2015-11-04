@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: int_const.h,v 1.4 2014/07/25 21:43:13 joerg Exp $	*/
 
 /*-

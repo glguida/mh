@@ -1,3 +1,4 @@
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: rbtree.h,v 1.2 2012/02/17 08:20:55 yamt Exp $	*/
 
 /*-
@@ -50,9 +51,11 @@
 #endif
 #include <sys/queue.h>
 #include <sys/endian.h>
-#endif
+#endif /* _DREX_SOURCE */
 
-__BEGIN_DECLS typedef struct rb_node {
+__BEGIN_DECLS
+
+typedef struct rb_node {
 	struct rb_node *rb_nodes[2];
 #define	RB_DIR_LEFT		0
 #define	RB_DIR_RIGHT		1
@@ -105,7 +108,7 @@ __BEGIN_DECLS typedef struct rb_node {
     (b)->rb_info ^= xorinfo; \
   } while (/*CONSTCOND*/ 0)
 #ifdef RBDEBUG
-	 TAILQ_ENTRY(rb_node) rb_link;
+	TAILQ_ENTRY(rb_node) rb_link;
 #endif
 } rb_node_t;
 
@@ -132,7 +135,7 @@ TAILQ_HEAD(rb_node_qh, rb_node);
 #define	RB_TAILQ_INSERT_HEAD(a, b, c)		do { } while (/*CONSTCOND*/0)
 #define	RB_TAILQ_INSERT_BEFORE(a, b, c)		do { } while (/*CONSTCOND*/0)
 #define	RB_TAILQ_INSERT_AFTER(a, b, c, d)	do { } while (/*CONSTCOND*/0)
-#endif				/* RBDEBUG */
+#endif /* RBDEBUG */
 
 /*
  * rbto_compare_nodes_fn:
@@ -146,10 +149,8 @@ TAILQ_HEAD(rb_node_qh, rb_node);
  *	return 0 if they are considered same.
  */
 
-typedef signed int (*rbto_compare_nodes_fn) (void *, const void *,
-					     const void *);
-typedef signed int (*rbto_compare_key_fn) (void *, const void *,
-					   const void *);
+typedef signed int (*rbto_compare_nodes_fn)(void *, const void *, const void *);
+typedef signed int (*rbto_compare_key_fn)(void *, const void *, const void *);
 
 typedef struct {
 	rbto_compare_nodes_fn rbto_compare_nodes;
@@ -184,19 +185,20 @@ typedef struct rb_tree {
 #define	RBSTAT_DEC(v)	do { } while (/*CONSTCOND*/0)
 #endif
 
-void rb_tree_init(rb_tree_t *, const rb_tree_ops_t *);
-void *rb_tree_insert_node(rb_tree_t *, void *);
-void *rb_tree_find_node(rb_tree_t *, const void *);
-void *rb_tree_find_node_geq(rb_tree_t *, const void *);
-void *rb_tree_find_node_leq(rb_tree_t *, const void *);
-void rb_tree_remove_node(rb_tree_t *, void *);
-void *rb_tree_iterate(rb_tree_t *, void *, const unsigned int);
+void	rb_tree_init(rb_tree_t *, const rb_tree_ops_t *);
+void *	rb_tree_insert_node(rb_tree_t *, void *);
+void *	rb_tree_find_node(rb_tree_t *, const void *);
+void *	rb_tree_find_node_geq(rb_tree_t *, const void *);
+void *	rb_tree_find_node_leq(rb_tree_t *, const void *);
+void	rb_tree_remove_node(rb_tree_t *, void *);
+void *	rb_tree_iterate(rb_tree_t *, void *, const unsigned int);
 #ifdef RBDEBUG
-void rb_tree_check(const rb_tree_t *, bool);
+void	rb_tree_check(const rb_tree_t *, bool);
 #endif
 #ifdef RBSTATS
-void rb_tree_depths(const rb_tree_t *, size_t *);
+void	rb_tree_depths(const rb_tree_t *, size_t *);
 #endif
 
 __END_DECLS
-#endif				/* _SYS_RBTREE_H_ */
+
+#endif	/* _SYS_RBTREE_H_*/

@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: fd_set.h,v 1.5 2010/07/08 18:56:17 rmind Exp $	*/
 
 /*-

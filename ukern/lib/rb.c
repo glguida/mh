@@ -1,4 +1,5 @@
-/*	$NetBSD: rb.c,v 1.11 2011/06/20 09:11:16 mrg Exp $	*/
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/*	$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $	*/
 
 /*-
  * Copyright (c) 2001 The NetBSD Foundation, Inc.
@@ -50,12 +51,12 @@
 #else
 #define KASSERT(s)	do { } while (/*CONSTCOND*/ 0)
 #endif
-__RCSID("$NetBSD: rb.c,v 1.11 2011/06/20 09:11:16 mrg Exp $");
+__RCSID("$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
 #else
 #include <lib/libkern/libkern.h>
-__KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11 2011/06/20 09:11:16 mrg Exp $");
+__KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
 #endif
-#endif
+#endif /* _DREX_SOURCE && _UKERNEL */
 
 #ifdef _LIBC
 __weak_alias(rb_tree_init, _rb_tree_init)
@@ -161,7 +162,7 @@ rb_tree_find_node_geq(struct rb_tree *rbt, const void *key)
 		parent = parent->rb_nodes[diff < 0];
 	}
 
-	return RB_NODETOITEM(rbto, last);
+	return last == NULL ? NULL : RB_NODETOITEM(rbto, last);
 }
 
 void *
@@ -182,7 +183,7 @@ rb_tree_find_node_leq(struct rb_tree *rbt, const void *key)
 		parent = parent->rb_nodes[diff < 0];
 	}
 
-	return RB_NODETOITEM(rbto, last);
+	return last == NULL ? NULL : RB_NODETOITEM(rbto, last);
 }
 
 void *

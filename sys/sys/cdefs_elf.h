@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: cdefs_elf.h,v 1.44.2.1 2014/12/13 19:13:25 martin Exp $	*/
 
 /*

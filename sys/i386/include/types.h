@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: types.h,v 1.79 2014/04/24 19:23:00 christos Exp $	*/
 
 /*-
@@ -113,7 +113,6 @@ typedef	volatile unsigned char		__cpu_simple_lock_t;
 #define	__HAVE_SYSCALL_INTERN
 #define	__HAVE_MINIMAL_EMUL
 #define	__HAVE_OLD_DISKLABEL
-
 #if defined(_KERNEL) && !defined(_RUMPKERNEL) && !defined(_RUMP_NATIVE_ABI)
 /*
  * Processors < i586 do not have cmpxchg8b, and we compile for i486

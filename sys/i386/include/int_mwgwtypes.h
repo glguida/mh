@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: int_mwgwtypes.h,v 1.8 2014/07/28 11:22:46 joerg Exp $	*/
 
 /*-

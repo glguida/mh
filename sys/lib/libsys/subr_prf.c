@@ -1,4 +1,5 @@
-/*	$NetBSD: subr_prf.c,v 1.27 2014/08/30 14:24:02 tsutsui Exp $	*/
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
+/*	$NetBSD: subr_prf.c,v 1.24 2014/03/22 02:51:44 hkenken Exp $	*/
 
 /*-
  * Copyright (c) 1993
@@ -34,7 +35,6 @@
 /*
  * Scaled down version of printf(3).
  */
-
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
@@ -89,21 +89,21 @@ const char hexdigits[16] = "0123456789abcdef";
 #define ZEROPAD		0x40
 #define NEGATIVE	0x80
 #define KPRINTN(base)	kprintn(put, ul, base, lflag, width)
-#define RADJUSTZEROPAD()					\
+#define LZERO()							\
 do {								\
 	if ((lflag & (ZEROPAD|LADJUST)) == ZEROPAD) {		\
 		while (width-- > 0)				\
 			put('0');				\
 	}							\
 } while (/*CONSTCOND*/0)
-#define LADJUSTPAD()						\
+#define RPAD()							\
 do {								\
 	if (lflag & LADJUST) {					\
 		while (width-- > 0)				\
 			put(' ');				\
 	}							\
 } while (/*CONSTCOND*/0)
-#define RADJUSTPAD()						\
+#define LPAD()							\
 do {								\
 	if ((lflag & (ZEROPAD|LADJUST)) == 0) {			\
 		while (width-- > 0)				\
@@ -112,9 +112,9 @@ do {								\
 } while (/*CONSTCOND*/0)
 #else	/* LIBSA_PRINTF_WIDTH_SUPPORT */
 #define KPRINTN(base)	kprintn(put, ul, base)
-#define RADJUSTZEROPAD()	/**/
-#define LADJUSTPAD()		/**/
-#define RADJUSTPAD()		/**/
+#define LZERO()		/**/
+#define RPAD()		/**/
+#define LPAD()		/**/
 #endif	/* LIBSA_PRINTF_WIDTH_SUPPORT */
 
 #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
@@ -245,9 +245,9 @@ reswitch:
 #ifdef LIBSA_PRINTF_WIDTH_SUPPORT
 			--width;
 #endif
-			RADJUSTPAD();
+			LPAD();
 			put(ch & 0xFF);
-			LADJUSTPAD();
+			RPAD();
 			break;
 		case 's':
 			p = va_arg(ap, char *);
@@ -256,10 +256,10 @@ reswitch:
 				continue;
 			width -= q - p;
 #endif
-			RADJUSTPAD();
+			LPAD();
 			while ((ch = (unsigned char)*p++))
 				put(ch);
-			LADJUSTPAD();
+			RPAD();
 			break;
 		case 'd':
 			ul =
@@ -342,10 +342,10 @@ kprintn(void (*put)(int), UINTMAX_T ul, int base)
 			put(*--p);
 	}
 #endif
-	RADJUSTPAD();
-	RADJUSTZEROPAD();
+	LPAD();
+	LZERO();
 	do {
 		put(*--p);
 	} while (p > buf);
-	LADJUSTPAD();
+	RPAD();
 }

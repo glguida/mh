@@ -1,3 +1,4 @@
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: queue.h,v 1.67 2014/05/17 21:22:56 rmind Exp $	*/
 
 /*
@@ -79,6 +80,17 @@
  *
  * For details on the use of these macros, see the queue(3) manual page.
  */
+
+/*
+ * Include the definition of NULL only on NetBSD because sys/null.h
+ * is not available elsewhere.  This conditional makes the header
+ * portable and it can simply be dropped verbatim into any system.
+ * The caveat is that on other systems some other header
+ * must provide NULL before the macros can be used.
+ */
+#ifdef __NetBSD__
+#include <sys/null.h>
+#endif
 
 #if defined(QUEUEDEBUG)
 # if defined(_KERNEL)
@@ -667,10 +679,11 @@ struct {								\
  * this by changing the head/tail sentinal values, but see the note above
  * this one.
  */
-static __inline const void *__launder_type(const void *);
-static __inline const void *__launder_type(const void *__x)
+static __inline const void * __launder_type(const void *);
+static __inline const void *
+__launder_type(const void *__x)
 {
-	__asm __volatile("":"+r"(__x));
+	__asm __volatile("" : "+r" (__x));
 	return __x;
 }
 
@@ -829,6 +842,6 @@ struct {								\
 	(((elm)->field.cqe_prev == CIRCLEQ_ENDC(head))			\
 	    ? ((head)->cqh_last)					\
 	    : (elm->field.cqe_prev))
-#endif				/* !_KERNEL */
+#endif /* !_KERNEL */
 
-#endif				/* !_SYS_QUEUE_H_ */
+#endif	/* !_SYS_QUEUE_H_ */

@@ -1,4 +1,4 @@
-/* *INDENT-OFF* */ /* Imported from NetBSD */
+/* *INDENT-OFF* */ /* Imported from NetBSD -- MH-DIFF-IGNORE */
 /*	$NetBSD: ansi.h,v 1.25.28.1 2015/07/16 18:27:22 riz Exp $	*/
 
 /*-
