@@ -29,9 +29,61 @@
 
 #include <machine/asm.h>
 
-ENTRY(__sighdlr)
+ENTRY(__inthdlr)
+	push %ebp
+	mov %esp, %ebp
+
+	pushfl
 	push %eax
-	call _C_LABEL(sys_sighandler)
+	push %ecx
+	push %edx
+	push %ebx
+	push 16(%ebp) /* arg3: esp */
+	push %esi
+	push %edi
+
+	pushw %gs
+	pushw %fs
+	pushw %es
+	pushw %ds
+
+	mov 4(%ebp), %eax /* ret addr: ip */
 	push %eax
-	call _C_LABEL(sys_xcptreturn)
-END(__sighdlr)
+
+	push %esp /* frame -> &frame */
+	mov 12(%ebp), %eax /*arg2: cause */
+	push %eax
+	mov 8(%ebp), %eax /* arg1: vect */
+	push %eax
+	call _C_LABEL(__sys_inthandler)
+	add $12, %esp /* skip arguments */
+
+	popl __per_thread_libuk_eip
+
+	popw %gs
+	popw %fs
+	popw %es
+	popw %ds
+
+	pop %edi
+	pop %esi
+	popl __per_thread_libuk_esp
+	pop %ebx
+	pop %edx
+	pop %ecx
+	pop %eax
+	popfl
+	pop %ebp
+	mov __per_thread_libuk_esp, %esp
+	jmpl *__per_thread_libuk_eip
+END(__inthdlr)
+
+
+	.data
+	.align 64
+LABEL(__per_thread_libuk_eip)
+	.skip 8
+END(__per_thread_libuk_eip)
+LABEL(__per_thread_libuk_esp)
+	.skip 8
+END(__per_thread_libuk_esp)

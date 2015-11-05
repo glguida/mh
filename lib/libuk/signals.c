@@ -30,22 +30,23 @@
 #include <machine/vmparam.h>
 #include <microkernel.h>
 
-extern void __sighdlr(void);
+extern void __inthdlr(void);
 
 static __aligned(PAGE_SIZE)
 char _sigstack[PAGE_SIZE];
 
-static int sighandler(int sig, struct xcptframe frame)
+
+int _libuk_signals_nointr(int vect, unsigned long info,  struct intframe *f)
 {
+
 	return -1;
 }
 
 void siginit(void)
 {
 	void *stkptr =
-		(void *) (_sigstack + PAGE_SIZE -
-			  sizeof(struct xcptframe));
-	sys_xcptentry(__sighdlr, stkptr, stkptr);
+	  (void *)(_sigstack + PAGE_SIZE - sizeof(struct intframe));
+	sys_inthdlr(__inthdlr, stkptr);
 }
 
-int sys_sighandler(int, struct xcptframe frame) __weak_alias(sighandler, sighandler);
+__weak_alias(__sys_inthandler, _libuk_signals_nointr)

@@ -9,6 +9,7 @@ SRCS+= signals.c syscalls.c
 
 INCS= microkernel.h
 INCDIR=
+INCSUBDIRS= $(MACHINE)
 
 CFLAGS+= -I $(MACHINE)
 ASFLAGS+= -I $(MACHINE)

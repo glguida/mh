@@ -32,6 +32,8 @@
 
 #include <uk/types.h>
 
+/* Processor specific */
+
 struct tss {
 	uint16_t ptl, tmp0;
 	uint32_t esp0;
@@ -61,6 +63,8 @@ struct tss {
 	uint16_t t_flag, iomap;
 } __packed;
 
+/* Platform */
+
 static inline void _delay(void)
 {
 	int i;
@@ -84,5 +88,37 @@ static inline void pic_off(void)
 
 	pic_write(0xff, 0xff);
 }
+
+struct usrframe {
+	/* segments */
+	uint16_t ds;
+	uint16_t es;
+	uint16_t fs;
+	uint16_t gs;
+	/* CRs    */
+	uint32_t cr2;
+	uint32_t cr3;
+	/* pushal */
+	uint32_t edi;
+	uint32_t esi;
+	uint32_t ebp;
+	uint32_t espx;
+	uint32_t ebx;
+	uint32_t edx;
+	uint32_t ecx;
+	uint32_t eax;
+	/* exception stack */
+	uint32_t err;
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t esp;
+	uint32_t ss;
+} __packed;
+
+#define USRFRAME_SIZE (18 * 4)
+
+int xcpt_entry(uint32_t vect, struct usrframe *f);
+int intr_entry(uint32_t vect, struct usrframe *f);
 
 #endif

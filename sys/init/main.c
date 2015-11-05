@@ -41,27 +41,37 @@ int test()
 	printf("\tFixed up!\n");
 }
 
-int sys_sighandler(int sighandler, struct xcptframe frame)
+static void framedump(struct intframe *f)
+{
+
+	printf("EIP: %x\tEFLAGS: %x\n",
+	       f->eip, f->eflags);
+	printf("\tEAX: %x\tEBX: %x\tECX: %x\tEDX:%x\n",
+	       f->eax, f->ebx, f->ecx, f->edx);
+	printf("\tEDI: %x\tESI: %x\tEBP: %x\tESP:%x\n",
+	       f->edi, f->esi, f->ebp, f->esp);
+	printf("\tDS: %x\tES: %x\tFS: %x\tGS: %x\n",
+	       f->ds, f->es, f->fs, f->gs);
+}
+
+int __sys_inthandler(int vect, unsigned long info, struct intframe *f)
 {
 	int i;
 	static unsigned long esp, ebp;
 
-	printf("Exception %d, va = %p\n", sighandler, frame.cr2);
+	printf("Exception %d, va = %p\n", vect, info);
+	framedump(f);
 
-	if (frame.cr2 == -1) {
-		frame.eip = (uintptr_t) test;
-		frame.ebp = ebp;
-		frame.esp = esp;
+        if (info == -1) {
+		f->eip = (uintptr_t) test;
+		f->ebp = ebp;
+		f->esp = esp;
 	} else {
-		char *p = &frame;
-		int i;
-		esp = frame.esp;
-		ebp = frame.ebp;
-
-		for (i = 0; i < sizeof(struct xcptframe); i++)
-			*p++ = -1;
+		esp = f->esp;
+		ebp = f->ebp;
+		f->eip = -1;
+		f->eax = 0xdead;
 	}
-	return 0;
 }
 
 void (*f) (void) = (void (*)(void)) 0x50500505;

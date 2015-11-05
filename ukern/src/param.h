@@ -38,6 +38,7 @@
 #include <machine/uk/param.h>
 #endif
 
-#define __usraddr(_a) (((_a) >= USERBASE) && ((_a) <= USEREND))
+#define __isuaddr(_a) (((_a) >= USERBASE) && ((_a) <= USEREND))
+#define __chkuaddr(_a, _sz) (((_a) + (_sz) < USEREND) && ((_a) < (_a) + (_sz)))
 
 #endif

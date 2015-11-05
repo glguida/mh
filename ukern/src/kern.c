@@ -38,17 +38,12 @@
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/locks.h>
+#include <machine/uk/machdep.h>
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
 #include <lib/lib.h>
 #include <uk/sys.h>
 #include "kern.h"
-
-void __xcptframe_setup(struct xcptframe *f, vaddr_t ip, vaddr_t sp);
-void __xcptframe_setxcpt(struct xcptframe *f, unsigned long xcpt);
-void __xcptframe_save(struct xcptframe *f, void *frame);
-void __xcptframe_usrupdate(struct xcptframe *f, vaddr_t usrframe);
-void __xcptframe_enter(struct xcptframe *f);
 
 static struct slab threads;
 
@@ -62,22 +57,39 @@ lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
 
-int usrpgfault = 0;
-
-int usercpy(void *dst, void *src, size_t sz)
+void assertion_failure(const char *format, ...)
 {
-	usrpgfault = 1;
-	__insn_barrier();
+	va_list ap;
 
+	printf("ASSERTION FAILURE (CPU %d): ", cpu_number());
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	printf("\n");
+
+	die();
+}
+
+/* Use copy_{to,from}_user(), do not call this directly */
+int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
+{
+	if (!__chkuaddr(uaddr, sz)) {
+		assertion_failure("uaddr range (%lx, %ld) not valid",
+				  (unsigned long)uaddr, (unsigned long)sz);
+		return -1;
+	}
+
+	current_cpu()->usrpgfault = 1;
+	__insn_barrier();
 	if (_setjmp(current_cpu()->usrpgfaultctx)) {
-		printf("buh!\n");
-		usrpgfault = 0;
+		current_cpu()->usrpgfault = 0;
 		return -1;
 	}
 
 	memcpy(dst, src, sz);
+
 	__insn_barrier();
-	usrpgfault = 0;
+	current_cpu()->usrpgfault = 0;
 	return 0;
 }
 
@@ -93,6 +105,13 @@ static struct thread *thnew(void (*__start) (void))
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
+}
+
+void thsignal(unsigned xcpt, vaddr_t info)
+{
+	struct thread *th = current_thread();
+
+	usrframe_signal(th->frame, th->sigip, th->sigsp, xcpt, info);
 }
 
 static void thfree(struct thread *th)
@@ -113,29 +132,6 @@ static void thswitch(struct thread *th)
 	}
 }
 
-int thxcpt(unsigned xcpt)
-{
-	struct thread *th = current_thread();
-
-	if (!
-	    ((th->flags & (THFL_XCPTENTRY | THFL_IN_XCPTENTRY)) ==
-	     (THFL_XCPTENTRY)))
-		return -1;
-
-	if (usercpy
-	    (th->xcptframe, current_thread()->frame,
-	     sizeof(struct xcptframe)))
-		return -1;
-
-	th->flags &= ~THFL_IN_USRENTRY;
-	__xcptframe_setxcpt(&th->xcptentry, xcpt);
-	th->flags |= THFL_IN_XCPTENTRY;
-	__insn_barrier();
-	__xcptframe_enter(&th->xcptentry);
-	/* Not reached */
-	return 0;
-}
-
 struct cpu *cpu_setup(int id)
 {
 	struct cpu *cpu;
@@ -144,6 +140,7 @@ struct cpu *cpu_setup(int id)
 	cpu->idle_thread = NULL;
 	TAILQ_INIT(&cpu->resched);
 	cpu->softirq = 0;
+	cpu->usrpgfault = 0;
 	return cpu;
 }
 
@@ -248,10 +245,11 @@ __dead void die(void)
 
 	/* In the future, remove shared mapping  before */
 	/* clearing user mappings */
-	for (va = USERBASE; va <= USEREND; va += PAGE_SIZE) {
+	for (va = USERBASE; va < USEREND; va += PAGE_SIZE) {
 		pfn = pmap_enter(th->pmap, va, 0, 0);
-		if (pfn != PFN_INVALID)
+		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
+		}
 	}
 	pmap_commit(NULL);
 
@@ -312,14 +310,15 @@ static vaddr_t elfld(void *elfimg)
 static void __initstart(void)
 {
 	vaddr_t entry;
+	struct usrframe usrframe;
 	struct thread *th = current_thread();
 	extern void *_init_start;
 
 	entry = elfld(_init_start);
-	__xcptframe_setup(&th->usrentry, entry, 0);
+	usrframe_setup(&usrframe, entry, 0);
 	th->flags |= THFL_IN_USRENTRY;
 	__insn_barrier();
-	__xcptframe_enter(&th->usrentry);
+	usrframe_enter(&usrframe);
 	/* Not reached */
 }
 

@@ -1,5 +1,8 @@
 SRCS+= boot.S biosops.S idt.S text.S locks.S pae.S
-SRCS+= cpu.c lapic.c sysboot.c intrs.c pmap.c tlb.c __usrentry.c
+SRCS+= cpu.c lapic.c sysboot.c tlb.c
+
+# Used by MI part.
+SRCS+= pmap.c machdep.c
 
 #Used to embed init
 SRCS+= empty.S

@@ -46,19 +46,13 @@ int sys_putc(int ch)
 	return ret;
 }
 
-int sys_xcptentry(void (*func) (void), void *frame, void *stack)
+int sys_inthdlr(void (*func)(vaddr_t, vaddr_t), void *stack)
 {
 	int ret;
 
-	__syscall3(SYS_XCPTENTRY, (unsigned long) func,
-		   (unsigned long) frame, (unsigned long) stack, ret);
+	__syscall2(SYS_INTHDLR,
+		   (unsigned long) func,
+		   (unsigned long) stack, ret);
 	return ret;
 }
 
-int __dead sys_xcptreturn(int ret)
-{
-	int dummy;
-
-	__syscall1(SYS_XCPTRET, ret, dummy);
-	/* Not reached */
-}

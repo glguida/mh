@@ -30,11 +30,14 @@
 #include <uk/types.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
+#include <machine/uk/machdep.h>
 #include <uk/kern.h>
-#include <uk/sys.h>
 #include <lib/lib.h>
 
-char *exceptions[] = {
+#include "i386.h"
+#include "tlb.h"
+
+static char *exceptions[] = {
 	"Divide by zero exception",
 	"Debug exception",
 	"NMI",
@@ -57,7 +60,7 @@ char *exceptions[] = {
 	"SIMD Floating-Point Exception",
 };
 
-void framedump(struct xcptframe *f)
+static void framedump(struct usrframe *f)
 {
 
 	printf("\tCR3: %08x\tCR2: %08x\terr: %08x\n",
@@ -78,14 +81,14 @@ static unsigned vect_to_xcpt(uint32_t vect)
 	case 14:
 		return XCPT_PGFAULT;
 	default:
-		return -1;
+		return vect + 50;
 	}
 }
 
-int xcpt_entry(uint32_t vect, struct xcptframe *f)
+int xcpt_entry(uint32_t vect, struct usrframe *f)
 {
-	current_thread()->frame = f;
 
+	current_thread()->frame = f;
 	if (vect == 0x2) {
 		/* NMI Handler */
 		__flush_tlbs_on_nmi();
@@ -93,11 +96,9 @@ int xcpt_entry(uint32_t vect, struct xcptframe *f)
 	}
 
 	if (f->cs == UCS) {
-		thxcpt(vect_to_xcpt(vect));
-		die();
+		thsignal(vect_to_xcpt(vect), f->cr2);
 	} else {
-		if (usrpgfault && (vect == 14)) {
-			printf("Jumping!\n");
+		if (current_cpu()->usrpgfault && (vect == 14)) {
 			_longjmp(current_cpu()->usrpgfaultctx, 1);
 
 		}
@@ -113,6 +114,7 @@ int xcpt_entry(uint32_t vect, struct xcptframe *f)
 		goto _hlt;
 	}
 
+	current_thread()->frame = 0;
 	return 0;
 
       _hlt:
@@ -122,10 +124,9 @@ int xcpt_entry(uint32_t vect, struct xcptframe *f)
 	return -1;
 }
 
-int intr_entry(uint32_t vect, struct xcptframe *f)
+int intr_entry(uint32_t vect, struct usrframe *f)
 {
 	int usrint = !!(f->cs == UCS);
-
 	struct thread *th = current_thread();
 
 	if (!usrint || vect != 0x80) {
@@ -140,4 +141,62 @@ int intr_entry(uint32_t vect, struct xcptframe *f)
 	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
 	th->frame = NULL;
 	return 0;
+}
+
+void usrframe_enter(struct usrframe *f)
+{
+	current_cpuinfo()->tss.esp0 =
+		(uint32_t) current_thread()->stack_4k + 0xff0;
+	current_cpuinfo()->tss.ss0 = KDS;
+	___usrentry_enter((void *) f);
+}
+
+void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
+		     unsigned xcpt, vaddr_t info)
+{
+	int r;
+	uaddr_t usp = sp;
+	struct stackframe {
+		uint32_t ret;
+		uint32_t arg1;
+		uint32_t arg2;
+		uint32_t arg3;
+	} __packed sf  = {
+		.arg3 = f->esp,
+		.arg2 = info,
+		.arg1 = xcpt,
+		.ret = f->eip,
+	};
+
+	if (!ip || !sp) {
+		printf("no interrupt handler");
+		die();
+		/* not reached */
+	}
+	
+	/* Write the stack with return addr and arguments */
+	r = copy_to_user(usp, &sf, sizeof(sf));
+	if (r != 0) {
+		printf("can't write to stack.  Die.");
+		die();
+		/* not reached */
+	}
+
+	/* Change the user entry on success. */
+	f->esp = usp;
+	f->eip = ip;
+}
+
+void usrframe_setup(struct usrframe *f, vaddr_t ip, vaddr_t sp)
+{
+	memset(f, 0, sizeof(*f));
+	f->ds = UDS;
+	f->es = UDS;
+	f->fs = UDS;
+	f->gs = UDS;
+	f->eip = ip;
+	f->cs = UCS;
+	f->eflags = 0x202;
+	f->esp = sp;
+	f->ss = UDS;
 }

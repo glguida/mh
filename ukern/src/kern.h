@@ -35,6 +35,10 @@
 #include <machine/uk/pmap.h>
 #include <uk/sys.h>
 
+#define assertion_failure(_s, ...) __assertion_failure(_s, __VA_ARGS__)
+#define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
+#define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
+
 #define THST_RUNNING 0
 #define THST_RUNNABLE 1
 #define THST_STOPPED 2
@@ -53,11 +57,12 @@ struct thread {
 	jmp_buf ctx;
 	struct pmap *pmap;
 
-	struct xcptframe usrentry;
-	struct xcptframe xcptentry;
 	void *stack_4k;
 	void *frame;
 	void *xcptframe;
+
+	uaddr_t sigip;
+	uaddr_t sigsp;
 
 	uint16_t flags;
 	uint16_t status;
@@ -68,11 +73,12 @@ struct cpu {
 	struct thread *idle_thread;
 	TAILQ_HEAD(, thread) resched;
 	uint64_t softirq;
+
+	unsigned usrpgfault;
 	jmp_buf usrpgfaultctx;
 };
 
-extern int usrpgfault;
-int wruser(void *, void *, size_t);
+int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz);
 
 int thxcpt(unsigned xcpt);
 void kern_boot(void);

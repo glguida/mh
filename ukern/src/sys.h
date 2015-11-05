@@ -30,14 +30,11 @@
 #ifndef _uk_sys_h_
 #define _uk_sys_h_
 
-#include <machine/uk/sys.h>
-
 /*
  * Syscalls
  */
 #define SYS_DIE 0
-#define SYS_XCPTENTRY 1
-#define SYS_XCPTRET 2
+#define SYS_INTHDLR 1
 
 /* System-processes only */
 #define SYS_PUTC 0x1000
