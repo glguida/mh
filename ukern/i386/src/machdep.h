@@ -44,4 +44,13 @@ void usrframe_setup(struct usrframe *f, vaddr_t ip, vaddr_t sp);
 void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		     unsigned xcpt, vaddr_t info);
 
+extern int __crash_requested;
+
+#define __goodbye()				\
+	do {					\
+		__crash_requested = 1;		\
+		__insn_barrier();		\
+		asm volatile("ud2");		\
+	} while(0)
+
 #endif

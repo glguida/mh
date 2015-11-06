@@ -62,6 +62,7 @@ static __inline int __tlbflushp(l1e_t ol1e, l1e_t nl1e)
 }
 
 void __flush_tlbs(cpumask_t cpu, unsigned flags);
+void __flush_tlbs_on_nmi(void);
 void __flush_local_tlbs(void);
 void __flush_global_tlbs(void);
 

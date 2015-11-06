@@ -31,11 +31,15 @@
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <machine/uk/machdep.h>
+#include <machine/uk/locks.h>
 #include <uk/kern.h>
 #include <lib/lib.h>
 
 #include "i386.h"
 #include "tlb.h"
+
+static lock_t __crash_lock = 0;
+int __crash_requested = 0;
 
 static char *exceptions[] = {
 	"Divide by zero exception",
@@ -89,10 +93,35 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 {
 
 	current_thread()->frame = f;
+
+	/* NMI Handler */
 	if (vect == 0x2) {
 		/* NMI Handler */
+
+		if (__predict_false(__crash_requested)) {
+			spinlock(&__crash_lock);
+			printf("Crash report of CPU #%d:\n", cpu_number());
+			framedump(f);
+			spinunlock(&__crash_lock);
+			asm volatile ("cli; hlt");
+			/* Not reached */
+		}
+
 		__flush_tlbs_on_nmi();
 		return 0;
+	}
+
+	/* Process crash request */
+	if (__predict_false(vect == 0x6 && __crash_requested)) {
+		/* halt the CPU (crash) */
+		printf("This is how it all ends.\n"
+		       "Crash requested from CPU: %d\n", cpu_number());
+		cpu_nmi_broadcast();
+		spinlock(&__crash_lock);
+		printf("Crash report of CPU #%d:\n", cpu_number());
+		framedump(f);
+		spinunlock(&__crash_lock);
+		asm volatile ("cli; hlt");
 	}
 
 	if (f->cs == UCS) {
@@ -111,17 +140,12 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 		else
 			printf("\n");
 		framedump(f);
-		goto _hlt;
+		__goodbye();
+		/* Not reached */
 	}
 
 	current_thread()->frame = 0;
 	return 0;
-
-      _hlt:
-	/* XXX: Kernel bug. panic and block other cpus */
-	asm volatile ("cli; hlt");
-	/* Not reached */
-	return -1;
 }
 
 int intr_entry(uint32_t vect, struct usrframe *f)
@@ -129,17 +153,15 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	int usrint = !!(f->cs == UCS);
 	struct thread *th = current_thread();
 
-	if (!usrint || vect != 0x80) {
-		printf("\nUnhandled interrupt %2u\n", vect);
-		framedump(f);
-		if (usrint)
-			die();
+	if (usrint && vect == 0x80) {
+		th->frame = f;
+		f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
+		th->frame = NULL;
 		return 0;
 	}
 
-	th->frame = f;
-	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
-	th->frame = NULL;
+	printf("\nUnhandled interrupt %2u\n", vect);
+	framedump(f);
 	return 0;
 }
 
