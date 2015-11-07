@@ -5,7 +5,7 @@ include $(MKDIR)/mk.conf
 
 LIBNAME=uk
 LIBDIR=/lib
-SRCS+= signals.c syscalls.c
+SRCS+= syscalls.c signals.c vm.c
 
 INCS= microkernel.h
 INCDIR=
