@@ -30,18 +30,30 @@
 #include <machine/uk/asm.h>
 	
 ENTRY(spinlock)
-1:	movl    $1, %ecx
-	cmpxchg %ecx, (%eax)
-	je     2f
+	push %ebp
+	mov %esp, %ebp
+
+	mov 8(%ebp), %edx
+	movl $0, %eax
+	movl $1, %ecx
+1:	lock cmpxchg %ecx, (%edx)
+	jnz 2f
+	pop %ebp
 	ret
 2:	pause
-	cmpl 	$0, (%eax)
+	cmpl 	$0, (%edx)
 	je 	1b
 	jmp 	2b
 END(spinlock)
 	
 
 ENTRY(spinunlock)
-	movl    $0, (%eax)
+	push %ebp
+	mov %esp, %ebp
+
+	mov 8(%ebp), %eax
+	movl $0, (%eax)
+
+	pop %ebp
 	ret
 END(spinunlock)
