@@ -1,6 +1,6 @@
 diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
---- a/sys/i386/include/asm.h	2015-11-04 14:27:21.780925606 +0000
-+++ b/sys/i386/include/asm.h	2015-11-04 14:27:22.805922622 +0000
+--- a/sys/i386/include/asm.h	2015-11-07 11:59:26.429136439 +0000
++++ b/sys/i386/include/asm.h	2015-11-07 11:59:27.522141543 +0000
 @@ -37,9 +37,11 @@
  #ifndef _I386_ASM_H_
  #define _I386_ASM_H_
@@ -14,8 +14,8 @@ diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
  #ifdef __PIC__
  #define PIC_PROLOGUE	\
 diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
---- a/sys/i386/include/types.h	2015-11-04 14:27:21.996924975 +0000
-+++ b/sys/i386/include/types.h	2015-11-04 14:27:23.043921930 +0000
+--- a/sys/i386/include/types.h	2015-11-07 11:59:26.659137513 +0000
++++ b/sys/i386/include/types.h	2015-11-07 11:59:27.770142702 +0000
 @@ -34,9 +34,12 @@
  #ifndef	_I386_MACHTYPES_H_
  #define	_I386_MACHTYPES_H_
@@ -48,8 +48,8 @@ diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
  typedef int		pmc_evid_t;
  typedef __uint64_t	pmc_ctr_t;
 diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
---- a/sys/i386/include/vmparam.h	2015-11-04 14:27:21.842925425 +0000
-+++ b/sys/i386/include/vmparam.h	2015-11-04 14:27:22.872922427 +0000
+--- a/sys/i386/include/vmparam.h	2015-11-07 11:59:26.493136738 +0000
++++ b/sys/i386/include/vmparam.h	2015-11-07 11:59:27.592141870 +0000
 @@ -37,8 +37,17 @@
  #ifndef _I386_VMPARAM_H_
  #define _I386_VMPARAM_H_
@@ -116,8 +116,8 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
 +
  #endif /* _I386_VMPARAM_H_ */
 diff -ru a/sys/lib/libsys/printf.c b/sys/lib/libsys/printf.c
---- a/sys/lib/libsys/printf.c	2015-11-04 14:27:22.179924443 +0000
-+++ b/sys/lib/libsys/printf.c	2015-11-04 14:27:23.243921350 +0000
+--- a/sys/lib/libsys/printf.c	2015-11-07 11:59:26.858138443 +0000
++++ b/sys/lib/libsys/printf.c	2015-11-07 11:59:27.980143682 +0000
 @@ -35,7 +35,11 @@
  #include <sys/types.h>
  #include <sys/stdarg.h>
@@ -131,8 +131,8 @@ diff -ru a/sys/lib/libsys/printf.c b/sys/lib/libsys/printf.c
  void
  printf(const char *fmt, ...)
 diff -ru a/sys/lib/libsys/subr_prf.c b/sys/lib/libsys/subr_prf.c
---- a/sys/lib/libsys/subr_prf.c	2015-11-04 14:27:22.210924353 +0000
-+++ b/sys/lib/libsys/subr_prf.c	2015-11-04 14:27:23.277921252 +0000
+--- a/sys/lib/libsys/subr_prf.c	2015-11-07 11:59:26.890138592 +0000
++++ b/sys/lib/libsys/subr_prf.c	2015-11-07 11:59:27.992143738 +0000
 @@ -38,8 +38,17 @@
  #include <sys/cdefs.h>
  #include <sys/types.h>
@@ -153,8 +153,8 @@ diff -ru a/sys/lib/libsys/subr_prf.c b/sys/lib/libsys/subr_prf.c
  #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
  #define INTMAX_T	longlong_t
 diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
---- a/sys/sys/endian.h	2015-11-04 14:27:21.657925965 +0000
-+++ b/sys/sys/endian.h	2015-11-04 14:27:22.671923012 +0000
+--- a/sys/sys/endian.h	2015-11-07 11:59:26.298135827 +0000
++++ b/sys/sys/endian.h	2015-11-07 11:59:27.379140876 +0000
 @@ -91,7 +91,7 @@
  #endif
  
@@ -165,8 +165,8 @@ diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
   *  Traditional names for byteorder.  These are defined as the numeric
   *  sequences so that third party code can "#define XXX_ENDIAN" and not
 diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
---- a/sys/sys/featuretest.h	2015-11-04 14:27:21.406926697 +0000
-+++ b/sys/sys/featuretest.h	2015-11-04 14:27:22.344923963 +0000
+--- a/sys/sys/featuretest.h	2015-11-07 11:59:25.987134375 +0000
++++ b/sys/sys/featuretest.h	2015-11-07 11:59:27.001139110 +0000
 @@ -66,8 +66,9 @@
  #endif
  
@@ -180,8 +180,8 @@ diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
  
  #if ((_POSIX_C_SOURCE - 0) >= 199506L || (_XOPEN_SOURCE - 0) >= 500) && \
 diff -ru a/sys/sys/types.h b/sys/sys/types.h
---- a/sys/sys/types.h	2015-11-04 14:27:21.548926283 +0000
-+++ b/sys/sys/types.h	2015-11-04 14:27:22.557923343 +0000
+--- a/sys/sys/types.h	2015-11-07 11:59:26.166135211 +0000
++++ b/sys/sys/types.h	2015-11-07 11:59:27.239140222 +0000
 @@ -97,7 +97,7 @@
  
  #include <machine/endian.h>
@@ -200,9 +200,28 @@ diff -ru a/sys/sys/types.h b/sys/sys/types.h
  #include <sys/fd_set.h>
  
  #define	NBBY			8
+diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
+--- a/ukern/lib/queue.h	2015-11-07 11:59:26.960138919 +0000
++++ b/ukern/lib/queue.h	2015-11-07 11:59:28.012143832 +0000
+@@ -80,6 +80,7 @@
+  * For details on the use of these macros, see the queue(3) manual page.
+  */
+ 
++#ifndef _DREX_SOURCE
+ /*
+  * Include the definition of NULL only on NetBSD because sys/null.h
+  * is not available elsewhere.  This conditional makes the header
+@@ -90,6 +91,7 @@
+ #ifdef __NetBSD__
+ #include <sys/null.h>
+ #endif
++#endif /* _DREX_SOURCE */
+ 
+ #if defined(QUEUEDEBUG)
+ # if defined(_KERNEL)
 diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
---- a/ukern/lib/rb.c	2015-11-04 14:27:22.301924088 +0000
-+++ b/ukern/lib/rb.c	2015-11-04 14:27:23.360921011 +0000
+--- a/ukern/lib/rb.c	2015-11-07 11:59:26.980139012 +0000
++++ b/ukern/lib/rb.c	2015-11-07 11:59:28.028143906 +0000
 @@ -29,6 +29,17 @@
   * POSSIBILITY OF SUCH DAMAGE.
   */
@@ -246,8 +265,8 @@ diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
  static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
  static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
 diff -ru a/ukern/lib/rbtree.h b/ukern/lib/rbtree.h
---- a/ukern/lib/rbtree.h	2015-11-04 14:27:22.240924266 +0000
-+++ b/ukern/lib/rbtree.h	2015-11-04 14:27:23.310921156 +0000
+--- a/ukern/lib/rbtree.h	2015-11-07 11:59:26.923138746 +0000
++++ b/ukern/lib/rbtree.h	2015-11-07 11:59:28.003143790 +0000
 @@ -32,6 +32,16 @@
  #ifndef _SYS_RBTREE_H_
  #define	_SYS_RBTREE_H_
