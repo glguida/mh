@@ -28,24 +28,14 @@
 
 
 #include <sys/stdint.h>
+#include <machine/vmparam.h>
 #include <microkernel.h>
 #include <syslib.h>
-
-void putc(int c)
-{
-	sys_putc(c);
-}
-
-int test()
-{
-	printf("\tFixed up!\n");
-}
 
 static void framedump(struct intframe *f)
 {
 
-	printf("EIP: %x\tEFLAGS: %x\n",
-	       f->eip, f->eflags);
+	printf("EIP: %x\tEFLAGS: %x\n", f->eip, f->eflags);
 	printf("\tEAX: %x\tEBX: %x\tECX: %x\tEDX:%x\n",
 	       f->eax, f->ebx, f->ecx, f->edx);
 	printf("\tEDI: %x\tESI: %x\tEBP: %x\tESP:%x\n",
@@ -56,27 +46,29 @@ static void framedump(struct intframe *f)
 
 int __sys_inthandler(int vect, unsigned long info, struct intframe *f)
 {
-	int i;
-	static unsigned long esp, ebp;
+	static int i = 0;
 
-	printf("Exception %d, va = %p\n", vect, info);
+	printf("\nException %d, va = %p\n", vect, info);
 	framedump(f);
 
-        if (info == -1) {
-		f->eip = (uintptr_t) test;
-		f->ebp = ebp;
-		f->esp = esp;
-	} else {
-		esp = f->esp;
-		ebp = f->ebp;
-		f->eip = -1;
-		f->eax = 0xdead;
+	if (vect == XCPT_PGFAULT) {
+		if (i == 0) {
+			printf("Mapping read only: %d",
+			       vmmap(info, VM_PROT_RO));
+			i++;
+		} else if (i == 1) {
+			printf("Mapping writeable: %d",
+			       vmchprot(info, VM_PROT_RW));
+			i++;
+		} else {
+			printf("WTF?\n");
+			sys_die();
+		}
 	}
+	printf("\n");
 }
 
-void (*f) (void) = (void (*)(void)) 0x50500505;
-
-
+int *d = (void *) (6 * PAGE_SIZE);
 
 int main()
 {
@@ -86,14 +78,17 @@ int main()
 
 
 	printf("Hello!\n");
-	for (i = 0; i < 100; i++)
-		putc('a');
-      asm("":::"memory");
-	f();
 
+	printf("Reading, d = %d\n", *d);
 
-	for (i = 0; i < 100; i++)
-		putc('b');
+	printf("Writing.\n");
+	*d = 0;
+	printf("Done writing.\n");
 
+	printf("Unnmapping: %d", vmunmap(d));
+	printf("And accessing it again!\n");
+	printf("d is %d\n", *d);
 
+	printf("Goodbye!\n");
+	sys_die();
 }
