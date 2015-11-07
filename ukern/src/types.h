@@ -31,7 +31,6 @@
 #define __uk_types_h
 
 #include <uk/cdefs.h>
-/* XXX: feature test? */
 
 #define NBBY 8
 
