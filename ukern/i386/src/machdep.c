@@ -89,31 +89,39 @@ static unsigned vect_to_xcpt(uint32_t vect)
 	}
 }
 
+int nmi_entry(struct usrframe *f)
+{
+	/* NMI Handler:
+	 *
+	 * Remarkably the only interrupt/exception from which we can
+	 * return, when it is triggered in kernel mode.
+	 */
+	if (__predict_false(__crash_requested)) {
+		spinlock(&__crash_lock);
+		printf("Crash report of CPU #%d:\n", cpu_number());
+		framedump(f);
+		spinunlock(&__crash_lock);
+		asm volatile ("cli; hlt");
+		/* Not reached */
+		return -1;
+	}
+
+	__flush_tlbs_on_nmi();
+
+	/* Process softirqs if returning to userspace */
+	if (f->cs == UCS) {
+		current_thread()->frame = f;
+		do_cpu_softirq();
+		current_thread()->frame = NULL;
+	}
+	return 0;
+}
+
 int xcpt_entry(uint32_t vect, struct usrframe *f)
 {
 
-	current_thread()->frame = f;
-
-	/* NMI Handler */
-	if (vect == 0x2) {
-		/* NMI Handler */
-
-		if (__predict_false(__crash_requested)) {
-			spinlock(&__crash_lock);
-			printf("Crash report of CPU #%d:\n", cpu_number());
-			framedump(f);
-			spinunlock(&__crash_lock);
-			asm volatile ("cli; hlt");
-			/* Not reached */
-		}
-
-		__flush_tlbs_on_nmi();
-		return 0;
-	}
-
 	/* Process crash request */
 	if (__predict_false(vect == 0x6 && __crash_requested)) {
-		/* halt the CPU (crash) */
 		printf("This is how it all ends.\n"
 		       "Crash requested from CPU: %d\n", cpu_number());
 		cpu_nmi_broadcast();
@@ -122,14 +130,13 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 		framedump(f);
 		spinunlock(&__crash_lock);
 		asm volatile ("cli; hlt");
+		return -1;
 	}
 
-	if (f->cs == UCS) {
-		thsignal(vect_to_xcpt(vect), f->cr2);
-	} else {
+	if (__predict_false(f->cs != UCS)) {
+		/* Exception in Kernel. Very bad. */
 		if (current_cpu()->usrpgfault && (vect == 14)) {
 			_longjmp(current_cpu()->usrpgfaultctx, 1);
-
 		}
 
 		printf("\nException #%2u at %02x:%08x, addr %08x",
@@ -142,26 +149,37 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 		framedump(f);
 		__goodbye();
 		/* Not reached */
+		return -1;
 	}
 
-	current_thread()->frame = 0;
+	/* Userspace exception. */
+	current_thread()->frame = f;
+
+	thsignal(vect_to_xcpt(vect), f->cr2);
+
+	do_cpu_softirq();
+	current_thread()->frame = NULL;
 	return 0;
 }
 
 int intr_entry(uint32_t vect, struct usrframe *f)
 {
-	int usrint = ! !(f->cs == UCS);
 	struct thread *th = current_thread();
 
-	if (usrint && vect == 0x80) {
-		th->frame = f;
-		f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
-		th->frame = NULL;
-		return 0;
-	}
+	/* We only expect interrupts in userspace. */
+	assert(f->cs == UCS);
+	th->frame = f;
 
-	printf("\nUnhandled interrupt %2u\n", vect);
-	framedump(f);
+	if (vect == 0x80) {
+
+		f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
+	} else {
+		printf("\nUnhandled interrupt %2u\n", vect);
+		framedump(f);
+	}
+	
+	do_cpu_softirq();
+	th->frame = NULL;
 	return 0;
 }
 

@@ -55,7 +55,9 @@
 	mov %esp, %eax
 	pushl %eax
 	pushl $\vct
-	.if \vct < 32
+	.if \vct == 2
+	call _C_LABEL(nmi_entry)
+	.elseif \vct < 32
 	call _C_LABEL(xcpt_entry)
 	.else
 	call _C_LABEL(intr_entry)
