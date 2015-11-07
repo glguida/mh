@@ -81,6 +81,7 @@
  * For details on the use of these macros, see the queue(3) manual page.
  */
 
+#ifndef _DREX_SOURCE
 /*
  * Include the definition of NULL only on NetBSD because sys/null.h
  * is not available elsewhere.  This conditional makes the header
@@ -91,6 +92,7 @@
 #ifdef __NetBSD__
 #include <sys/null.h>
 #endif
+#endif /* _DREX_SOURCE */
 
 #if defined(QUEUEDEBUG)
 # if defined(_KERNEL)
