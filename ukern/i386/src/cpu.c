@@ -87,7 +87,7 @@ int cpu_add(uint16_t physid, uint16_t acpiid)
 	cpus[id] = cpuinfo;
 	cpu_phys_to_id[physid] = id;
 
-	cpus_active |= (1 << id);
+	cpus_active |= ((cpumask_t) 1 << id);
 
 	return id;
 }
