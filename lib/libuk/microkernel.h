@@ -54,8 +54,8 @@ typedef enum {
 	VM_PROT_WX = MAP_WREXEC,
 } vm_prot_t;
 
-unsigned vmmap(vaddr_t addr, vm_prot_t prot);
-unsigned vmunmap(vaddr_t addr);
+int vmmap(vaddr_t addr, vm_prot_t prot);
+int vmunmap(vaddr_t addr);
 int vmchprot(vaddr_t addr, vm_prot_t prot);
 
 #endif

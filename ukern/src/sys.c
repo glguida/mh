@@ -54,7 +54,7 @@ static int sys_inthdlr(vaddr_t ip, vaddr_t sp)
 
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
-	int np;
+	int np, ret;
 	pmap_prot_t prot;
 
 	/* _probably_ should not kill it and just return an error,
@@ -86,13 +86,13 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 	}
 
 	if (np)
-		vmmap(NULL, vaddr, PAGE_SIZE, prot);
+		ret = vmmap(NULL, vaddr, PAGE_SIZE, prot);
 	else if (!prot)
-		vmunmap(NULL, vaddr, PAGE_SIZE);
+		ret = vmunmap(NULL, vaddr, PAGE_SIZE);
 	else
-		vmchprot(NULL, vaddr, PAGE_SIZE, prot);
+		ret = vmchprot(NULL, vaddr, PAGE_SIZE, prot);
 	pmap_commit(NULL);
-	return 0;
+	return ret;
 }
 
 static int sys_die(void)

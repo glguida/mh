@@ -30,12 +30,12 @@
 #include <machine/vmparam.h>
 #include <microkernel.h>
 
-unsigned vmmap(vaddr_t addr, vm_prot_t prot)
+int vmmap(vaddr_t addr, vm_prot_t prot)
 {
 	return sys_map(addr, prot | MAP_NEW);
 }
 
-unsigned vmunmap(vaddr_t addr)
+int vmunmap(vaddr_t addr)
 {
 	return sys_map(addr, 0);
 }
