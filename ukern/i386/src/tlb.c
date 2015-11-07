@@ -37,7 +37,6 @@ void __flush_tlbs_on_nmi(void)
 {
 	int tlbf = __sync_fetch_and_and(&current_cpuinfo()->tlbop, 0);
 
-
 	if (tlbf & TLBF_GLOBAL)
 		__flush_global_tlbs();
 	else if (tlbf & TLBF_NORMAL)
@@ -63,6 +62,8 @@ void __flush_global_tlbs(void)
 		      "mov %%eax, %%cr4\n":::"eax");
 }
 
+
+/* *INDENT-OFF* (indent confused by foreach block */
 void __flush_tlbs(cpumask_t cpumask, unsigned tlbf)
 {
 
@@ -90,3 +91,4 @@ void __flush_tlbs(cpumask_t cpumask, unsigned tlbf)
 		asm volatile ("pause; pause; pause;");
 	}
 }
+/* *INDENT-ON* */

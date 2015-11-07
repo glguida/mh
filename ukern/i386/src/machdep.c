@@ -150,7 +150,7 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 
 int intr_entry(uint32_t vect, struct usrframe *f)
 {
-	int usrint = !!(f->cs == UCS);
+	int usrint = ! !(f->cs == UCS);
 	struct thread *th = current_thread();
 
 	if (usrint && vect == 0x80) {
@@ -183,7 +183,7 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		uint32_t arg1;
 		uint32_t arg2;
 		uint32_t arg3;
-	} __packed sf  = {
+	} __packed sf = {
 		.arg3 = f->esp,
 		.arg2 = info,
 		.arg1 = xcpt,
@@ -195,7 +195,7 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		die();
 		/* not reached */
 	}
-	
+
 	/* Write the stack with return addr and arguments */
 	r = copy_to_user(usp, &sf, sizeof(sf));
 	if (r != 0) {
