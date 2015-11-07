@@ -33,8 +33,6 @@
 #include <uk/cdefs.h>
 #include <uk/stdarg.h>
 
-#define panic(_s) do { printf("PANIC: %s\n", _s); while(1); } while(0)
-
 int (*putc) (int);
 int (*sysputc) (int);
 void *memset(void *b, int c, size_t len);

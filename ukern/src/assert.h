@@ -30,14 +30,18 @@
 #ifndef __uk_assert_h
 #define __uk_assert_h
 
-#include <lib/lib.h>
-
-#define assert(_e) do { if (!(_e)) panic("Assert failed: " #_e); } while(0)
+#define panic(...) __bad_thing(0, __VA_ARGS__)
+#define procfail(...) __bad_thing(1, __VA_ARGS__)
+#define assert(_e) do { if (!(_e)) panic(#_e); } while (0)
+#define procassert(_e) do { if (!(_e)) procfail(#_e); } while (0)
 
 #ifdef __DEBUG
-#define dbgassert(_e) do { if (!(_e)) panic("Assert failed: " #_e); } while(0)
+#define dbgassert(_e) assert(_e)
+#define dbgprocassert(_e) procassert(_e)
 #else
 #define dbgassert(_e)
 #endif
+
+void __bad_thing(int user, const char *format, ...);
 
 #endif

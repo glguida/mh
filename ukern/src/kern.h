@@ -35,7 +35,6 @@
 #include <machine/uk/pmap.h>
 #include <uk/sys.h>
 
-#define assertion_failure(_s, ...) __assertion_failure(_s, __VA_ARGS__)
 #define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
 #define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
 

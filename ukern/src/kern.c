@@ -57,27 +57,27 @@ lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
 
-void assertion_failure(const char *format, ...)
+void __bad_thing(int user, const char *format, ...)
 {
 	va_list ap;
 
-	printf("ASSERTION FAILURE (CPU %d): ", cpu_number());
+	printf("(bad thing at CPU %d): ", cpu_number());
 	va_start(ap, format);
 	vprintf(format, ap);
 	va_end(ap);
 	printf("\n");
 
-	die();
+	if (user)
+		die();
+	else
+		__goodbye();
 }
 
 /* Use copy_{to,from}_user(), do not call this directly */
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 {
-	if (!__chkuaddr(uaddr, sz)) {
-		assertion_failure("uaddr range (%lx, %ld) not valid",
-				  (unsigned long)uaddr, (unsigned long)sz);
-		return -1;
-	}
+
+	assert(__chkuaddr(uaddr, sz));
 
 	current_cpu()->usrpgfault = 1;
 	__insn_barrier();
