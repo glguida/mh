@@ -27,38 +27,20 @@
  */
 
 
-#ifndef _uk_sys_h_
-#define _uk_sys_h_
+#include <machine/vmparam.h>
+#include <microkernel.h>
 
-/*
- * Syscalls
- */
-#define SYS_DIE 0
-#define SYS_INTHDLR 1
+unsigned vmmap(vaddr_t addr, vm_prot_t prot)
+{
+	return sys_map(addr, prot | MAP_NEW);
+}
 
-#ifndef _ASSEMBLER
-typedef enum {
-	MAP_NEW = 0x100,
-	MAP_NONE = 0,
-	MAP_RDONLY = 1,
-	MAP_RDEXEC = 2,
-	MAP_WRITE = 3,
-	MAP_WREXEC = 4,
-} sys_map_flags_t;
-#endif
-#define SYS_MAP 0x10
+unsigned vmunmap(vaddr_t addr)
+{
+	return sys_map(addr, 0);
+}
 
-/* System-processes only */
-#define SYS_PUTC 0x1000
-
-/*
- * Exceptions
- */
-#define XCPT_PGFAULT 0
-
-
-#ifdef _UKERNEL
-int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3);
-#endif
-
-#endif
+int vmchprot(vaddr_t addr, vm_prot_t prot)
+{
+	return sys_map(addr, prot & ~MAP_NEW);
+}

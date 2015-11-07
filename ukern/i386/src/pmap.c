@@ -125,12 +125,41 @@ l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
 	return ol1e;
 }
 
+int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	spinlock(&pmap->lock);
+
+	ol1e = *l1p;
+	if (!(l1eflags(ol1e) & PG_P)) {
+		/* Not present, do not change. */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+
+	spinunlock(&pmap->lock);
+
+	return 0;
+}
+
 pfn_t
-pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, unsigned flags)
+pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot)
 {
 	l1e_t ol1e;
 
-	ol1e = pmap_setl1e(pmap, va, mkl1e(pa, flags));
+	ol1e = pmap_setl1e(pmap, va, mkl1e(pa, prot));
 	if (ol1e & PG_P)
 		return atop(ol1e);
 	else
@@ -158,10 +187,10 @@ void pmap_switch(struct pmap *pmap)
 
 	oldpmap = pmap_current();
 	pmap->refcnt++;
-	pmap->cpumap |= ((cpumask_t)1 << cpu_number());
+	pmap->cpumap |= ((cpumask_t) 1 << cpu_number());
 	__setpdptr(pmap->pdptr);
 	oldpmap->refcnt--;
-	oldpmap->cpumap &= ~((cpumask_t)1 << cpu_number());
+	oldpmap->cpumap &= ~((cpumask_t) 1 << cpu_number());
 }
 
 struct pmap *pmap_boot(void)

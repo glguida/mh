@@ -239,20 +239,11 @@ void schedule(void)
 
 __dead void die(void)
 {
-	pfn_t pfn;
-	vaddr_t va;
 	struct thread *th = current_thread();
 
-	/* In the future, remove shared mapping  before */
-	/* clearing user mappings */
-	for (va = USERBASE; va < USEREND; va += PAGE_SIZE) {
-		pfn = pmap_enter(th->pmap, va, 0, 0);
-		if (pfn != PFN_INVALID) {
-			__freepage(pfn);
-		}
-	}
-	pmap_commit(NULL);
-
+	/* In the future, remove shared mapping mechanisms before
+	 * mappings */
+	vmunmap(NULL, USERBASE, USEREND - USERBASE);
 	th->status = THST_DELETED;
 	schedule();
 }
@@ -266,16 +257,48 @@ static void idle(void)
 	}
 }
 
-static void populate(vaddr_t addr, size_t sz, pmap_prot_t prot)
+unsigned vmmap(struct thread *th, vaddr_t addr, size_t sz,
+	       pmap_prot_t prot)
 {
 	int i;
 	pfn_t pfn;
+	unsigned freed = 0;
+	struct pmap *pmap = (th == NULL ? NULL : th->pmap);
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocpage(PFNT_USER);
-		pmap_enter(NULL, addr + i * PAGE_SIZE, ptoa(pfn), prot);
+		pfn = pmap_enter(pmap, addr + i * PAGE_SIZE, ptoa(pfn),
+				 prot);
+		if (pfn != PFN_INVALID) {
+			__freepage(pfn);
+			freed++;
+		}
 	}
-	pmap_commit(NULL);
+	pmap_commit(pmap);
+	return 0;
+}
+
+unsigned vmunmap(struct thread *th, vaddr_t addr, size_t sz)
+{
+	int i;
+	pfn_t pfn;
+	unsigned freed = 0;
+	struct pmap *pmap = (th == NULL ? NULL : th->pmap);
+
+	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
+		pfn = pmap_enter(pmap, addr + i * PAGE_SIZE, 0, 0);
+		if (pfn != PFN_INVALID) {
+			__freepage(pfn);
+			freed++;
+		}
+	}
+	pmap_commit(pmap);
+	return freed;
+}
+
+int vmchprot(struct thread *th, vaddr_t addr, size_t sz, pmap_prot_t prot)
+{
+	return pmap_chprot(NULL, addr, prot);
 }
 
 static vaddr_t elfld(void *elfimg)
@@ -292,13 +315,13 @@ static vaddr_t elfld(void *elfimg)
 		if (ph->type != PHT_LOAD)
 			continue;
 		if (ph->fsize) {
-			populate(ph->va, ph->fsize, PROT_USER_WRX);
+			vmmap(NULL, ph->va, ph->fsize, PROT_USER_WRX);
 			memcpy((void *) ph->va, (void *) ELFOFF(ph->off),
 			       ph->fsize);
 		}
 		if (ph->msize - ph->fsize > 0) {
-			populate(ph->va + ph->fsize, ph->msize - ph->fsize,
-				 PROT_USER_WRX);
+			vmmap(NULL, ph->va + ph->fsize,
+			      ph->msize - ph->fsize, PROT_USER_WRX);
 			memset((void *) (ph->va + ph->fsize), 0,
 			       ph->msize - ph->fsize);
 		}

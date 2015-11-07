@@ -52,6 +52,49 @@ static int sys_inthdlr(vaddr_t ip, vaddr_t sp)
 	return 0;
 }
 
+static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
+{
+	int np;
+	pmap_prot_t prot;
+
+	/* _probably_ should not kill it and just return an error,
+	 * like a nice, respectful OS */
+	procassert(__chkuaddr(trunc_page(vaddr), PAGE_SIZE));
+	np = perm & MAP_NEW;
+	perm &= ~MAP_NEW;
+
+	switch (perm) {
+	case MAP_RDONLY:
+		prot = PROT_USER;
+		break;
+	case MAP_RDEXEC:
+		prot = PROT_USER_X;
+		break;
+	case MAP_WRITE:
+		prot = PROT_USER_WR;
+		break;
+	case MAP_WREXEC:
+		prot = PROT_USER_WRX;
+		break;
+	case MAP_NONE:
+		prot = 0;
+		np = 0;
+		break;
+	default:
+		printf("perm = %x\n", perm);
+		return -1;
+	}
+
+	if (np)
+		vmmap(NULL, vaddr, PAGE_SIZE, prot);
+	else if (!prot)
+		vmunmap(NULL, vaddr, PAGE_SIZE);
+	else
+		vmchprot(NULL, vaddr, PAGE_SIZE, prot);
+	pmap_commit(NULL);
+	return 0;
+}
+
 static int sys_die(void)
 {
 	die();
@@ -65,6 +108,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_putc(a1);
 	case SYS_INTHDLR:
 		return sys_inthdlr(a1, a2);
+	case SYS_MAP:
+		return sys_map(a1, a2);
 	case SYS_DIE:
 		return sys_die();
 	default:

@@ -30,7 +30,7 @@
 #include <microkernel.h>
 #include "__sys.h"
 
-__dead void die(void)
+__dead void sys_die(void)
 {
 	int dummy;
 
@@ -46,13 +46,20 @@ int sys_putc(int ch)
 	return ret;
 }
 
-int sys_inthdlr(void (*func)(vaddr_t, vaddr_t), void *stack)
+int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack)
 {
 	int ret;
 
 	__syscall2(SYS_INTHDLR,
-		   (unsigned long) func,
-		   (unsigned long) stack, ret);
+		   (unsigned long) func, (unsigned long) stack, ret);
 	return ret;
 }
 
+int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
+{
+	int ret;
+
+	__syscall2(SYS_MAP,
+		   (unsigned long) vaddr, (unsigned long) perm, ret);
+	return ret;
+}

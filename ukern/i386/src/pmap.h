@@ -63,6 +63,7 @@ void pmap_free(struct pmap *);
 #define PROT_KERNX     PG_P
 #define PROT_GLOBAL    PG_G
 #define PROT_USER      (PG_U | PG_NX | PG_P)
+#define PROT_USER_X    (PG_U | PG_P)
 #define PROT_USER_WR   (PG_W | PG_U | PG_NX | PG_P)
 #define PROT_USER_WRX  (PG_W | PG_U | PG_P)
 typedef unsigned pmap_prot_t;
@@ -77,7 +78,8 @@ uintptr_t __getpdptr(void);
 
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
 pfn_t pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa,
-		 unsigned flags);
+		 pmap_prot_t prot);
+int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
 void pmap_commit(struct pmap *pmap);
 
 #define pmap_clear(_pmap, _va) pmap_setl1e((_pmap), (_va), 0)

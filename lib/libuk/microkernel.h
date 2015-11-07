@@ -34,10 +34,28 @@
 #include <machine/microkernel.h>
 #include <uk/sys.h>
 
+/* Syscalls */
 __dead void sys_die();
-
+int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack);
+int sys_map(vaddr_t vaddr, sys_map_flags_t perm);
 int sys_putc(int ch);
-
 extern int __sys_inthandler(int, unsigned long, struct intframe *frame);
+
+
+/* Signals helper library */
+void siginit(void);
+
+/* VM helper library */
+typedef enum {
+	VM_PROT_NIL = MAP_NONE,
+	VM_PROT_RO = MAP_RDONLY,
+	VM_PROT_RX = MAP_RDEXEC,
+	VM_PROT_RW = MAP_WRITE,
+	VM_PROT_WX = MAP_WREXEC,
+} vm_prot_t;
+
+unsigned vmmap(vaddr_t addr, vm_prot_t prot);
+unsigned vmunmap(vaddr_t addr);
+int vmchprot(vaddr_t addr, vm_prot_t prot);
 
 #endif
