@@ -243,7 +243,7 @@ __dead void die(void)
 
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
-	vmunmap(NULL, USERBASE, USEREND - USERBASE);
+	vmclear(USERBASE, USEREND - USERBASE);
 	th->status = THST_DELETED;
 	schedule();
 }
@@ -257,48 +257,83 @@ static void idle(void)
 	}
 }
 
-unsigned vmmap(struct thread *th, vaddr_t addr, size_t sz,
+unsigned vmpopulate(vaddr_t addr, size_t sz,
 	       pmap_prot_t prot)
 {
-	int i;
+	int i, rc, ret = 0;
 	pfn_t pfn;
-	unsigned freed = 0;
-	struct pmap *pmap = (th == NULL ? NULL : th->pmap);
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocpage(PFNT_USER);
-		pfn = pmap_enter(pmap, addr + i * PAGE_SIZE, ptoa(pfn),
-				 prot);
+		rc = pmap_enter(NULL, addr + i * PAGE_SIZE, ptoa(pfn),
+				 prot, &pfn);
+		assert(!rc && "vmpopulate pmap_enter");
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
-			freed++;
+			ret++;
 		}
 	}
-	pmap_commit(pmap);
-	return 0;
+	pmap_commit(NULL);
+	return ret;
 }
 
-unsigned vmunmap(struct thread *th, vaddr_t addr, size_t sz)
+unsigned  vmclear(vaddr_t addr, size_t sz)
 {
-	int i;
+	unsigned ret = 0;
 	pfn_t pfn;
-	unsigned freed = 0;
-	struct pmap *pmap = (th == NULL ? NULL : th->pmap);
+	int i, rc;
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
-		pfn = pmap_enter(pmap, addr + i * PAGE_SIZE, 0, 0);
+		rc = pmap_clear(NULL, addr + i * PAGE_SIZE, &pfn);
+		assert(!rc && "vmclear pmap_enter");
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
-			freed++;
+			ret++;
 		}
 	}
-	pmap_commit(pmap);
-	return freed;
+	pmap_commit(NULL);
+	return ret;
 }
 
-int vmchprot(struct thread *th, vaddr_t addr, size_t sz, pmap_prot_t prot)
+int vmmap(vaddr_t addr, pmap_prot_t prot)
 {
-	return pmap_chprot(NULL, addr, prot);
+	int ret;
+	pfn_t pfn;
+
+	pfn = __allocpage(PFNT_USER);
+	ret = pmap_enter(NULL, addr, ptoa(pfn),
+			prot, &pfn);
+	pmap_commit(NULL);
+
+	if (pfn != PFN_INVALID) {
+		__freepage(pfn);
+		ret = 1;
+	}
+	return ret;
+}
+
+int vmunmap(vaddr_t addr)
+{
+	int ret;
+	pfn_t pfn;
+
+	ret = pmap_enter(NULL, addr, PFN_INVALID, 0, &pfn);
+	pmap_commit(NULL);
+
+	if (pfn != PFN_INVALID) {
+		__freepage(pfn);
+		ret = 1;
+	}
+	return ret;
+}
+
+int vmchprot(vaddr_t addr, pmap_prot_t prot)
+{
+	int ret;
+
+	ret = pmap_chprot(NULL, addr, prot);
+	pmap_commit(NULL);
+	return ret;
 }
 
 static vaddr_t elfld(void *elfimg)
@@ -315,12 +350,12 @@ static vaddr_t elfld(void *elfimg)
 		if (ph->type != PHT_LOAD)
 			continue;
 		if (ph->fsize) {
-			vmmap(NULL, ph->va, ph->fsize, PROT_USER_WRX);
+			vmpopulate(ph->va, ph->fsize, PROT_USER_WRX);
 			memcpy((void *) ph->va, (void *) ELFOFF(ph->off),
 			       ph->fsize);
 		}
 		if (ph->msize - ph->fsize > 0) {
-			vmmap(NULL, ph->va + ph->fsize,
+			vmpopulate(ph->va + ph->fsize,
 			      ph->msize - ph->fsize, PROT_USER_WRX);
 			memset((void *) (ph->va + ph->fsize), 0,
 			       ph->msize - ph->fsize);

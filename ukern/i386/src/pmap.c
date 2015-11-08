@@ -104,9 +104,11 @@ static void __setl1e(l1e_t * l1p, l1e_t l1e)
 	*--ptr = l1e & 0xffffffff;
 }
 
-l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
+int
+pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot, pfn_t *pfn)
 {
-	l1e_t ol1e, *l1p;
+	int ret = 0;
+	l1e_t ol1e, nl1e, *l1p;
 
 	if (pmap == NULL)
 		pmap = pmap_current();
@@ -117,12 +119,20 @@ l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t nl1e)
 	else
 		panic("set to different pmap voluntarily not supported.");
 
+	nl1e = mkl1e(pa, prot);
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
-	return ol1e;
+
+	if (pfn != NULL) {
+		if (ol1e & PG_P)
+			*pfn = atop(ol1e);
+		else
+			*pfn = PFN_INVALID;
+	}
+	return ret;
 }
 
 int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
@@ -152,18 +162,6 @@ int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	spinunlock(&pmap->lock);
 
 	return 0;
-}
-
-pfn_t
-pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot)
-{
-	l1e_t ol1e;
-
-	ol1e = pmap_setl1e(pmap, va, mkl1e(pa, prot));
-	if (ol1e & PG_P)
-		return atop(ol1e);
-	else
-		return PFN_INVALID;
 }
 
 void pmap_commit(struct pmap *pmap)

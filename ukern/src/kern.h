@@ -87,10 +87,11 @@ struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
 void do_cpu_softirq(void);
 
-unsigned vmmap(struct thread *th, vaddr_t addr, size_t sz,
-	       pmap_prot_t prot);
-unsigned vmunmap(struct thread *th, vaddr_t addr, size_t sz);
-int vmchprot(struct thread *th, vaddr_t, size_t sz, pmap_prot_t prot);
+unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
+unsigned vmclear(vaddr_t addr, size_t sz);
+int vmmap(vaddr_t, pmap_prot_t prot);
+int vmchprot(vaddr_t, pmap_prot_t prot);
+int vmunmap(vaddr_t);
 
 void schedule(void);
 void die(void) __dead;

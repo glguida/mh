@@ -238,6 +238,7 @@ void vmap_init(void)
 
 void *kvmap(paddr_t addr, size_t size)
 {
+	int rc;
 	size_t i;
 	vaddr_t lobits;
 	vaddr_t vaddr;
@@ -251,10 +252,12 @@ void *kvmap(paddr_t addr, size_t size)
 
 	vaddr = vmap_alloc(end - start, VFNT_MAP);
 
-	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++)
-		pmap_enter(NULL, vaddr + (i << PAGE_SHIFT),
-			   addr + (i << PAGE_SHIFT),
-			   PROT_GLOBAL | PROT_KERNWR);
+	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++) {
+		rc = pmap_enter(NULL, vaddr + (i << PAGE_SHIFT),
+				addr + (i << PAGE_SHIFT),
+				PROT_GLOBAL | PROT_KERNWR, NULL);
+		assert(!rc && "pmap_enter in kvmap");
+	}
 	pmap_commit(NULL);
 
 	return (void *) (vaddr + lobits);
@@ -262,14 +265,17 @@ void *kvmap(paddr_t addr, size_t size)
 
 void kvunmap(vaddr_t vaddr, size_t size)
 {
+	int rc;
 	size_t i;
 	vaddr_t start, end;
 
 	start = trunc_page(vaddr);
 	end = round_page(vaddr + size);
 
-	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++)
-		pmap_clear(NULL, vaddr + (i << PAGE_SHIFT));
+	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++) {
+		rc = pmap_clear(NULL, vaddr + (i << PAGE_SHIFT), NULL);
+		assert(!rc && "pmap_clear in kvunmap");
+	}
 	pmap_commit(NULL);
 
 	vmap_free(start, end - start);

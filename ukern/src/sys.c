@@ -86,12 +86,11 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 	}
 
 	if (np)
-		ret = vmmap(NULL, vaddr, PAGE_SIZE, prot);
+		ret = vmmap(vaddr, prot);
 	else if (!prot)
-		ret = vmunmap(NULL, vaddr, PAGE_SIZE);
+		ret = vmunmap(vaddr);
 	else
-		ret = vmchprot(NULL, vaddr, PAGE_SIZE, prot);
-	pmap_commit(NULL);
+		ret = vmchprot(vaddr, prot);
 	return ret;
 }
 
