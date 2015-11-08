@@ -89,7 +89,7 @@ static unsigned vect_to_xcpt(uint32_t vect)
 	}
 }
 
-int nmi_entry(struct usrframe *f)
+int nmi_entry(uint32_t vect, struct usrframe *f)
 {
 	/* NMI Handler:
 	 *
