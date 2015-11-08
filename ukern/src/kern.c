@@ -264,7 +264,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz,
 	pfn_t pfn;
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
-		pfn = __allocpage(PFNT_USER);
+		pfn = __allocuser();
 		rc = pmap_enter(NULL, addr + i * PAGE_SIZE, ptoa(pfn),
 				 prot, &pfn);
 		assert(!rc && "vmpopulate pmap_enter");
@@ -300,7 +300,7 @@ int vmmap(vaddr_t addr, pmap_prot_t prot)
 	int ret;
 	pfn_t pfn;
 
-	pfn = __allocpage(PFNT_USER);
+	pfn = __allocuser();
 	ret = pmap_enter(NULL, addr, ptoa(pfn),
 			prot, &pfn);
 	pmap_commit(NULL);
