@@ -139,6 +139,8 @@ int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 {
 	l1e_t ol1e, nl1e, *l1p;
 
+
+	assert((prot & PG_P) && "can't unmap with chprot");
 	if (pmap == NULL)
 		pmap = pmap_current();
 
