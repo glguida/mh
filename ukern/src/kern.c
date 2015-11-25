@@ -99,19 +99,21 @@ static struct thread *thnew(void (*__start) (void))
 
 	th = structs_alloc(&threads);
 	th->pmap = pmap_alloc();
-	th->flags = 0;
 	th->stack_4k = alloc4k();
 	memset(th->stack_4k, 0, 4096);
+	th->userfl = 0;
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
 }
 
-void thxcpt(unsigned xcpt, vaddr_t info)
+void thintr(unsigned vect, vaddr_t info)
 {
 	struct thread *th = current_thread();
+	uint32_t ofl = th->userfl;
 
-	usrframe_signal(th->frame, th->sigip, th->sigsp, xcpt, info);
+	th->userfl &= ~THFL_INTR; /* Restored on IRET */
+	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, info);
 }
 
 static void thfree(struct thread *th)
@@ -374,7 +376,6 @@ static void __initstart(void)
 
 	entry = elfld(_init_start);
 	usrframe_setup(&usrframe, entry, 0);
-	th->flags |= THFL_IN_USRENTRY;
 	__insn_barrier();
 	usrframe_enter(&usrframe);
 	/* Not reached */
@@ -392,6 +393,7 @@ void kern_boot(void)
 	th = structs_alloc(&threads);
 	th->pmap = pmap_current();
 	th->stack_4k = NULL;
+	th->userfl = 0;
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 	/* We are idle thread now. */
@@ -416,6 +418,7 @@ void kern_bootap(void)
 	th = structs_alloc(&threads);
 	th->pmap = pmap_current();
 	th->stack_4k = NULL;
+	th->userfl = 0;
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 

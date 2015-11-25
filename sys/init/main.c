@@ -79,6 +79,7 @@ int main()
 
 	printf("Hello!\n");
 
+	sys_sti();
 	printf("Reading, d = %d\n", *d);
 
 	printf("Writing.\n");

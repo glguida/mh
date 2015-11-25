@@ -155,7 +155,7 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 	/* Userspace exception. */
 	current_thread()->frame = f;
 
-	thxcpt(vect_to_xcpt(vect), f->cr2);
+	thintr(vect_to_xcpt(vect), f->cr2);
 
 	do_cpu_softirq();
 	current_thread()->frame = NULL;
@@ -198,6 +198,7 @@ uint32_t usrframe_iret(struct usrframe *f)
 		uint32_t eax;
 		uint32_t eip;
 		uint32_t esp;
+		uint32_t efl;
 	} __packed iretf;
 
 	r = copy_from_user(&iretf, f->esp, sizeof(iretf));
@@ -206,13 +207,15 @@ uint32_t usrframe_iret(struct usrframe *f)
 		die();
 		/* not reached */
 	}
-	printf("iret: EAX: %x, EIP: %x, ESP: %x\n", iretf.eax, iretf.eip, iretf.esp);
+	printf("iret: EAX: %x, EIP: %x, ESP: %x, EFL: %x\n",
+	       iretf.eax, iretf.eip, iretf.esp, iretf.efl);
 	f->eip = iretf.eip;
 	f->esp = iretf.esp;
+	current_thread()->userfl = iretf.efl;
 	return iretf.eax;
 }
 
-void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
+void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp, uint32_t fl,
 		     unsigned xcpt, vaddr_t info)
 {
 	int r;
@@ -221,11 +224,13 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		uint32_t arg2;
 		uint32_t eip;
 		uint32_t esp;
+		uint32_t efl;
 	} __packed sf = {
 		.arg2 = info,
 		.arg1 = xcpt,
 		.eip = f->eip,
 		.esp = f->esp,
+		.efl = fl,
 	};
 	uaddr_t usp = sp - sizeof(sf);
 

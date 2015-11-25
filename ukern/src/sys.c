@@ -59,6 +59,20 @@ static int sys_iret(void)
 	return usrframe_iret(current_thread()->frame);
 }
 
+static int sys_sti(void)
+{
+	struct thread *th = current_thread();
+
+	th->userfl |= THFL_INTR;
+}
+
+static int sys_cli(void)
+{
+	struct thread *th = current_thread();
+
+	th->userfl &= ~THFL_INTR;
+}
+
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int np, ret;
@@ -116,6 +130,10 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_inthdlr(a1, a2);
 	case SYS_IRET:
 		return sys_iret();
+	case SYS_STI:
+		return sys_sti();
+	case SYS_CLI:
+		return sys_cli();
 	case SYS_MAP:
 		return sys_map(a1, a2);
 	case SYS_DIE:

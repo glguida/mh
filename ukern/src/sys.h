@@ -36,6 +36,8 @@
 #define SYS_DIE 0
 #define SYS_INTHDLR 1
 #define SYS_IRET 2
+#define SYS_STI 3
+#define SYS_CLI 4
 
 #ifndef _ASSEMBLER
 typedef enum {

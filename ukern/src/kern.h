@@ -43,13 +43,6 @@
 #define THST_STOPPED 2
 #define THST_DELETED 3
 
-#define _THFL_IN_USRENTRY 0
-#define THFL_IN_USRENTRY (1 << _THFL_IN_USRENTRY)
-#define _THFL_IN_XCPTENTRY 1
-#define THFL_IN_XCPTENTRY (1 << _THFL_IN_XCPTENTRY)
-#define _THFL_XCPTENTRY 2
-#define THFL_XCPTENTRY (1 << _THFL_XCPTENTRY)
-
 #define thread_is_idle(_th) (_th == current_cpu()->idle_thread)
 
 struct thread {
@@ -62,8 +55,9 @@ struct thread {
 
 	uaddr_t sigip;
 	uaddr_t sigsp;
+#define THFL_INTR (1L << 0)
+	uint32_t userfl;
 
-	uint16_t flags;
 	uint16_t status;
 	TAILQ_ENTRY(thread) sched_list;
 };
@@ -79,7 +73,7 @@ struct cpu {
 
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz);
 
-void thxcpt(unsigned xcpt, vaddr_t info);
+void thintr(unsigned xcpt, vaddr_t info);
 void kern_boot(void);
 void kern_bootap(void);
 

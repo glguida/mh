@@ -55,6 +55,20 @@ int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack)
 	return ret;
 }
 
+int sys_sti(void)
+{
+	int dummy;
+
+	__syscall0(SYS_STI, dummy);
+}
+
+int sys_cli(void)
+{
+	int dummy;
+
+	__syscall0(SYS_CLI, dummy);
+}
+
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int ret;
