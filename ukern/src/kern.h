@@ -79,7 +79,7 @@ struct cpu {
 
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz);
 
-int thxcpt(unsigned xcpt);
+void thxcpt(unsigned xcpt, vaddr_t info);
 void kern_boot(void);
 void kern_bootap(void);
 

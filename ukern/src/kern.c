@@ -107,7 +107,7 @@ static struct thread *thnew(void (*__start) (void))
 	return th;
 }
 
-void thsignal(unsigned xcpt, vaddr_t info)
+void thxcpt(unsigned xcpt, vaddr_t info)
 {
 	struct thread *th = current_thread();
 

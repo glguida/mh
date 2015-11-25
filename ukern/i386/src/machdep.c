@@ -155,7 +155,7 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 	/* Userspace exception. */
 	current_thread()->frame = f;
 
-	thsignal(vect_to_xcpt(vect), f->cr2);
+	thxcpt(vect_to_xcpt(vect), f->cr2);
 
 	do_cpu_softirq();
 	current_thread()->frame = NULL;
