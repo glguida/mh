@@ -31,8 +31,6 @@
 #define _i386_microkernel_h
 
 struct intframe {
-	uint32_t eip;
-	
 	uint16_t ds;
 	uint16_t es;
 	uint16_t fs;
@@ -40,7 +38,6 @@ struct intframe {
 	
 	uint32_t edi;
 	uint32_t esi;
-	uint32_t esp;
 	uint32_t ebx;
 	uint32_t edx;
 	uint32_t ecx;
@@ -48,6 +45,10 @@ struct intframe {
 	
 	uint32_t eflags;
 	uint32_t ebp;
+	uint32_t xcpt;
+	uint32_t info;
+	uint32_t eip;
+	uint32_t esp;
 } __packed;
 
 #endif /* _i386_microkernel_h */

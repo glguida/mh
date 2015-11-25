@@ -191,22 +191,43 @@ void usrframe_enter(struct usrframe *f)
 	___usrentry_enter((void *) f);
 }
 
+uint32_t usrframe_iret(struct usrframe *f)
+{
+	int r;
+	struct iretframe {
+		uint32_t eax;
+		uint32_t eip;
+		uint32_t esp;
+	} __packed iretf;
+
+	r = copy_from_user(&iretf, f->esp, sizeof(iretf));
+	if (r != 0) {
+		printf("can't read from stack.  Die.");
+		die();
+		/* not reached */
+	}
+	printf("iret: EAX: %x, EIP: %x, ESP: %x\n", iretf.eax, iretf.eip, iretf.esp);
+	f->eip = iretf.eip;
+	f->esp = iretf.esp;
+	return iretf.eax;
+}
+
 void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		     unsigned xcpt, vaddr_t info)
 {
 	int r;
-	uaddr_t usp = sp;
 	struct stackframe {
-		uint32_t ret;
 		uint32_t arg1;
 		uint32_t arg2;
-		uint32_t arg3;
+		uint32_t eip;
+		uint32_t esp;
 	} __packed sf = {
-		.arg3 = f->esp,
 		.arg2 = info,
 		.arg1 = xcpt,
-		.ret = f->eip,
+		.eip = f->eip,
+		.esp = f->esp,
 	};
+	uaddr_t usp = sp - sizeof(sf);
 
 	if (!ip || !sp) {
 		printf("no interrupt handler");

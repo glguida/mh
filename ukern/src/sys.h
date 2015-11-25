@@ -35,6 +35,7 @@
  */
 #define SYS_DIE 0
 #define SYS_INTHDLR 1
+#define SYS_IRET 2
 
 #ifndef _ASSEMBLER
 typedef enum {

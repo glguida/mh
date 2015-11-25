@@ -52,6 +52,13 @@ static int sys_inthdlr(vaddr_t ip, vaddr_t sp)
 	return 0;
 }
 
+static int sys_iret(void)
+{
+	struct thread *th = current_thread();
+
+	return usrframe_iret(current_thread()->frame);
+}
+
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int np, ret;
@@ -107,6 +114,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_putc(a1);
 	case SYS_INTHDLR:
 		return sys_inthdlr(a1, a2);
+	case SYS_IRET:
+		return sys_iret();
 	case SYS_MAP:
 		return sys_map(a1, a2);
 	case SYS_DIE:

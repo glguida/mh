@@ -28,6 +28,7 @@
 
 
 #include <machine/asm.h>
+#include <uk/sys.h>
 
 ENTRY(__inthdlr)
 	push %ebp
@@ -38,7 +39,6 @@ ENTRY(__inthdlr)
 	push %ecx
 	push %edx
 	push %ebx
-	push 16(%ebp) /* arg3: esp */
 	push %esi
 	push %edi
 
@@ -47,43 +47,32 @@ ENTRY(__inthdlr)
 	pushw %es
 	pushw %ds
 
-	mov 4(%ebp), %eax /* ret addr: ip */
-	push %eax
-
 	push %esp /* frame -> &frame */
-	mov 12(%ebp), %eax /*arg2: cause */
+	mov 8(%ebp), %eax /*arg2: cause */
 	push %eax
-	mov 8(%ebp), %eax /* arg1: vect */
+	mov 4(%ebp), %eax /* arg1: vect */
 	push %eax
 	call _C_LABEL(__sys_inthandler)
 	add $12, %esp /* skip arguments */
 
-	popl __per_thread_libuk_eip
-
-	popw %gs
-	popw %fs
-	popw %es
 	popw %ds
+	popw %es
+	popw %fs
+	popw %gs
 
 	pop %edi
 	pop %esi
-	popl __per_thread_libuk_esp
 	pop %ebx
 	pop %edx
 	pop %ecx
 	pop %eax
+
 	popfl
 	pop %ebp
-	mov __per_thread_libuk_esp, %esp
-	jmpl *__per_thread_libuk_eip
+
+	add $8, %esp /* Skip info + xcpt */
+
+	push %eax
+	mov $SYS_IRET, %eax
+	int $0x80
 END(__inthdlr)
-
-
-	.data
-	.align 64
-LABEL(__per_thread_libuk_eip)
-	.skip 8
-END(__per_thread_libuk_eip)
-LABEL(__per_thread_libuk_esp)
-	.skip 8
-END(__per_thread_libuk_esp)
