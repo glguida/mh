@@ -58,6 +58,7 @@ struct thread {
 #define THFL_INTR (1L << 0)
 	uint32_t userfl;
 
+	uint64_t softintrs;
 	uint16_t status;
 	TAILQ_ENTRY(thread) sched_list;
 };
@@ -79,7 +80,7 @@ void kern_bootap(void);
 
 struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
-void do_cpu_softirq(void);
+void do_softirq(void);
 
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
 unsigned vmclear(vaddr_t addr, size_t sz);

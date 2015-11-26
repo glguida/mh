@@ -102,6 +102,7 @@ static struct thread *thnew(void (*__start) (void))
 	th->stack_4k = alloc4k();
 	memset(th->stack_4k, 0, 4096);
 	th->userfl = 0;
+	th->softintrs = 0;
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
@@ -114,6 +115,11 @@ void thintr(unsigned vect, vaddr_t info)
 
 	th->userfl &= ~THFL_INTR; /* Restored on IRET */
 	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, info);
+}
+
+void thraise(struct thread *th, unsigned vect)
+{
+	__sync_or_and_fetch(&th->softintrs, (1L << vect));
 }
 
 static void thfree(struct thread *th)
@@ -154,9 +160,16 @@ void cpu_softirq_raise(int id)
 
 static void do_resched(void);
 
-void do_cpu_softirq(void)
+void do_softirq(void)
 {
+	struct thread *th = current_thread();
 	uint64_t si;
+
+	if (th->userfl & THFL_INTR) {
+		si = __sync_fetch_and_and(&th->softintrs, 0);
+		if (si)
+			thintr(INTR_EXT, si);
+	}
 
 	while (current_cpu()->softirq) {
 		si = current_cpu()->softirq;
@@ -254,7 +267,7 @@ static void idle(void)
 {
 	while (1) {
 		schedule();
-		do_cpu_softirq();
+		do_softirq();
 		platform_wait();
 	}
 }
@@ -371,7 +384,6 @@ static void __initstart(void)
 {
 	vaddr_t entry;
 	struct usrframe usrframe;
-	struct thread *th = current_thread();
 	extern void *_init_start;
 
 	entry = elfld(_init_start);
@@ -394,6 +406,7 @@ void kern_boot(void)
 	th->pmap = pmap_current();
 	th->stack_4k = NULL;
 	th->userfl = 0;
+	th->softintrs = 0;
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 	/* We are idle thread now. */
@@ -419,6 +432,7 @@ void kern_bootap(void)
 	th->pmap = pmap_current();
 	th->stack_4k = NULL;
 	th->userfl = 0;
+	th->softintrs = 0;
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 

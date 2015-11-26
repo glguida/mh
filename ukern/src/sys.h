@@ -58,6 +58,7 @@ typedef enum {
  * Exceptions
  */
 #define XCPT_PGFAULT 0
+#define INTR_EXT     64
 
 
 #ifdef _UKERNEL

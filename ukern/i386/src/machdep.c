@@ -111,7 +111,7 @@ int nmi_entry(uint32_t vect, struct usrframe *f)
 	/* Process softirqs if returning to userspace */
 	if (f->cs == UCS) {
 		current_thread()->frame = f;
-		do_cpu_softirq();
+		do_softirq();
 		current_thread()->frame = NULL;
 	}
 	return 0;
@@ -157,7 +157,7 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 
 	thintr(vect_to_xcpt(vect), f->cr2);
 
-	do_cpu_softirq();
+	do_softirq();
 	current_thread()->frame = NULL;
 	return 0;
 }
@@ -178,7 +178,7 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 		framedump(f);
 	}
 	
-	do_cpu_softirq();
+	do_softirq();
 	th->frame = NULL;
 	return 0;
 }

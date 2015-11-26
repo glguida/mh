@@ -60,6 +60,10 @@ int __sys_inthandler(int vect, unsigned long info, struct intframe *f)
 			printf("Mapping writeable: %d",
 			       vmchprot(info, VM_PROT_RW));
 			i++;
+		} else if (i == 2) {
+			printf("A-ha! Mapping again!\n");
+			vmmap(info, VM_PROT_RO);
+			i++;
 		} else {
 			printf("WTF?\n");
 			sys_die();
@@ -79,7 +83,6 @@ int main()
 
 	printf("Hello!\n");
 
-	sys_sti();
 	printf("Reading, d = %d\n", *d);
 
 	printf("Writing.\n");
@@ -90,6 +93,7 @@ int main()
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
 
+	while(1) sys_sti();
 	printf("Goodbye!\n");
 	sys_die();
 }
