@@ -310,7 +310,7 @@ static void idle(void)
 {
 	while (1) {
 		do_softirq();
-		schedule(-1);
+		schedule(THST_STOPPED);
 		platform_wait();
 	}
 }
