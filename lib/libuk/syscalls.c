@@ -69,6 +69,14 @@ int sys_cli(void)
 	__syscall0(SYS_CLI, dummy);
 }
 
+int sys_wait(void)
+{
+	int dummy;
+
+	__syscall0(SYS_WAIT, dummy);
+}
+
+
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int ret;

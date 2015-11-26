@@ -38,6 +38,7 @@
 #define SYS_IRET 2
 #define SYS_STI 3
 #define SYS_CLI 4
+#define SYS_WAIT 5
 
 #ifndef _ASSEMBLER
 typedef enum {

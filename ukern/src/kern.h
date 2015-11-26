@@ -44,6 +44,9 @@
 #define THST_DELETED 3
 
 #define thread_is_idle(_th) (_th == current_cpu()->idle_thread)
+#define thread_has_interrupts(_th) ((th->status & THFL_INTR)	\
+				    && th->softintrs)
+
 
 struct thread {
 	jmp_buf ctx;
@@ -60,6 +63,7 @@ struct thread {
 
 	uint64_t softintrs;
 	uint16_t status;
+	unsigned cpu;
 	TAILQ_ENTRY(thread) sched_list;
 };
 
@@ -88,7 +92,8 @@ int vmmap(vaddr_t, pmap_prot_t prot);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
-void schedule(void);
+void wake(struct thread *);
+void schedule(int newst);
 void die(void) __dead;
 
 #endif

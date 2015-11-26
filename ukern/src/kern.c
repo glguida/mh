@@ -46,6 +46,7 @@
 #include "kern.h"
 
 static struct slab threads;
+static cpumask_t cpu_idlemap = 0;
 
 static lock_t sched_lock = 0;
 static TAILQ_HEAD(thread_list, thread) running_threads =
@@ -113,13 +114,15 @@ void thintr(unsigned vect, vaddr_t info)
 	struct thread *th = current_thread();
 	uint32_t ofl = th->userfl;
 
-	th->userfl &= ~THFL_INTR; /* Restored on IRET */
+	th->userfl &= ~THFL_INTR;	/* Restored on IRET */
 	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, info);
 }
 
 void thraise(struct thread *th, unsigned vect)
 {
+
 	__sync_or_and_fetch(&th->softintrs, (1L << vect));
+	wake(th);
 }
 
 static void thfree(struct thread *th)
@@ -135,6 +138,8 @@ static void thswitch(struct thread *th)
 	if (!_setjmp(current_thread()->ctx)) {
 		pmap_switch(th->pmap);
 		set_current_thread(th);
+		if (thread_is_idle(th))
+			__sync_or_and_fetch(&cpu_idlemap, (1L << cpu_number()));
 		_longjmp(th->ctx, 1);
 		panic("WTF.");
 	}
@@ -191,10 +196,13 @@ static void do_resched(void)
 	TAILQ_FOREACH_SAFE(th, &current_cpu()->resched, sched_list, tmp) {
 		TAILQ_REMOVE(&current_cpu()->resched, th, sched_list);
 		switch (th->status) {
-		case THST_RUNNING:
+		case THST_RUNNABLE:
 			spinlock(&sched_lock);
 			TAILQ_INSERT_TAIL(&running_threads, th,
 					  sched_list);
+			printf("Added runnable!\n");
+			printf("Waking first idle cpu! (%llx)\n", cpu_idlemap);
+			once_cpumask(cpu_idlemap, cpu_ipi(i, IPI_NOP));
 			spinunlock(&sched_lock);
 			break;
 		case THST_STOPPED:
@@ -210,25 +218,57 @@ static void do_resched(void)
 	}
 }
 
-void schedule(void)
+void wake(struct thread *th)
+{
+	spinlock(&sched_lock);
+	switch (th->status) {
+	case THST_DELETED:
+		printf("Waking deleted thread?");
+	case THST_RUNNABLE:
+		break;
+	case THST_RUNNING:
+		/* Send nmi to cpu */
+		break;
+	case THST_STOPPED:
+		TAILQ_REMOVE(&stopped_threads, th, sched_list);
+		th->status = THST_RUNNABLE;
+		TAILQ_INSERT_TAIL(&current_cpu()->resched, th,
+				  sched_list);
+		cpu_softirq_raise(SOFTIRQ_RESCHED);
+		break;
+	}
+	spinunlock(&sched_lock);
+}
+
+void schedule(int newst)
 {
 	struct thread *th = NULL, *oldth = current_thread();
 
+	/* Nothing to do */
+	if (newst == THST_RUNNING)
+		return;
+
 	if (oldth == current_cpu()->idle_thread) {
+		__sync_and_and_fetch(&cpu_idlemap, ~(1L << cpu_number()));
 		oldth = NULL;
 		goto _skip_resched;
 	}
 
-	switch (oldth->status) {
-	case THST_RUNNING:
-		spinlock(&sched_lock);
-		TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
+	spinlock(&sched_lock);
+
+	/* Do not sleep if active signals */
+	if (newst == THST_STOPPED && thread_has_interrupts(th)) {
 		spinunlock(&sched_lock);
+		return;
+	}
+
+	oldth->status = newst;
+	switch (oldth->status) {
+	case THST_RUNNABLE:
+		TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
 		break;
 	case THST_STOPPED:
-		spinlock(&sched_lock);
 		TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
-		spinunlock(&sched_lock);
 		break;
 	case THST_DELETED:
 		TAILQ_INSERT_TAIL(&current_cpu()->resched, oldth,
@@ -236,6 +276,7 @@ void schedule(void)
 		cpu_softirq_raise(SOFTIRQ_RESCHED);
 		break;
 	}
+	spinunlock(&sched_lock);
 
       _skip_resched:
 	/* Schedule per-cpu? Actually simpler */
@@ -243,12 +284,12 @@ void schedule(void)
 	if (!TAILQ_EMPTY(&running_threads)) {
 		th = TAILQ_FIRST(&running_threads);
 		TAILQ_REMOVE(&running_threads, th, sched_list);
+		th->status = THST_RUNNING;
+		th->cpu = cpu_number(); printf("C = %d\n", cpu_number());
+	} else {
+		th = current_cpu()->idle_thread;
 	}
 	spinunlock(&sched_lock);
-
-	if (th == NULL)
-		th = current_cpu()->idle_thread;
-
 	thswitch(th);
 }
 
@@ -259,21 +300,21 @@ __dead void die(void)
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
 	vmclear(USERBASE, USEREND - USERBASE);
-	th->status = THST_DELETED;
-	schedule();
+	schedule(THST_DELETED);
 }
+
+static struct thread *initth;
 
 static void idle(void)
 {
 	while (1) {
-		schedule();
 		do_softirq();
+		schedule(-1);
 		platform_wait();
 	}
 }
 
-unsigned vmpopulate(vaddr_t addr, size_t sz,
-	       pmap_prot_t prot)
+unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 {
 	int i, rc, ret = 0;
 	pfn_t pfn;
@@ -281,7 +322,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz,
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
 		rc = pmap_enter(NULL, addr + i * PAGE_SIZE, ptoa(pfn),
-				 prot, &pfn);
+				prot, &pfn);
 		assert(!rc && "vmpopulate pmap_enter");
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
@@ -292,7 +333,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz,
 	return ret;
 }
 
-unsigned  vmclear(vaddr_t addr, size_t sz)
+unsigned vmclear(vaddr_t addr, size_t sz)
 {
 	unsigned ret = 0;
 	pfn_t pfn;
@@ -316,8 +357,7 @@ int vmmap(vaddr_t addr, pmap_prot_t prot)
 	pfn_t pfn;
 
 	pfn = __allocuser();
-	ret = pmap_enter(NULL, addr, ptoa(pfn),
-			prot, &pfn);
+	ret = pmap_enter(NULL, addr, ptoa(pfn), prot, &pfn);
 	pmap_commit(NULL);
 
 	if (pfn != PFN_INVALID) {
@@ -371,7 +411,7 @@ static vaddr_t elfld(void *elfimg)
 		}
 		if (ph->msize - ph->fsize > 0) {
 			vmpopulate(ph->va + ph->fsize,
-			      ph->msize - ph->fsize, PROT_USER_WRX);
+				   ph->msize - ph->fsize, PROT_USER_WRX);
 			memset((void *) (ph->va + ph->fsize), 0,
 			       ph->msize - ph->fsize);
 		}

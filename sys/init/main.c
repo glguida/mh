@@ -92,8 +92,10 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
+	sys_sti();
 
-	while(1) sys_sti();
+	while (1)
+		sys_wait();
 	printf("Goodbye!\n");
 	sys_die();
 }

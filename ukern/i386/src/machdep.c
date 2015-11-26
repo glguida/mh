@@ -166,13 +166,22 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 {
 	struct thread *th = current_thread();
 
+	/* Idle thread can receive NOP IPI */
+	if (thread_is_idle(th) && vect == IPI_NOP) {
+		printf("%d: idle nop!\n", cpu_number());
+		lapic_write(L_EOI, 0);
+		return 0;
+	}
+
 	/* We only expect interrupts in userspace. */
 	assert(f->cs == UCS);
 	th->frame = f;
 
 	if (vect == 0x80) {
-
 		f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
+	} else if (vect == IPI_NOP) {
+		printf("NOP");
+		/* Nop */
 	} else {
 		printf("\nUnhandled interrupt %2u\n", vect);
 		framedump(f);

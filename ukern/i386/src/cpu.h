@@ -40,6 +40,8 @@
 #define UKERN_MAX_CPUS 64
 #define UKERN_MAX_PHYSCPUS 64
 
+#define IPI_NOP 0x90
+
 struct cpu_info {
 	/* Must be first */
 	uint32_t cpu_id;	/* fs:0 */
@@ -67,6 +69,26 @@ void cpu_nmi_broadcast(void);
 void cpu_ipi(int cpu, uint8_t vct);
 void cpu_ipi_mask(cpumask_t map, uint8_t vct);
 void cpu_ipi_broadcast(uint8_t vct);
+
+/* FFS, use ffs! */
+#define once_cpumask(__mask, __op)					\
+	do {								\
+		int i = 0;						\
+		cpumask_t m = (__mask) & cpus_active;			\
+									\
+		/* https://xkcd.com/292/ */				\
+		/* allow safe use of continue */			\
+		goto _start;						\
+		while (m != 0) {					\
+			i++;						\
+			m >>= 1;					\
+		_start:							\
+			if (m & 1) {					\
+				__op;					\
+				break;					\
+			}						\
+		};							\
+	} while (0)
 
 #define foreach_cpumask(__mask, __op)					\
 	do {								\

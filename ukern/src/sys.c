@@ -73,6 +73,17 @@ static int sys_cli(void)
 	th->userfl &= ~THFL_INTR;
 }
 
+static int sys_wait(void)
+{
+	struct thread *th = current_thread();
+
+	printf("Sleeping");
+	/* Can't sleep with Interrupts disabled */
+	th->userfl |= THFL_INTR;
+	schedule(THST_STOPPED);
+	printf("Woken");
+}
+
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int np, ret;
@@ -134,6 +145,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_sti();
 	case SYS_CLI:
 		return sys_cli();
+	case SYS_WAIT:
+		return sys_wait();
 	case SYS_MAP:
 		return sys_map(a1, a2);
 	case SYS_DIE:
