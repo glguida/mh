@@ -139,7 +139,8 @@ static void thswitch(struct thread *th)
 		pmap_switch(th->pmap);
 		set_current_thread(th);
 		if (thread_is_idle(th))
-			__sync_or_and_fetch(&cpu_idlemap, (1L << cpu_number()));
+			__sync_or_and_fetch(&cpu_idlemap,
+					    (1L << cpu_number()));
 		_longjmp(th->ctx, 1);
 		panic("WTF.");
 	}
@@ -201,7 +202,8 @@ static void do_resched(void)
 			TAILQ_INSERT_TAIL(&running_threads, th,
 					  sched_list);
 			printf("Added runnable!\n");
-			printf("Waking first idle cpu! (%llx)\n", cpu_idlemap);
+			printf("Waking first idle cpu! (%llx)\n",
+			       cpu_idlemap);
 			once_cpumask(cpu_idlemap, cpu_ipi(i, IPI_NOP));
 			spinunlock(&sched_lock);
 			break;
@@ -232,8 +234,7 @@ void wake(struct thread *th)
 	case THST_STOPPED:
 		TAILQ_REMOVE(&stopped_threads, th, sched_list);
 		th->status = THST_RUNNABLE;
-		TAILQ_INSERT_TAIL(&current_cpu()->resched, th,
-				  sched_list);
+		TAILQ_INSERT_TAIL(&current_cpu()->resched, th, sched_list);
 		cpu_softirq_raise(SOFTIRQ_RESCHED);
 		break;
 	}
@@ -285,7 +286,7 @@ void schedule(int newst)
 		th = TAILQ_FIRST(&running_threads);
 		TAILQ_REMOVE(&running_threads, th, sched_list);
 		th->status = THST_RUNNING;
-		th->cpu = cpu_number(); printf("C = %d\n", cpu_number());
+		th->cpu = cpu_number();
 	} else {
 		th = current_cpu()->idle_thread;
 	}
