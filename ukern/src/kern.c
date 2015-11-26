@@ -258,7 +258,7 @@ void schedule(int newst)
 	spinlock(&sched_lock);
 
 	/* Do not sleep if active signals */
-	if (newst == THST_STOPPED && thread_has_interrupts(th)) {
+	if (newst == THST_STOPPED && thread_has_interrupts(oldth)) {
 		spinunlock(&sched_lock);
 		return;
 	}
