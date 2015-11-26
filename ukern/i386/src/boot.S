@@ -91,7 +91,7 @@ multiboot_entry:
 	mov $UKERN_BL3TABLE, %eax
 	mov %eax, %cr3
 	mov  %cr0, %eax
-	or   $(1<<31), %eax
+	or   $((1<<31)|(1<<16)), %eax
 	mov  %eax, %cr0
 	ljmp $0x08, $1f
 1:
@@ -317,7 +317,7 @@ apsetup: /* bx:	AP Bootstrap Segment */
 	mov $UKERN_BL3TABLE, %eax
 	mov %eax, %cr3
 	mov  %cr0, %eax
-	or   $(1<<31), %eax
+	or   $((1<<31)|(1<<16)), %eax
 	mov  %eax, %cr0
 	ljmp $0x08, $1f
 1:
