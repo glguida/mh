@@ -113,7 +113,6 @@ pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot, pfn_t *
 	if (pmap == NULL)
 		pmap = pmap_current();
 
-
 	if (pmap == pmap_current())
 		l1p = __val1tbl(va) + L1OFF(va);
 	else
@@ -123,6 +122,7 @@ pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot, pfn_t *
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
 
@@ -150,7 +150,6 @@ int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 		panic("set to different pmap voluntarily not supported.");
 
 	spinlock(&pmap->lock);
-
 	ol1e = *l1p;
 	if (!(l1eflags(ol1e) & PG_P)) {
 		/* Not present, do not change. */

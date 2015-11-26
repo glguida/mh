@@ -47,14 +47,12 @@
 #define thread_has_interrupts(_th) ((_th->status & THFL_INTR)	\
 				    && th->softintrs)
 
-
 struct thread {
 	jmp_buf ctx;
 	struct pmap *pmap;
 
 	void *stack_4k;
 	void *frame;
-	void *xcptframe;
 
 	uaddr_t sigip;
 	uaddr_t sigsp;

@@ -35,7 +35,7 @@
 struct usrframe;
 
 /* This must be equal to sizeof(struct stackframe) */
-#define SIGFRAME_SIZE (sizeof(uint32_t) * 4)
+#define SIGFRAME_SIZE (sizeof(uint32_t) * 5)
 #define __inthdlr_chk(_ip, _sp)						\
   (__chkuaddr(ip, 4) && __chkuaddr(sp, SIGFRAME_SIZE))
 

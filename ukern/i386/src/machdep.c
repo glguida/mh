@@ -134,11 +134,12 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 	}
 
 	if (__predict_false(f->cs != UCS)) {
-		/* Exception in Kernel. Very bad. */
+
 		if (current_cpu()->usrpgfault && (vect == 14)) {
 			_longjmp(current_cpu()->usrpgfaultctx, 1);
+			/* Not reached */
 		}
-
+		/* Exception in Kernel. Very bad. */
 		printf("\nException #%2u at %02x:%08x, addr %08x",
 		       vect, f->cs, f->eip, f->cr2);
 
@@ -228,6 +229,8 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp, uint32_t fl,
 		     unsigned xcpt, vaddr_t info)
 {
 	int r;
+	/* We write to this structure. Change SIGFRAME_SIZE in case
+	 * you change this */
 	struct stackframe {
 		uint32_t arg1;
 		uint32_t arg2;
