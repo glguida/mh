@@ -64,6 +64,7 @@ static int sys_sti(void)
 	struct thread *th = current_thread();
 
 	th->userfl |= THFL_INTR;
+	return 0;
 }
 
 static int sys_cli(void)
@@ -71,6 +72,7 @@ static int sys_cli(void)
 	struct thread *th = current_thread();
 
 	th->userfl &= ~THFL_INTR;
+	return 0;
 }
 
 static int sys_wait(void)
@@ -82,6 +84,7 @@ static int sys_wait(void)
 	th->userfl |= THFL_INTR;
 	schedule(THST_STOPPED);
 	printf("Woken");
+	return 0;
 }
 
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
