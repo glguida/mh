@@ -37,8 +37,15 @@
 /* Syscalls */
 __dead void sys_die();
 int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack);
+void sys_cli(void);
+void sys_sti(void);
+void sys_wait(void);
+int sys_fork(void);
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm);
+
+
 int sys_putc(int ch);
+
 extern int __sys_inthandler(int, unsigned long, struct intframe *frame);
 
 

@@ -55,21 +55,21 @@ int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack)
 	return ret;
 }
 
-int sys_sti(void)
+void sys_sti(void)
 {
 	int dummy;
 
 	__syscall0(SYS_STI, dummy);
 }
 
-int sys_cli(void)
+void sys_cli(void)
 {
 	int dummy;
 
 	__syscall0(SYS_CLI, dummy);
 }
 
-int sys_wait(void)
+void sys_wait(void)
 {
 	int dummy;
 
