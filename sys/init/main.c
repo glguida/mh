@@ -94,8 +94,12 @@ int main()
 	printf("d is %d\n", *d);
 	sys_sti();
 
-	while (1)
-		sys_wait();
+	if (sys_fork()) {
+		printf("Parent!\n");
+	} else {
+		printf("child!\n");
+	}
+
 	printf("Goodbye!\n");
 	sys_die();
 }
