@@ -104,8 +104,7 @@ static void __setl1e(l1e_t * l1p, l1e_t l1e)
 	*--ptr = l1e & 0xffffffff;
 }
 
-static l1e_t
-_pmap_set(struct pmap *pmap, l1e_t *l1p, l1e_t nl1e)
+static l1e_t _pmap_set(struct pmap *pmap, l1e_t * l1p, l1e_t nl1e)
 {
 	l1e_t ol1e;
 
@@ -117,7 +116,7 @@ _pmap_set(struct pmap *pmap, l1e_t *l1p, l1e_t nl1e)
 }
 
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
-	       pmap_prot_t prot, pfn_t *opfn)
+		pmap_prot_t prot, pfn_t * opfn)
 {
 	int ret = 0;
 	l1e_t ol1e, nl1e, *l1p;
@@ -147,8 +146,9 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return ret;
 }
 
+/* Enter a new user page (or an non-present entry) in the pmap */
 int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
-		pmap_prot_t prot, pfn_t *opfn)
+		pmap_prot_t prot, pfn_t * opfn)
 {
 	int ret = 0;
 	l1e_t ol1e, nl1e, *l1p;
