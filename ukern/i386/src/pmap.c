@@ -221,12 +221,6 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	else
 		panic("set to different pmap voluntarily not supported.");
 
-	if (is_prot_writeable(prot) && (l1eflags(ol1e) & PG_COW)) {
-		/* Can't make COW writable with chprot */
-		spinunlock(&pmap->lock);
-		return -1;
-	}
-
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	if (!(l1eflags(ol1e) & PG_P)) {
@@ -234,6 +228,12 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 		spinunlock(&pmap->lock);
 		return -1;
 	}
+	if (is_prot_writeable(prot) && (l1eflags(ol1e) & PG_COW)) {
+		/* Can't make COW writable with chprot */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+
 	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
