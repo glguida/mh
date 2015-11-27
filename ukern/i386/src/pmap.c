@@ -36,7 +36,7 @@
 #include <machine/uk/cpu.h>
 #include <uk/fixmems.h>
 #include <uk/structs.h>
-#include <uk/pgalloc.h>
+#include <uk/pfndb.h>
 #include <lib/lib.h>
 
 struct slab pmap_cache;
@@ -104,11 +104,27 @@ static void __setl1e(l1e_t * l1p, l1e_t l1e)
 	*--ptr = l1e & 0xffffffff;
 }
 
-int
-pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot, pfn_t *pfn)
+static l1e_t
+_pmap_set(struct pmap *pmap, l1e_t *l1p, l1e_t nl1e)
+{
+	l1e_t ol1e;
+
+	ol1e = *l1p;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+
+	return ol1e;
+}
+
+int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+	       pmap_prot_t prot, pfn_t *opfn)
 {
 	int ret = 0;
 	l1e_t ol1e, nl1e, *l1p;
+
+	assert(!__isuaddr(va));
+	if (is_prot_present(prot))
+		assert(!is_prot_user(prot));
 
 	if (pmap == NULL)
 		pmap = pmap_current();
@@ -118,29 +134,60 @@ pmap_enter(struct pmap * pmap, vaddr_t va, paddr_t pa, pmap_prot_t prot, pfn_t *
 	else
 		panic("set to different pmap voluntarily not supported.");
 
-	nl1e = mkl1e(pa, prot);
-	spinlock(&pmap->lock);
-	ol1e = *l1p;
-	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	nl1e = mkl1e(ptoa(pfn), prot);
 
-	__setl1e(l1p, nl1e);
+	spinlock(&pmap->lock);
+	ol1e = _pmap_set(pmap, l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	if (pfn != NULL) {
-		if (ol1e & PG_P)
-			*pfn = atop(ol1e);
-		else
-			*pfn = PFN_INVALID;
-	}
+	if (ol1e & PG_P)
+		*opfn = atop(ol1e);
+	else
+		*opfn = PFN_INVALID;
 	return ret;
 }
 
-int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
+int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+		pmap_prot_t prot, pfn_t *opfn)
+{
+	int ret = 0;
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(__isuaddr(va));
+	if (is_prot_present(prot)) {
+		assert(is_prot_user(prot));
+		assert(pfn_is_userpage(pfn));
+	}
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	nl1e = mkl1e(ptoa(pfn), prot);
+	spinlock(&pmap->lock);
+	ol1e = _pmap_set(pmap, l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	if (ol1e & PG_P)
+		*opfn = atop(ol1e);
+	else
+		*opfn = PFN_INVALID;
+	return ret;
+}
+
+int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 {
 	l1e_t ol1e, nl1e, *l1p;
 
 
-	assert((prot & PG_P) && "can't unmap with chprot");
+	assert(is_prot_present(prot) && "can't unmap with chprot");
+	assert(is_prot_user(prot));
+	assert(__isuaddr(va));
+
 	if (pmap == NULL)
 		pmap = pmap_current();
 
@@ -159,7 +206,6 @@ int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
-
 	spinunlock(&pmap->lock);
 
 	return 0;

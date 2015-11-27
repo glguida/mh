@@ -75,4 +75,6 @@ void pfndb_printranges(void);
 void *pfndb_getptr(unsigned);
 void *pfndb_setup(void *, unsigned);
 
+#define pfn_is_userpage(_pfn) (pfndb_type((_pfn)) == PFNT_USER)
+
 #endif

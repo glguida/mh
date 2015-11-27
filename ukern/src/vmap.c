@@ -253,10 +253,13 @@ void *kvmap(paddr_t addr, size_t size)
 	vaddr = vmap_alloc(end - start, VFNT_MAP);
 
 	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++) {
-		rc = pmap_enter(NULL, vaddr + (i << PAGE_SHIFT),
-				addr + (i << PAGE_SHIFT),
-				PROT_GLOBAL | PROT_KERNWR, NULL);
-		assert(!rc && "pmap_enter in kvmap");
+		pfn_t pfn;
+		rc = pmap_kenter(NULL, vaddr + (i << PAGE_SHIFT),
+				 atop(addr) + i,
+				 PROT_GLOBAL | PROT_KERNWR, &pfn);
+		/* We do not own the page mapped in the kvmap, do
+		 * nothing with unmapped pfns. */
+		assert(!rc && "pmap_kenter in kvmap");
 	}
 	pmap_commit(NULL);
 
@@ -273,8 +276,10 @@ void kvunmap(vaddr_t vaddr, size_t size)
 	end = round_page(vaddr + size);
 
 	for (i = 0; i < (end - start) >> PAGE_SHIFT; i++) {
-		rc = pmap_clear(NULL, vaddr + (i << PAGE_SHIFT), NULL);
-		assert(!rc && "pmap_clear in kvunmap");
+		pfn_t pfn;
+		rc = pmap_kclear(NULL, vaddr + (i << PAGE_SHIFT), &pfn);
+		assert(!rc && "pmap_kclear in kvunmap");
+		/* We do not own pages we map. Ignore pfn */
 	}
 	pmap_commit(NULL);
 

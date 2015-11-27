@@ -66,6 +66,8 @@ void pmap_free(struct pmap *);
 #define PROT_USER_X    (PG_U | PG_P)
 #define PROT_USER_WR   (PG_W | PG_U | PG_NX | PG_P)
 #define PROT_USER_WRX  (PG_W | PG_U | PG_P)
+#define is_prot_user(_p) ((_p) & PG_U)
+#define is_prot_present(_p) ((_p) & PG_P)
 typedef unsigned pmap_prot_t;
 
 #define FAULT_P 1
@@ -77,12 +79,15 @@ typedef unsigned pmap_fault_t;
 uintptr_t __getpdptr(void);
 
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
-int pmap_enter(struct pmap *pmap, vaddr_t va, paddr_t pa,
-	       pmap_prot_t prot, pfn_t *pfn);
-int pmap_chprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
+int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
+		pmap_prot_t prot, pfn_t *pfn);
+int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
+		pmap_prot_t prot, pfn_t *pfn);
+int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
 void pmap_commit(struct pmap *pmap);
 
-#define pmap_clear(_pmap, _va, _pfn) pmap_enter((_pmap), (_va), 0, 0, _pfn)
+#define pmap_kclear(_pmap, _va, _pfn) pmap_kenter((_pmap), (_va), 0, 0, _pfn)
+#define pmap_uclear(_pmap, _va, _pfn) pmap_uenter((_pmap), (_va), 0, 0, _pfn)
 #define pmap_current()                                          \
     ((struct pmap *)((uintptr_t)UKERNBASE + __getpdptr()        \
                      - offsetof(struct pmap, pdptr)))
