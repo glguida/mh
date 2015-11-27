@@ -39,6 +39,7 @@ typedef struct {
 		char ptr[0];
 		struct pgzentry pz;
 		struct slab sh;
+		uint64_t ref;
 	};
 } __packed ipfn_t;
 
@@ -74,7 +75,18 @@ void pfndb_printranges(void);
 
 void *pfndb_getptr(unsigned);
 void *pfndb_setup(void *, unsigned);
+uint64_t pfndb_incref(unsigned pfn);
+uint64_t pfndb_decref(unsigned pfn);
+uint64_t pfndb_getref(unsigned pfn);
+uint64_t pfndb_clrref(unsigned pfn);
 
+/* Reference count of user pages uses in user mappings.  The kernel,
+ * should never map user pages if mapped and used by a process which
+ * is non-current.  */
 #define pfn_is_userpage(_pfn) (pfndb_type((_pfn)) == PFNT_USER)
+#define pfn_incref(_pfn) pfndb_incref((_pfn))
+#define pfn_decref(_pfn) pfndb_decref((_pfn))
+#define pfn_clrref(_pfn) pfndb_clrref((_pfn))
+#define pfn_getref(_pfn) pfndb_getref((_pfn))
 
 #endif

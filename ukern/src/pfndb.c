@@ -157,6 +157,38 @@ void *pfndb_getptr(unsigned pfn)
 	return ptr;
 }
 
+uint64_t pfndb_incref(unsigned pfn)
+{
+  ipfn_t *p = &pfndb[pfn];
+
+  assert(pfn <= pfndb_max);
+  return __sync_add_and_fetch(&p->ref, 1);
+}
+
+uint64_t pfndb_decref(unsigned pfn)
+{
+  ipfn_t *p = &pfndb[pfn];
+
+  assert(pfn <= pfndb_max);
+  return __sync_add_and_fetch(&p->ref, -1);
+}
+
+uint64_t pfndb_getref(unsigned pfn)
+{
+  ipfn_t *p = &pfndb[pfn];
+
+  assert(pfn <= pfndb_max);
+  return __sync_add_and_fetch(&p->ref, 0);
+}
+
+uint64_t pfndb_clrref(unsigned pfn)
+{
+  ipfn_t *p = &pfndb[pfn];
+
+  assert(pfn <= pfndb_max);
+  return __sync_and_and_fetch(&p->ref, 0);
+}
+
 void pfndb_printstats(void)
 {
 	uint8_t i;

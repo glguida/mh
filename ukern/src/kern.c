@@ -322,7 +322,8 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
-		rc = pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot, &pfn);
+		rc = pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot,
+				 &pfn);
 		assert(!rc && "vmpopulate pmap_uenter");
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);

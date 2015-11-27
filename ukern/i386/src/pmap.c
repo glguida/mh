@@ -167,13 +167,16 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	else
 		panic("set to different pmap voluntarily not supported.");
 
+	if (is_prot_present(prot))
+		pfn_incref(l1epfn(pfn));
+
 	nl1e = mkl1e(ptoa(pfn), prot);
 	spinlock(&pmap->lock);
 	ol1e = _pmap_set(pmap, l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	if (ol1e & PG_P)
-		*opfn = atop(ol1e);
+	if ((ol1e & PG_P) && pfn_decref(l1epfn(ol1e)))
+		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
 	return ret;
