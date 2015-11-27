@@ -296,7 +296,6 @@ void schedule(int newst)
 
 __dead void die(void)
 {
-	struct thread *th = current_thread();
 
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
