@@ -44,25 +44,25 @@ static void framedump(struct intframe *f)
 	       f->ds, f->es, f->fs, f->gs);
 }
 
-int __sys_inthandler(int vect, unsigned long info, struct intframe *f)
+int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 {
 	static int i = 0;
 
-	printf("\nException %d, va = %p\n", vect, info);
+	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
 	framedump(f);
 
 	if (vect == XCPT_PGFAULT) {
 		if (i == 0) {
 			printf("Mapping read only: %d",
-			       vmmap(info, VM_PROT_RO));
+			       vmmap(va, VM_PROT_RO));
 			i++;
 		} else if (i == 1) {
 			printf("Mapping writeable: %d",
-			       vmchprot(info, VM_PROT_RW));
+			       vmchprot(va, VM_PROT_RW));
 			i++;
 		} else if (i == 2) {
 			printf("A-ha! Mapping again!\n");
-			vmmap(info, VM_PROT_RO);
+			vmmap(va, VM_PROT_RO);
 			i++;
 		} else {
 			printf("WTF?\n");
