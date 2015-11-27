@@ -115,6 +115,28 @@ static l1e_t _pmap_set(struct pmap *pmap, l1e_t * l1p, l1e_t nl1e)
 	return ol1e;
 }
 
+int pmap_spuriousfault(unsigned long err, vaddr_t va)
+{
+	int ret = 0;
+	struct pmap *pmap = pmap_current();
+	l1e_t l1e, *l1p = __val1tbl(va) + L1OFF(va);
+
+	spinlock(&pmap->lock);
+	l1e = *l1p;
+	if ((l1eflags(l1e) & (PG_P | PG_COW)) == (PG_P | PG_COW)
+	    && pfn_getref(l1epfn(l1e)) == 1) {
+		printf("Fixing last COW!\n");
+		/* Last COW mapping. */
+		l1e &= ~PG_COW;
+		/* Do not set writable. It is user responsibility to do so. */
+		__setl1e(l1p, l1e);
+		/* No TLB flush. We haven't changed permissions. */
+		ret = 1;
+	}
+	spinunlock(&pmap->lock);
+	return ret;
+}
+
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
 {
@@ -199,6 +221,12 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	else
 		panic("set to different pmap voluntarily not supported.");
 
+	if (is_prot_writeable(prot) && (l1eflags(ol1e) & PG_COW)) {
+		/* Can't make COW writable with chprot */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	if (!(l1eflags(ol1e) & PG_P)) {
@@ -212,6 +240,47 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	spinunlock(&pmap->lock);
 
 	return 0;
+}
+
+struct pmap *pmap_copy(void)
+{
+	struct pmap *pmap, *new;
+	l1e_t *orig, *copy, l1e;
+	vaddr_t va;
+
+	pmap = pmap_current();
+	new = pmap_alloc();
+
+	spinlock(&pmap->lock);
+
+	for (va = ZCOWBASE; va < ZCOWEND; va += PAGE_SIZE) {
+		/* No COW area. Leave blank */
+		copy = new->l1s + NPTES * L2OFF(va) + L1OFF(va);
+		__setl1e(copy, 0);
+	}
+	for (va = COWBASE; va < COWEND; va += PAGE_SIZE) {
+		orig = __val1tbl(va) + L1OFF(va);
+		copy = new->l1s + NPTES * L2OFF(va) + L1OFF(va);
+		l1e = *orig;
+
+		if (!(l1e & PG_P)) {
+			/* Not present, copy */
+			__setl1e(copy, l1e);
+		} else {
+			/* COW, even for readonly pages */
+			assert(l1e & PG_U);
+			pfn_incref(l1epfn(l1e));
+			l1e &= ~PG_W;
+			l1e |= PG_COW;
+			__setl1e(orig, l1e);
+			__setl1e(copy, l1e);
+			pmap->tlbflush |= TLBF_NORMAL;
+		}
+	}
+	/* TLB of copy not affected. We just created it */
+	spinunlock(&pmap->lock);
+
+	return new;
 }
 
 void pmap_commit(struct pmap *pmap)

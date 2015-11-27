@@ -54,6 +54,7 @@ struct pv_entry {
 void pmap_init(void);
 struct pmap *pmap_boot(void);
 struct pmap *pmap_alloc(void);
+struct pmap *pmap_copy(void);
 void pmap_switch(struct pmap *pmap);
 void pmap_free(struct pmap *);
 
@@ -68,6 +69,7 @@ void pmap_free(struct pmap *);
 #define PROT_USER_WRX  (PG_W | PG_U | PG_P)
 #define is_prot_user(_p) ((_p) & PG_U)
 #define is_prot_present(_p) ((_p) & PG_P)
+#define is_prot_writeable(_p) ((_p) & PG_W)
 typedef unsigned pmap_prot_t;
 
 #define FAULT_P 1
@@ -77,6 +79,8 @@ typedef unsigned pmap_prot_t;
 typedef unsigned pmap_fault_t;
 
 uintptr_t __getpdptr(void);
+
+int pmap_spuriousfault(unsigned long err, vaddr_t va);
 
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
