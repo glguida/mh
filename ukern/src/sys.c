@@ -56,7 +56,7 @@ static int sys_iret(void)
 {
 	struct thread *th = current_thread();
 
-	return usrframe_iret(current_thread()->frame);
+	return usrframe_iret(th->frame);
 }
 
 static int sys_sti(void)
