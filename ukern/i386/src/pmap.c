@@ -175,7 +175,7 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	ol1e = _pmap_set(pmap, l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	if ((ol1e & PG_P) && pfn_decref(l1epfn(ol1e)))
+	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;

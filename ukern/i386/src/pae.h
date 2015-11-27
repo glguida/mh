@@ -60,6 +60,7 @@
 #define PG_D       0x40
 #define PG_S       0x80
 #define PG_G       0x100
+#define PG_COW     0x200
 #if 0
 #define PG_NX      0x8000000000000000LL
 #else

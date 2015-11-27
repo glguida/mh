@@ -153,6 +153,9 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 		return -1;
 	}
 
+	if (vect == 14 && pmap_spuriousfault(f->err, f->cr2))
+		return 0;
+
 	/* Userspace exception. */
 	current_thread()->frame = f;
 

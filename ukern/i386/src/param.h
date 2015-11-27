@@ -51,7 +51,12 @@
  */
 
 #define USERBASE  __ULONG(0x00000000)
+/* ZEROCOW: No COW area on fork */
+#define ZCOWBASE  USERBASE
+#define ZCOWEND   __ULONG(2 * PAGE_SIZE)
+#define COWBASE   ZCOWEND
 #define USEREND   __paeoffva(2, LINOFF, 0)
+#define COWEND    USEREND
 #define UKERNLIN  USEREND
 #define UKERNBASE __ULONG(0xc0000000)
 #define UKERNEND  _ukern_end
