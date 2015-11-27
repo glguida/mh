@@ -366,8 +366,6 @@ __dead void die(void)
 	schedule(THST_DELETED);
 }
 
-static struct thread *initth;
-
 static void idle(void)
 {
 	while (1) {

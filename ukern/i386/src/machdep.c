@@ -190,7 +190,7 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 		printf("\nUnhandled interrupt %2u\n", vect);
 		framedump(f);
 	}
-	
+
 	do_softirq();
 	th->frame = NULL;
 	return 0;
@@ -228,8 +228,8 @@ uint32_t usrframe_iret(struct usrframe *f)
 	return iretf.eax;
 }
 
-void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp, uint32_t fl,
-		     unsigned xcpt, vaddr_t info)
+void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
+		     uint32_t fl, unsigned xcpt, vaddr_t info)
 {
 	int r;
 	/* We write to this structure. Change SIGFRAME_SIZE in case
