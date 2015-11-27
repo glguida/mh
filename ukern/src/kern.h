@@ -84,6 +84,8 @@ struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
 void do_softirq(void);
 
+struct thread *thfork(void);
+
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
 unsigned vmclear(vaddr_t addr, size_t sz);
 int vmmap(vaddr_t, pmap_prot_t prot);

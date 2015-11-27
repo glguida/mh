@@ -268,6 +268,11 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp, uint32_t fl,
 	f->eip = ip;
 }
 
+void usrframe_setret(struct usrframe *f, unsigned long r)
+{
+	f->eax = 0;
+}
+
 void usrframe_setup(struct usrframe *f, vaddr_t ip, vaddr_t sp)
 {
 	memset(f, 0, sizeof(*f));

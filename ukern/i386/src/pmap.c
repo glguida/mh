@@ -187,7 +187,7 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	if (pmap == pmap_current())
 		l1p = __val1tbl(va) + L1OFF(va);
 	else
-		panic("set to different pmap voluntarily not supported.");
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
 
 	if (is_prot_present(prot))
 		pfn_incref(l1epfn(pfn));
