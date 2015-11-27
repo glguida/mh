@@ -46,7 +46,7 @@ int sys_map(vaddr_t vaddr, sys_map_flags_t perm);
 
 int sys_putc(int ch);
 
-extern int __sys_inthandler(int, unsigned long, struct intframe *frame);
+extern int __sys_inthandler(int, u_long, u_long, struct intframe *frame);
 
 
 /* Signals helper library */

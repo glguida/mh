@@ -60,6 +60,12 @@ typedef enum {
  * Exceptions
  */
 #define XCPT_PGFAULT 0
+#define PG_ERR_REASON_NOTP  0
+#define PG_ERR_REASON_PROT  1
+#define PG_ERR_REASON_BAD   3
+#define PG_ERR_INFO_COW   128
+#define PG_ERR_INFO_WRITE 256
+
 #define INTR_EXT     64
 
 

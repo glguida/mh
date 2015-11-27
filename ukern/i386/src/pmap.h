@@ -51,6 +51,9 @@ struct pv_entry {
 	unsigned vfn;
 };
 
+struct usrframe;
+int _pmap_fault(unsigned long va, unsigned long err, struct usrframe *f);
+
 void pmap_init(void);
 struct pmap *pmap_boot(void);
 struct pmap *pmap_alloc(void);
@@ -79,8 +82,6 @@ typedef unsigned pmap_prot_t;
 typedef unsigned pmap_fault_t;
 
 uintptr_t __getpdptr(void);
-
-int pmap_spuriousfault(unsigned long err, vaddr_t va);
 
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pa,

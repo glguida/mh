@@ -37,6 +37,7 @@
 #include <uk/fixmems.h>
 #include <uk/structs.h>
 #include <uk/pfndb.h>
+#include <uk/kern.h>
 #include <lib/lib.h>
 
 struct slab pmap_cache;
@@ -115,26 +116,47 @@ static l1e_t _pmap_set(struct pmap *pmap, l1e_t * l1p, l1e_t nl1e)
 	return ol1e;
 }
 
-int pmap_spuriousfault(unsigned long err, vaddr_t va)
+int _pmap_fault(vaddr_t va, unsigned long err, struct usrframe *f)
 {
-	int ret = 0;
+	int is_cow = 0;
+	u_long xcpterr;
 	struct pmap *pmap = pmap_current();
 	l1e_t l1e, *l1p = __val1tbl(va) + L1OFF(va);
 
 	spinlock(&pmap->lock);
 	l1e = *l1p;
-	if ((l1eflags(l1e) & (PG_P | PG_COW)) == (PG_P | PG_COW)
-	    && pfn_getref(l1epfn(l1e)) == 1) {
-		printf("Fixing last COW!\n");
-		/* Last COW mapping. */
-		l1e &= ~PG_COW;
-		/* Do not set writable. It is user responsibility to do so. */
-		__setl1e(l1p, l1e);
-		/* No TLB flush. We haven't changed permissions. */
-		ret = 1;
+	if ((l1eflags(l1e) & (PG_P | PG_COW)) == (PG_P | PG_COW)) {
+		is_cow = 1;
+		if (pfn_getref(l1epfn(l1e)) == 1) {
+			printf("Fixing last COW!\n");
+			/* Last COW mapping. */
+			l1e &= ~PG_COW;
+			/* Do not set writable. It is user
+			 * responsibility to do so. */
+			__setl1e(l1p, l1e);
+			/* No TLB flush. We haven't changed
+			 * permissions. */
+			spinunlock(&pmap->lock);
+			return 1 /* Spurious, return */;
+		}
 	}
 	spinunlock(&pmap->lock);
-	return ret;
+
+	/* Translate #PF err code */
+	if (err & 8) /* RSVD */
+		xcpterr = PG_ERR_REASON_BAD;
+	else if (err & 1) /* P */
+		xcpterr = PG_ERR_REASON_PROT;
+	else xcpterr = PG_ERR_REASON_NOTP;
+
+	if (is_cow)
+		xcpterr |= PG_ERR_INFO_COW;
+	if (err & 2)
+		xcpterr |= PG_ERR_INFO_WRITE;
+	assert(err & 4); /* User access here */
+
+	thintr(XCPT_PGFAULT, f->cr2, xcpterr);
+	return 0;
 }
 
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,

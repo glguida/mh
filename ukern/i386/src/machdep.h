@@ -35,14 +35,14 @@
 struct usrframe;
 
 /* This must be equal to sizeof(struct stackframe) */
-#define SIGFRAME_SIZE (sizeof(uint32_t) * 5)
+#define SIGFRAME_SIZE (sizeof(uint32_t) * 6)
 #define __inthdlr_chk(_ip, _sp)						\
   (__chkuaddr(ip, 4) && __chkuaddr(sp, SIGFRAME_SIZE))
 
 void usrframe_enter(struct usrframe *f);
 void usrframe_setup(struct usrframe *f, vaddr_t ip, vaddr_t sp);
 void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
-		     uint32_t fl, unsigned xcpt, vaddr_t info);
+		     uint32_t fl, unsigned xcpt, vaddr_t info, u_long err);
 void usrframe_setret(struct usrframe *f, unsigned long r);
 uint32_t usrframe_iret(struct usrframe *f);
 

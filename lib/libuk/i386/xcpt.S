@@ -48,12 +48,11 @@ ENTRY(__inthdlr)
 	pushw %ds
 
 	push %esp /* frame -> &frame */
-	mov 8(%ebp), %eax /*arg2: cause */
-	push %eax
-	mov 4(%ebp), %eax /* arg1: vect */
-	push %eax
+	pushl 12(%ebp) /* arg3: err */
+	pushl 8(%ebp)  /* arg2: va */
+	pushl 4(%ebp)  /* arg1: vect */
 	call _C_LABEL(__sys_inthandler)
-	add $12, %esp /* skip arguments */
+	add $16, %esp /* skip arguments */
 
 	popw %ds
 	popw %es
@@ -70,7 +69,7 @@ ENTRY(__inthdlr)
 	popfl
 	pop %ebp
 
-	add $8, %esp /* Skip info + xcpt */
+	add $12, %esp /* Skip info + xcpt */
 
 	push %eax
 	mov $SYS_IRET, %eax

@@ -153,16 +153,19 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 		return -1;
 	}
 
-	if (vect == 14 && pmap_spuriousfault(f->err, f->cr2))
-		return 0;
-
 	/* Userspace exception. */
 	current_thread()->frame = f;
-
-	thintr(vect_to_xcpt(vect), f->cr2);
-
+	switch(vect) {
+	case 14:
+		_pmap_fault(f->cr2, f->err, f);
+		break;
+	default:
+		thintr(vect_to_xcpt(vect), f->cr2, f->err);
+		break;
+	}
 	do_softirq();
 	current_thread()->frame = NULL;
+
 	return 0;
 }
 
@@ -229,7 +232,7 @@ uint32_t usrframe_iret(struct usrframe *f)
 }
 
 void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
-		     uint32_t fl, unsigned xcpt, vaddr_t info)
+		     uint32_t fl, unsigned xcpt, vaddr_t va, u_long err)
 {
 	int r;
 	/* We write to this structure. Change SIGFRAME_SIZE in case
@@ -237,11 +240,13 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 	struct stackframe {
 		uint32_t arg1;
 		uint32_t arg2;
+		uint32_t arg3;
 		uint32_t eip;
 		uint32_t esp;
 		uint32_t efl;
 	} __packed sf = {
-		.arg2 = info,
+		.arg3 = err,
+		.arg2 = va,
 		.arg1 = xcpt,
 		.eip = f->eip,
 		.esp = f->esp,

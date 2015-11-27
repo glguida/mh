@@ -172,13 +172,13 @@ struct thread *thfork(void)
 	return nth;
 }
 
-void thintr(unsigned vect, vaddr_t info)
+void thintr(unsigned vect, vaddr_t va, unsigned long err)
 {
 	struct thread *th = current_thread();
 	uint32_t ofl = th->userfl;
 
 	th->userfl &= ~THFL_INTR;	/* Restored on IRET */
-	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, info);
+	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, va, err);
 }
 
 void thraise(struct thread *th, unsigned vect)
@@ -237,7 +237,7 @@ void do_softirq(void)
 	if (th->userfl & THFL_INTR) {
 		si = __sync_fetch_and_and(&th->softintrs, 0);
 		if (si)
-			thintr(INTR_EXT, si);
+			thintr(INTR_EXT, 0, si);
 	}
 
 	while (current_cpu()->softirq) {

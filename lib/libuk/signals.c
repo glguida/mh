@@ -37,7 +37,7 @@ extern void __inthdlr(void);
    working. */
 char _sigstack[2048] __section(".zcow") = { 0 };
 
-int _libuk_signals_nointr(int vect, unsigned long info,  struct intframe *f)
+int _libuk_signals_nointr(int vect, u_long va, u_long err,  struct intframe *f)
 {
 
 	return -1;
