@@ -31,3 +31,4 @@ sys/lib/libsa/subr_prf.c sys/lib/libsys/subr_prf.c
 sys/sys/rbtree.h ukern/lib/rbtree.h
 sys/sys/queue.h ukern/lib/queue.h
 common/lib/libc/gen/rb.c ukern/lib/rb.c
+common/lib/libc/arch/i386/string/memcpy.S common/libc/i386/string/memcpy.S
