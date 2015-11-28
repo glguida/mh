@@ -8,6 +8,6 @@
 # tools/netbsd_import <netbsd path> <our path>
 
 echo "/* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */" > $2
-cp nbsd/$1 >> $2
+cat nbsd/$1 >> $2
 echo $1 $2 >> tools/netbsd_imports
 
