@@ -39,4 +39,9 @@ typedef unsigned int uint32_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
+#define PRIx32 "lx"
+#define PRId32 "ld"
+#define PRIx64 "llx"
+#define PRId64 "lld"
+
 #endif
