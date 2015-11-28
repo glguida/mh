@@ -2,11 +2,11 @@ SRCROOT=../..
 MKDIR=$(SRCROOT)/mk
 include $(MKDIR)/mk.conf
 
-LIBNAME=drex_vm
+LIBNAME=drex
 LIBDIR=/lib
 SRCS+= vm.c
 
-INCS= vm.h
+INCS= drex.h
 INCDIR= drex
 
 include $(MKDIR)/inc.mk

@@ -27,14 +27,10 @@
  */
 
 
-#ifndef __libvm_h
-#define __libvm_h
+#ifndef __drex_drex_h
+#define __drex_drex_h
 
-#ifndef LIBVM
-#define LIBVM(_x) _x
-#endif
-
-int LIBVM(brk)(void *);
-void *LIBVM(sbrk)(int);
+int drex_brk(void *);
+void *drex_sbrk(int);
 
 #endif

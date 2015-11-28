@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
-#include <drex/vm.h>
+#include <drex/drex.h>
 
 extern void _scode __asm("_scode");
 extern void _ecode __asm("_ecode");
@@ -73,7 +73,7 @@ static vm_prot_t _resolve_va(vaddr_t va)
 	return VM_PROT_NIL;
 }
 
-int LIBVM(brk)(void *nbrk)
+int drex_brk(void *nbrk)
 {
 	if (nbrk < &_end || nbrk >= maxbrk)
 		return -1;
@@ -81,13 +81,13 @@ int LIBVM(brk)(void *nbrk)
 	return 0;
 }
 
-void *LIBVM(sbrk)(int inc)
+void *drex_sbrk(int inc)
 {
 	void *old = __getbrk();
 	void *new = old + inc;
 
 	old = brkaddr;
-	if (brk(new))
+	if (drex_brk(new))
 		return (void *) -1;
 
 	return old;
