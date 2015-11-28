@@ -35,6 +35,8 @@
 #include <machine/uk/pmap.h>
 #include <uk/sys.h>
 
+#define MAXSIGNALS (sizeof(u_long) * 8)
+
 #define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
 #define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
 
@@ -59,7 +61,7 @@ struct thread {
 #define THFL_INTR (1L << 0)
 	uint32_t userfl;
 
-	uint64_t softintrs;
+	u_long softintrs;
 	uint16_t status;
 	unsigned cpu;
 	TAILQ_ENTRY(thread) sched_list;
@@ -85,6 +87,7 @@ void cpu_softirq_raise(int);
 void do_softirq(void);
 
 struct thread *thfork(void);
+void thraise(struct thread *th, unsigned vect);
 
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
 unsigned vmclear(vaddr_t addr, size_t sz);

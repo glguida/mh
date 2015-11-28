@@ -178,12 +178,14 @@ void thintr(unsigned vect, vaddr_t va, unsigned long err)
 	uint32_t ofl = th->userfl;
 
 	th->userfl &= ~THFL_INTR;	/* Restored on IRET */
-	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, va, err);
+	usrframe_signal(th->frame, th->sigip, th->sigsp, ofl, vect, va,
+			err);
 }
 
 void thraise(struct thread *th, unsigned vect)
 {
 
+	assert(vect < MAXSIGNALS);
 	__sync_or_and_fetch(&th->softintrs, (1L << vect));
 	wake(th);
 }
