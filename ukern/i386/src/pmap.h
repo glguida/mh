@@ -88,6 +88,7 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
 		pmap_prot_t prot, pfn_t * pfn);
 int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
 		pmap_prot_t prot, pfn_t * pfn);
+int pmap_uchaddr(struct pmap *pmap, vaddr_t oldva, vaddr_t newva, pfn_t *pfn);
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
 void pmap_commit(struct pmap *pmap);
 

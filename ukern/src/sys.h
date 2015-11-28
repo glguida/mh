@@ -51,7 +51,8 @@ typedef enum {
 	MAP_WREXEC = 4,
 } sys_map_flags_t;
 #endif
-#define SYS_MAP 0x10
+#define SYS_MAP  0x10
+#define SYS_MOVE 0x11
 
 /* System-processes only */
 #define SYS_PUTC 0x1000

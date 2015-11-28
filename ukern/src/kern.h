@@ -89,6 +89,7 @@ struct thread *thfork(void);
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
 unsigned vmclear(vaddr_t addr, size_t sz);
 int vmmap(vaddr_t, pmap_prot_t prot);
+int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 

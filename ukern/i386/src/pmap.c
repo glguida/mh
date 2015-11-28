@@ -226,6 +226,35 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return ret;
 }
 
+int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva, pfn_t *opfn)
+{
+	l1e_t l1e, ol1e, *l1p1, *l1p2;
+
+	assert(__isuaddr(va));
+	assert(__isuaddr(newva));
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current()) {
+		l1p1 = __val1tbl(va) + L1OFF(va);
+		l1p2 = __val1tbl(newva) + L1OFF(newva);
+	} else
+		panic("pmap_uchaddr not implemented (unneeded).");
+
+	spinlock(&pmap->lock);
+	l1e = *l1p1;
+	ol1e = _pmap_set(pmap, l1p2, l1e);
+	(void)_pmap_set(pmap, l1p1, mkl1e(PFN_INVALID, 0));
+	spinunlock(&pmap->lock);
+
+	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
+		*opfn = l1epfn(ol1e);
+	else
+		*opfn = PFN_INVALID;
+	return 0;
+}
+
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 {
 	l1e_t ol1e, nl1e, *l1p;

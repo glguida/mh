@@ -92,3 +92,13 @@ int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 		   (unsigned long) vaddr, (unsigned long) perm, ret);
 	return ret;
 }
+
+int sys_move(vaddr_t dst, vaddr_t src)
+{
+	int ret;
+
+	__syscall2(SYS_MOVE,
+		   (unsigned long) dst, (unsigned long) src, ret);
+	return ret;
+
+}

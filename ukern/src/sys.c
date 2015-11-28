@@ -137,6 +137,13 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 	return ret;
 }
 
+static int sys_move(vaddr_t dst, vaddr_t src)
+{
+	procassert(__chkuaddr(trunc_page(dst), PAGE_SIZE));
+	procassert(__chkuaddr(trunc_page(src), PAGE_SIZE));	
+	return vmmove(dst, src);
+}
+
 static int sys_die(void)
 {
 	die();
@@ -160,6 +167,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_wait();
 	case SYS_MAP:
 		return sys_map(a1, a2);
+	case SYS_MOVE:
+		return sys_move(a1, a2);
 	case SYS_FORK:
 		return sys_fork();
 	case SYS_DIE:

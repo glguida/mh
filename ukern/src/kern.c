@@ -443,6 +443,20 @@ int vmunmap(vaddr_t addr)
 	return ret;
 }
 
+int vmmove(vaddr_t dst, vaddr_t src)
+{
+	int ret;
+	pfn_t pfn;
+
+	ret = pmap_uchaddr(NULL, src, dst, &pfn);
+	pmap_commit(NULL);
+	if (pfn != PFN_INVALID) {
+		__freepage(pfn);
+		ret = 1;
+	}
+	return ret;	
+}
+
 int vmchprot(vaddr_t addr, pmap_prot_t prot)
 {
 	int ret;
