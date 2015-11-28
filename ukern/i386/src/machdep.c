@@ -155,8 +155,12 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 
 	/* Userspace exception. */
 	current_thread()->frame = f;
-	switch(vect) {
+	switch (vect) {
 	case 14:
+		if (__predict_false(f->err & (1 << 3))) {
+			panic("Reserved Bit violation in pagetable!");
+			/* Not reached */
+		}
 		_pmap_fault(f->cr2, f->err, f);
 		break;
 	default:

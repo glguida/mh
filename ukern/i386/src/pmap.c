@@ -137,23 +137,22 @@ int _pmap_fault(vaddr_t va, unsigned long err, struct usrframe *f)
 			/* No TLB flush. We haven't changed
 			 * permissions. */
 			spinunlock(&pmap->lock);
-			return 1 /* Spurious, return */;
+			return 1 /* Spurious, return */ ;
 		}
 	}
 	spinunlock(&pmap->lock);
 
 	/* Translate #PF err code */
-	if (err & 8) /* RSVD */
-		xcpterr = PG_ERR_REASON_BAD;
-	else if (err & 1) /* P */
+	if (err & 1)		/* P */
 		xcpterr = PG_ERR_REASON_PROT;
-	else xcpterr = PG_ERR_REASON_NOTP;
+	else
+		xcpterr = PG_ERR_REASON_NOTP;
 
 	if (is_cow)
 		xcpterr |= PG_ERR_INFO_COW;
 	if (err & 2)
 		xcpterr |= PG_ERR_INFO_WRITE;
-	assert(err & 4); /* User access here */
+	assert(err & 4);	/* User access here */
 
 	thintr(XCPT_PGFAULT, f->cr2, xcpterr);
 	return 0;
@@ -226,7 +225,8 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return ret;
 }
 
-int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva, pfn_t *opfn)
+int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
+		 pfn_t * opfn)
 {
 	l1e_t l1e, ol1e, *l1p1, *l1p2;
 
@@ -245,7 +245,7 @@ int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva, pfn_t *opfn)
 	spinlock(&pmap->lock);
 	l1e = *l1p1;
 	ol1e = _pmap_set(pmap, l1p2, l1e);
-	(void)_pmap_set(pmap, l1p1, mkl1e(PFN_INVALID, 0));
+	(void) _pmap_set(pmap, l1p1, mkl1e(PFN_INVALID, 0));
 	spinunlock(&pmap->lock);
 
 	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
