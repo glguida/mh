@@ -113,17 +113,17 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 		/* XXX: Find if we need to swap in from somewhere */
 		/* XXX: For now, just populate new page */
 		printf("_: mapping %08lx with prot %x\n", va, prot);
-	        /* XXX: CHECK RETURN! */vmmap(va, prot);
+	        vmmap(va, prot);
 		return 0;
 	case PG_ERR_REASON_PROT:
 		if ((err & (PG_ERR_INFO_COW|PG_ERR_INFO_WRITE))
 		    == (PG_ERR_INFO_COW|PG_ERR_INFO_WRITE)) {
 			vaddr_t pg = va & ~PAGE_MASK;
+
 			printf("A-HA! COW FAULT!\n");
-			printf("Map new page at addr %p\n", VACOW);
-			/* XXX: RET */vmmap(VACOW, VM_PROT_RW);
+			vmmap(VACOW, VM_PROT_RW);
 			//memcpy((void *)VACOW, va, PAGE_SIZE);
-			printf("Copying!");
+			/* XXX: memcpy */
 			for (i = 0; i < PAGE_SIZE; i++)
 				((char *)VACOW)[i] = ((char *)pg)[i];
 			asm volatile ("":::"memory");
