@@ -39,12 +39,12 @@ extern void _end __asm("_end");
 
 #define VACOW (1L*1024*1024*1024)
 
-static const void *maxbrk = (void *)(1LL * 1024 * 1024 * 1024);
-static void *brkaddr = (void *)-1;
+static const void *maxbrk = (void *) (1LL * 1024 * 1024 * 1024);
+static void *brkaddr = (void *) -1;
 
 static inline void *__getbrk(void)
 {
-	if (__predict_false(brkaddr == (void *)-1))
+	if (__predict_false(brkaddr == (void *) -1))
 		brkaddr = &_end;
 	return brkaddr;
 }
@@ -56,13 +56,12 @@ static vm_prot_t _resolve_va(vaddr_t va)
 	if (!pfn)
 		return VM_PROT_NIL;
 
-	if (va < (vaddr_t)__getbrk()) {
+	if (va < (vaddr_t) __getbrk()) {
 		/* Before the BRK */
 
-		if (va > (vaddr_t)&_sdata)
+		if (va > (vaddr_t) & _sdata)
 			return VM_PROT_RW;
-		if (va < (vaddr_t)&_ecode
-		    && va > (vaddr_t)&_scode)
+		if (va < (vaddr_t) & _ecode && va > (vaddr_t) & _scode)
 			return VM_PROT_RX;
 		/* Below the start of code lies the NO-COW zone. We
 		 * do not demand-page it, and it is unaffected by
@@ -89,18 +88,19 @@ void *LIBVM(sbrk)(int inc)
 
 	old = brkaddr;
 	if (brk(new))
-		return (void *)-1;
+		return (void *) -1;
 
 	return old;
 }
 
 int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 {
-  int i, r;
+	int i, r;
 	vm_prot_t prot = _resolve_va(va);
 	unsigned reason = err & PG_ERR_REASON_MASK;
 
-	printf("Exception handler, pagefault at addr %lx (%lx)!\n", va, err);
+	printf("Exception handler, pagefault at addr %lx (%lx)!\n", va,
+	       err);
 	printf("Should be %d\n", prot);
 
 	if (prot == VM_PROT_NIL) {
@@ -113,11 +113,11 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 		/* XXX: Find if we need to swap in from somewhere */
 		/* XXX: For now, just populate new page */
 		printf("_: mapping %08lx with prot %x\n", va, prot);
-	        vmmap(va, prot);
+		vmmap(va, prot);
 		return 0;
 	case PG_ERR_REASON_PROT:
-		if ((err & (PG_ERR_INFO_COW|PG_ERR_INFO_WRITE))
-		    == (PG_ERR_INFO_COW|PG_ERR_INFO_WRITE)) {
+		if ((err & (PG_ERR_INFO_COW | PG_ERR_INFO_WRITE))
+		    == (PG_ERR_INFO_COW | PG_ERR_INFO_WRITE)) {
 			vaddr_t pg = va & ~PAGE_MASK;
 
 			printf("A-HA! COW FAULT!\n");
@@ -125,8 +125,9 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 			//memcpy((void *)VACOW, va, PAGE_SIZE);
 			/* XXX: memcpy */
 			for (i = 0; i < PAGE_SIZE; i++)
-				((char *)VACOW)[i] = ((char *)pg)[i];
+				((char *) VACOW)[i] = ((char *) pg)[i];
 			asm volatile ("":::"memory");
+
 			sys_move(va, VACOW);
 			printf("Done!\n");
 			return 0;
