@@ -94,12 +94,20 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
-	sys_sti();
+
+	printf("%d creat()", sys_creat(0, 9));
 
 	if (sys_fork()) {
 		printf("Parent!\n");
+		sys_wait();
 	} else {
+		int i;
 		printf("child!\n");
+		for (i = 0; i < 50; i++) {
+			printf(".");
+		}
+		printf("%d = open()\n", sys_open(0));
+		printf("%d = io()\n", sys_io(0, 10, 255));
 	}
 
 	printf("Goodbye!\n");
