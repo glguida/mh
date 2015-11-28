@@ -112,7 +112,7 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	case PG_ERR_REASON_NOTP:
 		/* XXX: Find if we need to swap in from somewhere */
 		/* XXX: For now, just populate new page */
-		printf("_: mapping %08lx with prot %x\n", va, prot);
+		printf("_: mapping %lx with prot %x\n", va, prot);
 		vmmap(va, prot);
 		return 0;
 	case PG_ERR_REASON_PROT:
@@ -120,16 +120,10 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 		    == (PG_ERR_INFO_COW | PG_ERR_INFO_WRITE)) {
 			vaddr_t pg = va & ~PAGE_MASK;
 
-			printf("A-HA! COW FAULT!\n");
+			printf("_: cow fault %lx\n", va);
 			vmmap(VACOW, VM_PROT_RW);
-			//memcpy((void *)VACOW, va, PAGE_SIZE);
-			/* XXX: memcpy */
-			for (i = 0; i < PAGE_SIZE; i++)
-				((char *) VACOW)[i] = ((char *) pg)[i];
-			asm volatile ("":::"memory");
-
+			memcpy((void *) VACOW, (void *) pg, PAGE_SIZE);
 			sys_move(va, VACOW);
-			printf("Done!\n");
 			return 0;
 		}
 		break;
