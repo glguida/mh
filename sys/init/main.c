@@ -72,7 +72,7 @@ int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 	printf("\n");
 }
 
-int *d = (void *) (50LL * PAGE_SIZE);
+int *d = (void *) (50L * PAGE_SIZE);
 
 int main()
 {
