@@ -190,7 +190,7 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 }
 
 /* Enter a new user page (or an non-present entry) in the pmap */
-int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+void pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
 {
 	int ret = 0;
@@ -222,10 +222,9 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
-	return ret;
 }
 
-int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
+void pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		 pfn_t * opfn)
 {
 	l1e_t l1e, ol1e, *l1p1, *l1p2;
@@ -252,7 +251,6 @@ int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
-	return 0;
 }
 
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)

@@ -382,9 +382,8 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
-		rc = pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot,
-				 &pfn);
-		assert(!rc && "vmpopulate pmap_uenter");
+		pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot,
+			    &pfn);
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
 			ret++;
@@ -401,8 +400,7 @@ unsigned vmclear(vaddr_t addr, size_t sz)
 	int i, rc;
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
-		rc = pmap_uclear(NULL, addr + i * PAGE_SIZE, &pfn);
-		assert(!rc && "vmclear pmap_uclear");
+		pmap_uclear(NULL, addr + i * PAGE_SIZE, &pfn);
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
 			ret++;
@@ -414,11 +412,11 @@ unsigned vmclear(vaddr_t addr, size_t sz)
 
 int vmmap(vaddr_t addr, pmap_prot_t prot)
 {
-	int ret;
+	int ret = 0;
 	pfn_t pfn;
 
 	pfn = __allocuser();
-	ret = pmap_uenter(NULL, addr, pfn, prot, &pfn);
+	pmap_uenter(NULL, addr, pfn, prot, &pfn);
 	pmap_commit(NULL);
 
 	if (pfn != PFN_INVALID) {
@@ -430,10 +428,10 @@ int vmmap(vaddr_t addr, pmap_prot_t prot)
 
 int vmunmap(vaddr_t addr)
 {
-	int ret;
+	int ret = 0;
 	pfn_t pfn;
 
-	ret = pmap_uenter(NULL, addr, PFN_INVALID, 0, &pfn);
+	pmap_uenter(NULL, addr, PFN_INVALID, 0, &pfn);
 	pmap_commit(NULL);
 
 	if (pfn != PFN_INVALID) {
@@ -448,7 +446,7 @@ int vmmove(vaddr_t dst, vaddr_t src)
 	int ret;
 	pfn_t pfn;
 
-	ret = pmap_uchaddr(NULL, src, dst, &pfn);
+	pmap_uchaddr(NULL, src, dst, &pfn);
 	pmap_commit(NULL);
 	if (pfn != PFN_INVALID) {
 		__freepage(pfn);
