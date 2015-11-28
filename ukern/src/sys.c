@@ -95,6 +95,26 @@ static int sys_fork(void)
 	return ! !th;
 }
 
+static int sys_creat(u_long id, unsigned sig)
+{
+	return devcreat(id, sig);
+}
+
+static int sys_open(u_long id)
+{
+	return devopen(id);
+}
+
+static int sys_intmap(unsigned ddno, unsigned id, unsigned sig)
+{
+	return devintmap(ddno, id, sig);
+}
+
+static int sys_io(unsigned ddno, u_long port, u_long val)
+{
+	return devio(ddno, port, val);
+}
+
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int np, ret;
@@ -173,6 +193,14 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_fork();
 	case SYS_DIE:
 		return sys_die();
+	case SYS_CREAT:
+		return sys_creat(a1, a2);
+	case SYS_OPEN:
+		return sys_open(a1);
+	case SYS_INTMAP:
+		return sys_intmap(a1, a2, a3);
+	case SYS_IO:
+		return sys_io(a1, a2, a3);
 	default:
 		return -1;
 	}

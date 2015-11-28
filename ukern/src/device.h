@@ -27,56 +27,55 @@
  */
 
 
-#ifndef _uk_sys_h_
-#define _uk_sys_h_
+#ifndef __device_h
+#define __device_h
 
-/*
- * Syscalls
- */
-#define SYS_DIE 0
-#define SYS_INTHDLR 1
-#define SYS_IRET 2
-#define SYS_STI 3
-#define SYS_CLI 4
-#define SYS_WAIT 5
-#define SYS_FORK 6
+#define MAXDEVINTRS 16
 
-#ifndef _ASSEMBLER
-typedef enum {
-	MAP_NEW = 0x100,
-	MAP_NONE = 0,
-	MAP_RDONLY = 1,
-	MAP_RDEXEC = 2,
-	MAP_WRITE = 3,
-	MAP_WREXEC = 4,
-} sys_map_flags_t;
-#endif
-#define SYS_MAP  0x10
-#define SYS_MOVE 0x11
+#include <uk/types.h>
+#include <machine/uk/pmap.h>
+#include <uk/locks.h>
+#include <uk/rbtree.h>
 
-#define SYS_OPEN   0x20
-#define SYS_INTMAP 0x21
-#define SYS_IO     0x22
-#define SYS_CREAT  0x30
+#define DEVCTL_ENABLED (1L << 1)
+#define DEVCTL_NOSIG   (1L << 2)
 
-/* System-processes only */
-#define SYS_PUTC 0x1000
+#define DEVSTATUS_IOPEND (1L << 1)
 
-/*
- * Exceptions
- */
-#define XCPT_PGFAULT 0
-#define PG_ERR_REASON_NOTP  0
-#define PG_ERR_REASON_PROT  1
-#define PG_ERR_REASON_MASK  1
-#define PG_ERR_INFO_COW   128
-#define PG_ERR_INFO_WRITE 256
+struct devdesc {
+	lock_t lock;
+	struct device *dev;
+	struct thread *th;
 
-#define INTR_EXT     64
+	uint8_t devctl;
+	uint8_t devstatus;
+	unsigned intmap[MAXDEVINTRS];
+	uint64_t io_port;
+	uint64_t io_val;
 
+	LIST_ENTRY(devdesc) list;
+};
 
-#ifdef _UKERNEL
-int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3);
-#endif
+struct device {
+	lock_t lock;
+	uint64_t id;
 
-#endif
+	struct thread *th;
+	unsigned signo;
+
+	struct rb_node rb_node;
+	LIST_HEAD(, devdesc) descs;
+};
+
+/* Process Side */
+struct devdesc *device_open(uint64_t id);
+int device_io(struct devdesc *dd, uint64_t port, uint64_t val);
+int device_intmap(struct devdesc *dd, unsigned id, unsigned sig);
+
+/* Device Side */
+struct device *device_creat(uint64_t id, unsigned);
+
+void device_free(struct device *dv);
+void devices_init(void);
+
+#endif /* __device_h */

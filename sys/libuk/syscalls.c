@@ -102,3 +102,35 @@ int sys_move(vaddr_t dst, vaddr_t src)
 	return ret;
 
 }
+
+int sys_open(u_long id)
+{
+	int ret;
+
+	__syscall1(SYS_OPEN, (unsigned long)id, ret);
+	return ret;
+}
+
+int sys_intmap(unsigned ddno, unsigned id, unsigned sig)
+{
+	int ret;
+
+	__syscall3(SYS_INTMAP, (unsigned long)ddno, (unsigned long)id, (unsigned long)sig, ret);
+	return ret;
+}
+
+int sys_io(unsigned ddno, u_long port, u_long val)
+{
+	int ret;
+
+	__syscall3(SYS_IO, (unsigned long)ddno, (unsigned long)port, (unsigned long)val, ret);
+	return ret;
+}
+
+int sys_creat(u_long id, unsigned sig)
+{
+	int ret;
+
+	__syscall2(SYS_CREAT, (unsigned long)id, (unsigned long)sig, ret);
+	return ret;
+}

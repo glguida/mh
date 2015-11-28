@@ -36,6 +36,7 @@
 #include <uk/sys.h>
 
 #define MAXSIGNALS (sizeof(u_long) * 8)
+#define MAXDEVDS 16
 
 #define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
 #define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
@@ -55,6 +56,9 @@ struct thread {
 
 	void *stack_4k;
 	void *frame;
+
+	struct device *dev;
+	struct devdesc *devds[MAXDEVDS];
 
 	uaddr_t sigip;
 	uaddr_t sigsp;
@@ -95,6 +99,11 @@ int vmmap(vaddr_t, pmap_prot_t prot);
 int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
+
+int devcreat(u_long id, unsigned sig);
+int devopen(u_long id);
+int devintmap(unsigned ddno, unsigned id, unsigned sig);
+int devio(unsigned ddno, uint64_t port, uint64_t val);
 
 void wake(struct thread *);
 void schedule(int newst);

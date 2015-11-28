@@ -41,6 +41,7 @@
 #include <machine/uk/machdep.h>
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
+#include <uk/device.h>
 #include <lib/lib.h>
 #include <uk/sys.h>
 #include "kern.h"
@@ -96,6 +97,7 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 
 static struct thread *thnew(void (*__start) (void))
 {
+	int i;
 	struct thread *th;
 
 	th = structs_alloc(&threads);
@@ -104,6 +106,10 @@ static struct thread *thnew(void (*__start) (void))
 	memset(th->stack_4k, 0, 4096);
 	th->userfl = 0;
 	th->softintrs = 0;
+
+	th->dev = 0;
+	for (i = 0; i < MAXDEVDS; i++)
+		th->devds[i] = 0;
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
@@ -117,7 +123,7 @@ static void __childstart(void)
 	/* Child returns zero */
 	usrframe_setret(th->frame, 0);
 	__insn_barrier();
-	printf("Starting at eip %lx\n",
+	printf("Starting at eip %x\n",
 	       ((struct usrframe *) th->frame)->eip);
 	usrframe_enter(th->frame);
 	/* Not reached */
@@ -125,6 +131,7 @@ static void __childstart(void)
 
 struct thread *thfork(void)
 {
+	int i;
 	vaddr_t va;
 	struct thread *nth, *cth = current_thread();
 
@@ -139,6 +146,11 @@ struct thread *thfork(void)
 
 	nth->sigip = cth->sigip;
 	nth->sigsp = cth->sigsp;
+
+	/* XXX: What to do on fork */
+	nth->dev = 0;
+	for (i = 0; i < MAXDEVDS; i++)
+		nth->devds[i] = 0;
 
 	/* NB: Stack is mostly at the end of the 4k page.
 	 * Frame is at the very beginning. */
@@ -186,7 +198,7 @@ void thraise(struct thread *th, unsigned vect)
 {
 
 	assert(vect < MAXSIGNALS);
-	__sync_or_and_fetch(&th->softintrs, (1L << vect));
+	__sync_or_and_fetch(&th->softintrs, (1LL << vect));
 	wake(th);
 }
 
@@ -379,13 +391,12 @@ static void idle(void)
 
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 {
-	int i, rc, ret = 0;
+	int i, ret = 0;
 	pfn_t pfn;
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
-		pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot,
-			    &pfn);
+		pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot, &pfn);
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
 			ret++;
@@ -399,7 +410,7 @@ unsigned vmclear(vaddr_t addr, size_t sz)
 {
 	unsigned ret = 0;
 	pfn_t pfn;
-	int i, rc;
+	int i;
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pmap_uclear(NULL, addr + i * PAGE_SIZE, &pfn);
@@ -454,7 +465,7 @@ int vmmove(vaddr_t dst, vaddr_t src)
 		__freepage(pfn);
 		ret = 1;
 	}
-	return ret;	
+	return ret;
 }
 
 int vmchprot(vaddr_t addr, pmap_prot_t prot)
@@ -464,6 +475,75 @@ int vmchprot(vaddr_t addr, pmap_prot_t prot)
 	ret = pmap_uchprot(NULL, addr, prot);
 	pmap_commit(NULL);
 	return ret;
+}
+
+int devcreat(u_long id, unsigned sig)
+{
+	struct thread *th = current_thread();
+	struct device *d;
+
+	if (sig > MAXSIGNALS)
+		return -1;
+
+	if (th->dev)
+		return -1;
+
+	d = device_creat(id, sig);
+	th->dev = d;
+	return 0;
+}
+
+int devopen(u_long id)
+{
+	struct thread *th = current_thread();
+	struct devdesc *dd, **dds = th->devds;
+	int i, rc = -1;
+
+	for (i = 0; i < MAXDEVDS; i++) {
+		if (!dds[i]) {
+			rc = i;
+			break;
+		}
+	}
+	if (rc < 0)
+		return -1;
+
+	dd = device_open(id);
+	if (!dd)
+		return -1;
+
+	dds[rc] = dd;
+	return rc;
+}
+
+int devintmap(unsigned ddno, unsigned id, unsigned sig)
+{
+	struct devdesc *dd;
+	struct thread *th = current_thread();
+
+	if (ddno >= MAXDEVDS)
+		return -1;
+
+	dd = th->devds[ddno];
+	if (dd == NULL)
+		return -1;
+
+	return device_intmap(dd, id, sig);
+}
+
+int devio(unsigned ddno, uint64_t port, uint64_t val)
+{
+	struct devdesc *dd;
+	struct thread *th = current_thread();
+
+	if (ddno >= MAXDEVDS)
+		return -1;
+
+	dd = th->devds[ddno];
+	if (dd == NULL)
+		return -1;
+
+	return device_io(dd, port, val);
 }
 
 static vaddr_t elfld(void *elfimg)
@@ -512,6 +592,7 @@ void kern_boot(void)
 {
 	struct thread *th;
 
+	devices_init();
 	printf("Kernel loaded at va %08lx:%08lx\n", UKERNTEXTOFF,
 	       UKERNEND);
 	/* initialise threads */

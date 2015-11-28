@@ -67,4 +67,9 @@ int vmmap(vaddr_t addr, vm_prot_t prot);
 int vmunmap(vaddr_t addr);
 int vmchprot(vaddr_t addr, vm_prot_t prot);
 
+int sys_open(u_long id);
+int sys_intmap(unsigned ddno, unsigned id, unsigned sig);
+int sys_io(unsigned ddno, u_long port, u_long val);
+int sys_creat(u_long id, unsigned sig);
+
 #endif
