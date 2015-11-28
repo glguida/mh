@@ -83,6 +83,7 @@ int main()
 
 	printf("Hello!\n");
 
+	printf("brk: %x\n", sbrk(50L * PAGE_SIZE));
 	printf("Reading, d = %d\n", *d);
 
 	printf("Writing.\n");

@@ -17,6 +17,7 @@ SECTIONS
     }
     .data ALIGN (0x200000) :
     {
+      _sdata = .;
       *(.data)
       *(.comment)
       _edata = .;

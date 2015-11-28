@@ -47,7 +47,8 @@ int sys_move(vaddr_t dst, vaddr_t src);
 
 int sys_putc(int ch);
 
-extern int __sys_inthandler(int, u_long, u_long, struct intframe *frame);
+extern int __sys_inthandler(int, u_long, u_long, struct intframe *);
+extern int __sys_pgfaulthandler(u_long, u_long, struct intframe *);
 
 
 /* Signals helper library */

@@ -27,43 +27,14 @@
  */
 
 
-#include <machine/vmparam.h>
-#include <microkernel.h>
+#ifndef __libvm_h
+#define __libvm_h
 
-extern void __inthdlr(void);
+#ifndef LIBVM
+#define LIBVM(_x) _x
+#endif
 
-/* This will be put by the linker script in the NOCOW area. On fork
-   the memory will be copied, guaranteeing signal handlers to keep
-   working. */
-char _sigstack[2048] __section(".zcow") = { 0 };
+int LIBVM(brk)(void *);
+void *LIBVM(sbrk)(int);
 
-int _libuk_signal_handler(int vect, u_long va, u_long err,
-			  struct intframe *f)
-{
-
-	if (vect == XCPT_PGFAULT)
-		__sys_pgfaulthandler(va, err, f);
-	else
-		__sys_inthandler(vect, va, err, f);
-}
-
-int _libuk_signals_nointr(int vect, u_long va, u_long err,
-			  struct intframe *f)
-{
-
-	return -1;
-}
-
-int _libuk_signals_nopgfault(u_long va, u_long err, struct intframe *f)
-{
-	printf("What!");
-	return -1;
-}
-
-void siginit(void)
-{
-	void *stkptr = (void *) (_sigstack + 2048);
-	sys_inthdlr(__inthdlr, stkptr);
-}
-
-__weak_alias(__sys_inthandler, _libuk_signals_nointr)
+#endif

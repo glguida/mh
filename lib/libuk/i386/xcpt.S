@@ -51,7 +51,7 @@ ENTRY(__inthdlr)
 	pushl 12(%ebp) /* arg3: err */
 	pushl 8(%ebp)  /* arg2: va */
 	pushl 4(%ebp)  /* arg1: vect */
-	call _C_LABEL(__sys_inthandler)
+	call _C_LABEL(_libuk_signal_handler)
 	add $16, %esp /* skip arguments */
 
 	popw %ds
