@@ -53,7 +53,7 @@ static rb_tree_t sys_device_rbtree;
  * . bus unlock
  */
 
-unsigned bus_plug(struct bus *b, uint64_t did)
+int bus_plug(struct bus *b, uint64_t did)
 {
 	int i, ret = -1;
 	struct dev *d;
@@ -62,6 +62,9 @@ unsigned bus_plug(struct bus *b, uint64_t did)
 	spinlock(&sys_device_rbtree_lock);
 	d = rb_tree_find_node(&sys_device_rbtree, (void *)&did);
 	spinunlock(&sys_device_rbtree_lock);
+
+	if (d == NULL)
+		return -1;
 
 	spinlock(&b->lock);
 
@@ -243,6 +246,7 @@ void dev_detach(struct dev *d)
 	rb_tree_remove_node(&sys_device_rbtree, (void *)d);
 	spinunlock(&sys_device_rbtree_lock);
 
+	LIST_INIT(&destroy_list);
 	spinlock(&d->lock);
 	d->offline = 1;
 	LIST_FOREACH_SAFE(bd, &d->busdevs, list, td) {

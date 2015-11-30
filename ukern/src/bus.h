@@ -35,7 +35,7 @@
 #include <uk/queue.h>
 #include <uk/rbtree.h>
 
-#define MAXBUSDEVS 256
+#define MAXBUSDEVS 64
 
 struct bus {
 	lock_t lock;
@@ -67,7 +67,7 @@ struct dev {
 	struct rb_node rb_node;
 };
 
-unsigned bus_plug(struct bus *b, uint64_t did);
+int bus_plug(struct bus *b, uint64_t did);
 int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);

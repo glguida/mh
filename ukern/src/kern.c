@@ -373,6 +373,7 @@ __dead void die(void)
 
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
+	devremove();
 	vmclear(USERBASE, USEREND - USERBASE);
 	schedule(THST_DELETED);
 }
