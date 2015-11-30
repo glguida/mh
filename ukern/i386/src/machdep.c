@@ -203,8 +203,11 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	return 0;
 }
 
+void ___usrentry_enter(void *);
+
 void usrframe_enter(struct usrframe *f)
 {
+
 	current_cpuinfo()->tss.esp0 =
 		(uint32_t) current_thread()->stack_4k + 0xff0;
 	current_cpuinfo()->tss.ss0 = KDS;

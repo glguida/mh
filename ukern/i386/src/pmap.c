@@ -193,7 +193,6 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 void pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
 {
-	int ret = 0;
 	l1e_t ol1e, nl1e, *l1p;
 
 	assert(__isuaddr(va));
