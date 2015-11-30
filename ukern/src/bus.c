@@ -32,11 +32,11 @@
 #include <uk/bus.h>
 #include <uk/structs.h>
 #include <uk/assert.h>
+#include <uk/kern.h>
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
 
 static struct slab devices;
-static struct slab usrdev_opaques;
 static lock_t sys_device_rbtree_lock = 0;
 static rb_tree_t sys_device_rbtree;
 
@@ -270,72 +270,21 @@ void dev_detach(struct dev *d)
 	}
 }
 
-struct usrdev_devopq {
-	struct thread *th;
-	unsigned sig;
-};
-
-static void *_usrdev_open(void *devopq, uint64_t did)
-{
-	printf("open %"PRIx64"!", did);
-	return (void *)-1;
-}
-
-static void _usrdev_close(void *devopq, void *busopq)
-{
-	printf("close!\n");
-}
-
-static void _usrdev_io(void *devopq, void *busopq, uint64_t port, uint64_t val)
-{
-	struct usrdev_devopq *udo = (struct usrdev_devopq *)devopq;
-
-	printf("io(%"PRIx64") = %"PRIx64"\n", port, val);
-	thraise(udo->th, udo->sig);
-}
-
-static void _usrdev_intmap(void *devopq, void *busopq, unsigned intr, unsigned sig)
-{
-	printf("intmap(%x) = %x\n", intr, sig);
-}
-
-static struct devops usrdev_ops = {
-	.open = _usrdev_open,
-	.close = _usrdev_close,
-	.io = _usrdev_io,
-	.intmap = _usrdev_intmap,
-};
-
-struct dev *usrdev_creat(uint64_t id, unsigned sig)
+struct dev *dev_alloc(uint64_t id)
 {
 	struct dev *d;
-	struct usrdev_devopq *udo;
 
 	d = structs_alloc(&devices);
 	d->did = id;
 	d->lock = 0;
 	d->offline = 0;
-	LIST_INIT(&d->busdevs);	
-
-	udo = structs_alloc(&usrdev_opaques);
-	udo->th = current_thread();
-	udo->sig = sig;
-	d->devopq = (void *)udo;
-
-	if (dev_attach(d)) {
-		structs_free(d->devopq);
-		structs_free(d);
-		return NULL;
-	}
-
-	d->ops = &usrdev_ops;
+	LIST_INIT(&d->busdevs);
 	return d;
 }
 
-void usrdev_destroy(struct dev *d)
+void dev_free(struct dev *d)
 {
-	dev_detach(d);
-	structs_free(d->devopq);
+
 	structs_free(d);
 }
 
@@ -375,7 +324,8 @@ static const rb_tree_ops_t sys_device_tree_ops = {
 void devices_init(void)
 {
 	setup_structcache(&devices, dev);
-	setup_structcache(&usrdev_opaques, usrdev_devopq);
 	rb_tree_init(&sys_device_rbtree, &sys_device_tree_ops);
 	sys_device_rbtree_lock = 0;
+
+	usrdevs_init();
 }

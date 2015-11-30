@@ -27,56 +27,9 @@
  */
 
 
-#ifndef __bus_h
-#define __bus_h
+struct dev;
 
-#include <uk/types.h>
-#include <uk/locks.h>
-#include <uk/queue.h>
-#include <uk/rbtree.h>
+struct dev *usrdev_creat(uint64_t id, unsigned sig);
+void usrdev_destroy(struct dev *d);
+void usrdevs_init(void);
 
-#define MAXBUSDEVS 64
-
-struct bus {
-	lock_t lock;
-	struct bdeve {
-		int bsy :1; /* Currently being used (open) */
-		int plg :1; /* Device not unplugged */
-		void *opq;
-		struct bus *bus;
-		struct dev *dev;
-		LIST_ENTRY(bdeve) list;		
-	} devs[MAXBUSDEVS];
-};
-
-struct devops {
-	void *(*open)(void *devopq, uint64_t did);
-	void (*io)(void *devopq, void *busopq, uint64_t port, uint64_t val);
-	void (*intmap)(void *devopq, void *busopq, unsigned intr, unsigned sig);
-	void (*close)(void *devopq, void *busopq);
-};
-
-struct dev {
-	uint64_t did;
-	lock_t lock;
-	int offline :1;
-
-	void *devopq;
-	struct devops *ops;
-	LIST_HEAD(,bdeve) busdevs;
-	struct rb_node rb_node;
-};
-
-int bus_plug(struct bus *b, uint64_t did);
-int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
-int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
-int bus_unplug(struct bus *b, unsigned desc);
-
-struct dev *dev_alloc(uint64_t id);
-int dev_attach(struct dev *d);
-void dev_detach(struct dev *d);
-void dev_free(struct dev *d);
-
-void devices_init(void);
-
-#endif
