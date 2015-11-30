@@ -102,6 +102,7 @@ int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
 int devcreat(uint64_t id, unsigned sig);
+void devremove(void);
 int devopen(uint64_t id);
 int devintmap(unsigned ddno, unsigned id, unsigned sig);
 int devio(unsigned ddno, uint64_t port, uint64_t val);
