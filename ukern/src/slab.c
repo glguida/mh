@@ -122,7 +122,7 @@ static void ___slabfree(void *addr)
 #define SLABFUNC(_s) structs_##_s
 #define SLABSQUEUE structsq
 
-#define ___slabsize() (12L * (1 << 12))
+#define ___slabsize() (12L * 1024)
 
 static const size_t ___slabobjs(const size_t size)
 {
