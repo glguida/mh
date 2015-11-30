@@ -41,7 +41,7 @@
 #include <machine/uk/machdep.h>
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
-#include <uk/device.h>
+#include <uk/bus.h>
 #include <lib/lib.h>
 #include <uk/sys.h>
 #include "kern.h"
@@ -97,7 +97,6 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 
 static struct thread *thnew(void (*__start) (void))
 {
-	int i;
 	struct thread *th;
 
 	th = structs_alloc(&threads);
@@ -108,8 +107,7 @@ static struct thread *thnew(void (*__start) (void))
 	th->softintrs = 0;
 
 	th->dev = 0;
-	for (i = 0; i < MAXDEVDS; i++)
-		th->devds[i] = 0;
+	memset(&th->bus, 0, sizeof(th->bus));
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
@@ -131,7 +129,6 @@ static void __childstart(void)
 
 struct thread *thfork(void)
 {
-	int i;
 	vaddr_t va;
 	struct thread *nth, *cth = current_thread();
 
@@ -149,8 +146,8 @@ struct thread *thfork(void)
 
 	/* XXX: What to do on fork */
 	nth->dev = 0;
-	for (i = 0; i < MAXDEVDS; i++)
-		nth->devds[i] = 0;
+	memset(&nth->bus, 0, sizeof(nth->bus));
+	/* XXX: FORK BUS! */
 
 	/* NB: Stack is mostly at the end of the 4k page.
 	 * Frame is at the very beginning. */
@@ -477,10 +474,9 @@ int vmchprot(vaddr_t addr, pmap_prot_t prot)
 	return ret;
 }
 
-int devcreat(u_long id, unsigned sig)
+int devcreat(uint64_t id, unsigned sig)
 {
 	struct thread *th = current_thread();
-	struct device *d;
 
 	if (sig > MAXSIGNALS)
 		return -1;
@@ -488,62 +484,52 @@ int devcreat(u_long id, unsigned sig)
 	if (th->dev)
 		return -1;
 
-	d = device_creat(id, sig);
-	th->dev = d;
+	th->dev = usrdev_creat(id, sig);
+	if (th->dev == NULL)
+		return -1;
 	return 0;
 }
 
-int devopen(u_long id)
+void devremove(void)
 {
+	struct dev *d;
 	struct thread *th = current_thread();
-	struct devdesc *dd, **dds = th->devds;
-	int i, rc = -1;
 
-	for (i = 0; i < MAXDEVDS; i++) {
-		if (!dds[i]) {
-			rc = i;
-			break;
-		}
+	if (th->dev) {
+		d = th->dev;
+		usrdev_destroy(d);
+		th->dev = NULL;
 	}
-	if (rc < 0)
-		return -1;
-
-	dd = device_open(id);
-	if (!dd)
-		return -1;
-
-	dds[rc] = dd;
-	return rc;
 }
 
-int devintmap(unsigned ddno, unsigned id, unsigned sig)
+int devopen(uint64_t id)
 {
-	struct devdesc *dd;
+	int dd;
 	struct thread *th = current_thread();
 
-	if (ddno >= MAXDEVDS)
-		return -1;
-
-	dd = th->devds[ddno];
-	if (dd == NULL)
-		return -1;
-
-	return device_intmap(dd, id, sig);
+	dd = bus_plug(&th->bus, id);
+	return dd;
 }
 
-int devio(unsigned ddno, uint64_t port, uint64_t val)
+void devclose(unsigned dd)
 {
-	struct devdesc *dd;
 	struct thread *th = current_thread();
 
-	if (ddno >= MAXDEVDS)
-		return -1;
+	bus_unplug(&th->bus, dd);
+}
 
-	dd = th->devds[ddno];
-	if (dd == NULL)
-		return -1;
+int devintmap(unsigned dd, unsigned intr, unsigned sig)
+{
+	struct thread *th = current_thread();
 
-	return device_io(dd, port, val);
+	return bus_intmap(&th->bus, dd, intr, sig);
+}
+
+int devio(unsigned dd, uint64_t port, uint64_t val)
+{
+	struct thread *th = current_thread();
+
+	return bus_io(&th->bus, dd, port, val);
 }
 
 static vaddr_t elfld(void *elfimg)

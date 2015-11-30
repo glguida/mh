@@ -98,6 +98,7 @@ int main()
 	printf("%d creat()", sys_creat(0, 9));
 
 	if (sys_fork()) {
+		int i;
 		printf("Parent!\n");
 		sys_wait();
 	} else {
@@ -107,7 +108,12 @@ int main()
 			printf(".");
 		}
 		printf("%d = open()\n", sys_open(0));
-		printf("%d = io()\n", sys_io(0, 10, 255));
+		i = 10;
+		do {
+			sys_io(0, 10, 255);
+			printf("io(): %d", i);
+			i--;
+		} while (i);
 	}
 
 	printf("Goodbye!\n");

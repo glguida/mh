@@ -27,55 +27,57 @@
  */
 
 
-#ifndef __device_h
-#define __device_h
-
-#define MAXDEVINTRS 16
+#ifndef __bus_h
+#define __bus_h
 
 #include <uk/types.h>
-#include <machine/uk/pmap.h>
 #include <uk/locks.h>
+#include <uk/queue.h>
 #include <uk/rbtree.h>
 
-#define DEVCTL_ENABLED (1L << 1)
-#define DEVCTL_NOSIG   (1L << 2)
+#define MAXBUSDEVS 256
 
-#define DEVSTATUS_IOPEND (1L << 1)
-
-struct devdesc {
+struct bus {
 	lock_t lock;
-	struct device *dev;
-	struct thread *th;
-
-	uint8_t devctl;
-	uint8_t devstatus;
-	unsigned intmap[MAXDEVINTRS];
-	uint64_t io_port;
-	uint64_t io_val;
-
-	LIST_ENTRY(devdesc) list;
+	struct bdeve {
+		int bsy :1; /* Currently being used (open) */
+		int plg :1; /* Device not unplugged */
+		void *opq;
+		struct bus *bus;
+		struct dev *dev;
+		LIST_ENTRY(bdeve) list;		
+	} devs[MAXBUSDEVS];
 };
 
-struct device {
+struct devops {
+	void *(*open)(void *devopq, uint64_t did);
+	void (*io)(void *devopq, void *busopq, uint64_t port, uint64_t val);
+	void (*intmap)(void *devopq, void *busopq, unsigned intr, unsigned sig);
+	void (*close)(void *devopq, void *busopq);
+};
+
+struct dev {
+	uint64_t did;
 	lock_t lock;
-	uint64_t id;
+	int offline :1;
 
-	struct thread *th;
-	unsigned signo;
-
+	void *devopq;
+	struct devops *ops;
+	LIST_HEAD(,bdeve) busdevs;
 	struct rb_node rb_node;
-	LIST_HEAD(, devdesc) descs;
 };
 
-/* Process Side */
-struct devdesc *device_open(uint64_t id);
-int device_io(struct devdesc *dd, uint64_t port, uint64_t val);
-int device_intmap(struct devdesc *dd, unsigned id, unsigned sig);
+unsigned bus_plug(struct bus *b, uint64_t did);
+int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
+int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
+int bus_unplug(struct bus *b, unsigned desc);
 
-/* Device Side */
-struct device *device_creat(uint64_t id, unsigned);
+int dev_attach(struct dev *d);
+void dev_detach(struct dev *d);
 
-void device_free(struct device *dv);
+struct dev *usrdev_creat(uint64_t id, unsigned sig);
+void usrdev_destroy(struct dev *d);
+
 void devices_init(void);
 
-#endif /* __device_h */
+#endif

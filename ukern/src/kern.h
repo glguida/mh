@@ -34,6 +34,7 @@
 #include <uk/queue.h>
 #include <machine/uk/pmap.h>
 #include <uk/sys.h>
+#include <uk/bus.h>
 
 #define MAXSIGNALS (sizeof(u_long) * 8)
 #define MAXDEVDS 16
@@ -57,8 +58,8 @@ struct thread {
 	void *stack_4k;
 	void *frame;
 
-	struct device *dev;
-	struct devdesc *devds[MAXDEVDS];
+	struct dev *dev;
+	struct bus bus;
 
 	uaddr_t sigip;
 	uaddr_t sigsp;
@@ -100,8 +101,8 @@ int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
-int devcreat(u_long id, unsigned sig);
-int devopen(u_long id);
+int devcreat(uint64_t id, unsigned sig);
+int devopen(uint64_t id);
 int devintmap(unsigned ddno, unsigned id, unsigned sig);
 int devio(unsigned ddno, uint64_t port, uint64_t val);
 
