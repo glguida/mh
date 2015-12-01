@@ -503,6 +503,13 @@ int deveio(unsigned id)
 	return usrdev_eio(th->usrdev, id);
 }
 
+int devirq(unsigned id, unsigned irq)
+{
+	struct thread *th = current_thread();
+
+	return usrdev_irq(th->usrdev, id, irq);
+}
+
 void devremove(void)
 {
 	struct usrdev *ud;
@@ -531,11 +538,11 @@ void devclose(unsigned dd)
 	bus_unplug(&th->bus, dd);
 }
 
-int devintmap(unsigned dd, unsigned intr, unsigned sig)
+int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 {
 	struct thread *th = current_thread();
 
-	return bus_intmap(&th->bus, dd, intr, sig);
+	return bus_irqmap(&th->bus, dd, irq, sig);
 }
 
 int devio(unsigned dd, uint64_t port, uint64_t val)

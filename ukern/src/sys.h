@@ -56,10 +56,10 @@ typedef enum {
 #define SYS_MOVE 0x11
 
 #define SYS_OPEN   0x20
-#define SYS_INTMAP 0x21
+#define SYS_MAPIRQ 0x21
 #define SYS_IO     0x22
-#define SYS_CREAT  0x30
 
+#define SYS_CREAT  0x30
 #ifndef _ASSEMBLER
 struct sys_poll_ior {
 	uint64_t port;
@@ -68,6 +68,7 @@ struct sys_poll_ior {
 #endif
 #define SYS_POLL   0x31
 #define SYS_EIO    0x32
+#define SYS_IRQ    0x33
 
 /* System-processes only */
 #define SYS_PUTC 0x1000

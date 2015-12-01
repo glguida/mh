@@ -118,11 +118,11 @@ int sys_open(u_long id)
 	return ret;
 }
 
-int sys_intmap(unsigned ddno, unsigned id, unsigned sig)
+int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 {
 	int ret;
 
-	__syscall3(SYS_INTMAP, (unsigned long) ddno, (unsigned long) id,
+	__syscall3(SYS_MAPIRQ, (unsigned long) ddno, (unsigned long) id,
 		   (unsigned long) sig, ret);
 	return ret;
 
@@ -159,5 +159,13 @@ int sys_eio(unsigned id)
 	int ret;
 
 	__syscall1(SYS_EIO, (unsigned long) id, ret);
+	return ret;
+}
+
+int sys_irq(unsigned id, unsigned irq)
+{
+	int ret;
+
+	__syscall2(SYS_IRQ, (unsigned long) id, (unsigned long) irq, ret);
 	return ret;
 }

@@ -52,7 +52,7 @@ struct bus {
 struct devops {
 	unsigned (*open)(void *devopq, uint64_t did);
 	int (*io)(void *devopq, unsigned id, uint64_t port, uint64_t val);
-	void (*intmap)(void *devopq, unsigned id, unsigned intr, unsigned sig);
+	int (*irqmap)(void *devopq, unsigned id, unsigned intr, unsigned sig);
 	void (*close)(void *devopq, unsigned id);
 };
 
@@ -69,7 +69,7 @@ struct dev {
 
 int bus_plug(struct bus *b, uint64_t did);
 int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
-int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
+int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
 
 void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops);

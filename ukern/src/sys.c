@@ -122,14 +122,20 @@ static int sys_eio(unsigned id)
 	return deveio(id);
 }
 
+static int sys_irq(unsigned id, unsigned irq)
+{
+	return devirq(id, irq);
+}
+
 static int sys_open(u_long id)
 {
 	return devopen(id);
 }
 
-static int sys_intmap(unsigned ddno, unsigned id, unsigned sig)
+static int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 {
-	return devintmap(ddno, id, sig);
+
+	return devirqmap(ddno, id, sig);
 }
 
 static int sys_io(unsigned ddno, u_long port, u_long val)
@@ -230,10 +236,12 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_poll(a1);
 	case SYS_EIO:
 		return sys_eio(a1);
+	case SYS_IRQ:
+		return sys_irq(a1, a2);
 	case SYS_OPEN:
 		return sys_open(a1);
-	case SYS_INTMAP:
-		return sys_intmap(a1, a2, a3);
+	case SYS_MAPIRQ:
+		return sys_mapirq(a1, a2, a3);
 	case SYS_IO:
 		return sys_io(a1, a2, a3);
 	default:

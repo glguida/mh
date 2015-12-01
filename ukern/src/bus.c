@@ -174,18 +174,21 @@ out_io:
 	return ret;
 }
 
-int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig)
+int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 {
 	int ret = -1;
 	struct dev *d;
 
-	if (desc < MAXBUSDEVS)
+	printf("Buh!\n");
+	if (desc >= MAXBUSDEVS)
 		return -1;
 
 	spinunlock(&b->lock);
 	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg)
+	if (!b->devs[desc].plg) {
+		printf("Uh? %d\n", desc);
 		goto out_io;
+	}
 	assert(d != NULL);
 
 	spinlock(&d->lock);
@@ -193,9 +196,8 @@ int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig)
 		spinunlock(&d->lock);
 		goto out_io;
 	}
-	d->ops->intmap(d->devopq, b->devs[desc].devid, intr, sig);
+	ret = d->ops->irqmap(d->devopq, b->devs[desc].devid, irq, sig);
 	spinunlock(&d->lock);
-	ret = 0;
 out_io:
 	return ret;
 }
@@ -220,7 +222,7 @@ int dev_attach(struct dev *d)
  *
  * . device lock
  * . Set device as offline. Do not attempt any further operation
- *   (open, io, intmap, close)
+ *   (open, io, irqmap, close)
  * . Walk the list and put in a destroy list.
  * . device unlock
  *

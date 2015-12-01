@@ -53,7 +53,7 @@ struct remth {
 	int bsy :1;			/* Request in progress (device) */
 	unsigned id;			/* Remote ID descriptor */
 	struct thread *th;		/* Remote threads */
-	unsigned intrs[INTMAPSZ];	/* Interrupt Remapping Table */
+	unsigned irqmap[IRQMAPSZ];	/* Interrupt Remapping Table */
 };
 
 struct usrdev {
@@ -133,20 +133,26 @@ static int _usrdev_io(void *devopq, unsigned id, uint64_t port, uint64_t val)
 	return 0;
 }
 
-static void _usrdev_intmap(void *devopq, unsigned id, unsigned intr, unsigned sig)
+static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
 {
 	struct usrdev *ud = (struct usrdev *)devopq;
 
 	/* Current thread: Process */
 	assert(id < MAXUSRDEVREMS);
-	printf("intmap(%x) = %x\n", intr, sig);
+	if (irq >= IRQMAPSZ)
+		return -1;
+
+	spinlock(&ud->lock);
+	ud->remths[id].irqmap[irq] = sig;
+	spinunlock(&ud->lock);
+	return 0;
 }
 
 static struct devops usrdev_ops = {
 	.open = _usrdev_open,
 	.close = _usrdev_close,
 	.io = _usrdev_io,
-	.intmap = _usrdev_intmap,
+	.irqmap = _usrdev_irqmap,
 };
 
 struct usrdev *usrdev_creat(uint64_t id, unsigned sig)
@@ -193,6 +199,24 @@ int usrdev_eio(struct usrdev *ud, unsigned id)
 	spinlock(&ud->lock);
 	printf("set busy of %d to zero\n", id);
 	ud->remths[id].bsy = 0;
+	spinunlock(&ud->lock);
+	return 0;
+}
+
+int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
+{
+	unsigned sig;
+
+	if ((id >= MAXUSRDEVREMS)
+	    || (irq >= IRQMAPSZ))
+		return -1;
+	spinlock(&ud->lock);
+	sig = ud->remths[id].irqmap[irq];
+	printf("-> %d, %d\n", ud->remths[id].use, sig);
+	if (ud->remths[id].use && sig) {
+		printf("raising");
+		thraise(ud->remths[id].th, sig);
+	}
 	spinunlock(&ud->lock);
 	return 0;
 }
