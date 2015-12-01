@@ -4,9 +4,9 @@ OBJDIR=$(SRCROOT)/ukern/acpica/.objdir
 ALL_PREDEP = exts
 EXTS += acpica
 
-ifneq ($(DEBUG)z,z)
-CFLAGS+= -DACPICA_DEBUG
-endif
+#ifneq ($(DEBUG)z,z)
+#CFLAGS+= -DACPICA_DEBUG
+#endif
 
 include $(MAKEDIR)/ukern.mk
 
