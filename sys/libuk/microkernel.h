@@ -40,6 +40,7 @@ int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack);
 void sys_cli(void);
 void sys_sti(void);
 void sys_wait(void);
+void sys_yield(void);
 int sys_fork(void);
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm);
 int sys_move(vaddr_t dst, vaddr_t src);

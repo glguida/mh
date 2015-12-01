@@ -76,6 +76,13 @@ void sys_wait(void)
 	__syscall0(SYS_WAIT, dummy);
 }
 
+void sys_yield(void)
+{
+	int dummy;
+
+	__syscall0(SYS_YIELD, dummy);
+}
+
 int sys_fork(void)
 {
 	int ret;
@@ -143,7 +150,7 @@ int sys_poll(struct sys_poll_ior *ior)
 {
 	int ret;
 
-	__syscall1(SYS_POLL, (unsigned long)ior, ret);
+	__syscall1(SYS_POLL, (unsigned long) ior, ret);
 	return ret;
 }
 
@@ -151,6 +158,6 @@ int sys_eio(unsigned id)
 {
 	int ret;
 
-	__syscall1(SYS_EIO, (unsigned long)id, ret);
+	__syscall1(SYS_EIO, (unsigned long) id, ret);
 	return ret;
 }
