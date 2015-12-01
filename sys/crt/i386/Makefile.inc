@@ -1,7 +1,10 @@
 VPATH+= i386
-SRCS+= 
+SRCS+=
 ALL_TARGET+= install_crt0.o
 CLEAN_TARGET+= clean_crt0.o
+
+VPATH+= $(SRCROOT)/exts/compiler_rt/lib/builtins/i386
+SRCS+= udivdi3.S umoddi3
 
 .PHONY: install_crt0.o clean_crt0.o
 
