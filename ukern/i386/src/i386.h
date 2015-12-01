@@ -65,6 +65,21 @@ struct tss {
 
 /* Platform */
 
+#define SERIAL_PORT 0x3f8
+
+static int inb(int port)
+{
+	int ret;
+
+	asm volatile ("inb %%dx, %%al":"=a" (ret):"d"(port));
+	return ret;
+}
+
+static void outb(int port, int val)
+{
+	asm volatile ("outb %%al, %%dx"::"d" (port), "a"(val));
+}
+
 static inline void _delay(void)
 {
 	int i;

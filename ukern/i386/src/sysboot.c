@@ -51,8 +51,31 @@ struct e820e {
 	uint32_t acpi;
 } __packed *p;
 
+void serial_init(void)
+{
+	outb(SERIAL_PORT + 1, 0);
+	outb(SERIAL_PORT + 3, 0x80);
+	outb(SERIAL_PORT + 0, 3);
+	outb(SERIAL_PORT + 1, 0);
+	outb(SERIAL_PORT + 3, 3);
+	outb(SERIAL_PORT + 2, 0xc7);
+	outb(SERIAL_PORT + 4, 0xb);
+}
+
+void serial_putc(int c)
+{
+	while (!(inb(SERIAL_PORT + 5) & 0x20));
+	outb(SERIAL_PORT, c);
+}
+
+#ifdef SERIAL_PUTC
+#warning BUH
+__decl_alias(_boot_putc, serial_putc);
+#endif
+
 void platform_init(void)
 {
+	serial_init();
 	acpi_findrootptr();
 	acpi_init();
 	pic_off();
