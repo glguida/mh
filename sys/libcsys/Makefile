@@ -10,7 +10,7 @@ SRCS+= printf.c subr_prf.c
 INCS=syslib.h
 INCDIR=
 
-CFLAGS+= -I $(MACHINE)
+CFLAGS+= -I $(MACHINE) -D LIBSA_PRINTF_LONGLONG_SUPPORT
 ASFLAGS+= -I $(MACHINE)
 
 include $(MKDIR)/subdir.mk
