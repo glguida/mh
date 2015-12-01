@@ -35,35 +35,110 @@
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
 
-static struct slab usrdev_opaques;
+#define MAXUSRDEVREMS 256
 
-struct usrdev_devopq {
-	struct thread *th;
-	unsigned sig;
+static struct slab usrdevs;
+static struct slab usrioreqs;
+
+struct usrioreq {
+	unsigned id;
+	uint64_t port;
+	uint64_t val;
+
+	TAILQ_ENTRY(usrioreq) queue;
 };
 
-static void *_usrdev_open(void *devopq, uint64_t did)
+struct remth {
+	int use :1;			/* Entry in use (proc) */
+	int bsy :1;			/* Request in progress (device) */
+	unsigned id;			/* Remote ID descriptor */
+	struct thread *th;		/* Remote threads */
+	unsigned intrs[INTMAPSZ];	/* Interrupt Remapping Table */
+};
+
+struct usrdev {
+	lock_t lock;
+	struct dev dev;    /* Registered device */
+	struct thread *th; /* Device thread */
+	unsigned sig;      /* Request Signal */
+
+	struct remth remths[MAXUSRDEVREMS];
+
+	TAILQ_HEAD(,usrioreq) ioreqs;
+};
+
+struct usrdev_procopq {
+	uint32_t id;
+};
+
+static unsigned _usrdev_open(void *devopq, uint64_t did)
 {
-	printf("open %"PRIx64"!", did);
-	return (void *)-1;
+	int i, ret = -1;
+	struct usrdev *ud = (struct usrdev *)devopq;
+
+	/* Current thread: Process */
+
+	spinlock(&ud->lock);
+	for (i = 0; i < MAXUSRDEVREMS; i++) {
+		if (!ud->remths[i].use
+		    && !ud->remths[i].bsy)
+			break;
+	}
+	if (i >= MAXUSRDEVREMS)
+		goto out;
+	ud->remths[i].th = current_thread();
+	ud->remths[i].use = 1;
+	ud->remths[i].id = i;
+	ret = i;
+out:
+	spinunlock(&ud->lock);
+	printf("open %"PRIx64"! = %d", did, ret);
+	return ret;
 }
 
-static void _usrdev_close(void *devopq, void *busopq)
+static void _usrdev_close(void *devopq, unsigned id)
 {
+	struct usrdev *ud = (struct usrdev *)devopq;
+	/* Current thread: Process or Device */
 
-	printf("close!\n");
+	spinlock(&ud->lock);
+	ud->remths[id].use = 0;
+	spinunlock(&ud->lock);
+	printf("close(%d)!\n", id);
 }
 
-static void _usrdev_io(void *devopq, void *busopq, uint64_t port, uint64_t val)
+static int _usrdev_io(void *devopq, unsigned id, uint64_t port, uint64_t val)
 {
-	struct usrdev_devopq *udo = (struct usrdev_devopq *)devopq;
+	/* Current thread: Process */
+	struct usrdev *ud = (struct usrdev *)devopq;
+	struct usrioreq *ior;
 
+	ior = structs_alloc(&usrioreqs);
+	ior->id = id;
+	ior->port = port;
+	ior->val = val;
+
+	spinlock(&ud->lock);
+	printf("ud->remths[%d].bsy = %d\n", id, ud->remths[id].bsy);
+	if (ud->remths[id].bsy) {
+		spinunlock(&ud->lock);
+		structs_free(ior);
+		return -1;
+	}
+	ud->remths[id].bsy = 1;
+	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
+	spinunlock(&ud->lock);
 	printf("io(%"PRIx64") = %"PRIx64"\n", port, val);
-	thraise(udo->th, udo->sig);
+	thraise(ud->th, ud->sig);
+	return 0;
 }
 
-static void _usrdev_intmap(void *devopq, void *busopq, unsigned intr, unsigned sig)
+static void _usrdev_intmap(void *devopq, unsigned id, unsigned intr, unsigned sig)
 {
+	struct usrdev *ud = (struct usrdev *)devopq;
+
+	/* Current thread: Process */
+	assert(id < MAXUSRDEVREMS);
 	printf("intmap(%x) = %x\n", intr, sig);
 }
 
@@ -74,48 +149,62 @@ static struct devops usrdev_ops = {
 	.intmap = _usrdev_intmap,
 };
 
-static void *usrdev_opq(uint64_t id, unsigned sig)
+struct usrdev *usrdev_creat(uint64_t id, unsigned sig)
 {
-	struct usrdev_devopq *udo;
+	struct usrdev *ud;
 
-	udo = structs_alloc(&usrdev_opaques);
-	udo->th = current_thread();
-	udo->sig = sig;
-	return (void *)udo;
-}
+	ud = structs_alloc(&usrdevs);
+	ud->lock = 0;
+	ud->th = current_thread();
+	ud->sig = sig;
+	memset(&ud->remths, 0, sizeof(ud->remths));
+	TAILQ_INIT(&ud->ioreqs);
 
-struct dev *usrdev_creat(uint64_t id, unsigned sig)
-{
-	struct dev *d;
-	struct usrdev_devopq *udo;
-
-	d = dev_alloc(id);
-	if (d == NULL)
-		return d;
-
-	udo = structs_alloc(&usrdev_opaques);
-	udo->th = current_thread();
-	udo->sig = sig;
-	d->devopq = (void *)udo;
-	d->ops = &usrdev_ops;
-
-	if (dev_attach(d)) {
-		structs_free(d->devopq);
-		dev_free(d);
-		return NULL;
+	dev_init(&ud->dev, id, (void *)ud, &usrdev_ops);
+	if (dev_attach(&ud->dev)) {
+		structs_free(ud);
+		ud = NULL;
 	}
-
-	return d;
+	return ud;
 }
 
-void usrdev_destroy(struct dev *d)
+int usrdev_poll(struct usrdev *ud, uint64_t *p, uint64_t *v)
 {
-	dev_detach(d);
-	structs_free(d->devopq);
-	dev_free(d);
+	int id;
+	struct usrioreq *ior;
+
+	spinlock(&ud->lock);
+	ior = TAILQ_FIRST(&ud->ioreqs);
+	TAILQ_REMOVE(&ud->ioreqs, ior, queue);
+	spinunlock(&ud->lock);
+
+	*p = ior->port;
+	*v = ior->val;
+	id = ior->id;
+	structs_free(ior);
+	printf("poll: returning %d\n", id);
+	return id;
+}
+
+int usrdev_eio(struct usrdev *ud, unsigned id)
+{
+	if (id >= MAXUSRDEVREMS)
+		return -1;
+	spinlock(&ud->lock);
+	printf("set busy of %d to zero\n", id);
+	ud->remths[id].bsy = 0;
+	spinunlock(&ud->lock);
+	return 0;
+}
+
+void usrdev_destroy(struct usrdev *ud)
+{
+	dev_detach(&ud->dev);
+	structs_free(ud);
 }
 
 void usrdevs_init(void)
 {
-	setup_structcache(&usrdev_opaques, usrdev_devopq);
+	setup_structcache(&usrioreqs, usrioreq);
+	setup_structcache(&usrdevs, usrdev);
 }

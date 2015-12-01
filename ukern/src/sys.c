@@ -100,6 +100,27 @@ static int sys_creat(u_long id, unsigned sig)
 	return devcreat(id, sig);
 }
 
+static int sys_poll(uaddr_t uior)
+{
+	int id, ret;
+	struct sys_poll_ior sior;
+
+	id = devpoll(&sior.port, &sior.val);
+	if (id < 0)
+		return id;
+
+	printf("sior.val = %"PRIx64"\n", sior.val);
+	ret = copy_to_user(uior, &sior, sizeof(struct sys_poll_ior));
+	if (ret)
+		return ret;
+	return id;
+}
+
+static int sys_eio(unsigned id)
+{
+	return deveio(id);
+}
+
 static int sys_open(u_long id)
 {
 	return devopen(id);
@@ -195,6 +216,10 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_die();
 	case SYS_CREAT:
 		return sys_creat(a1, a2);
+	case SYS_POLL:
+		return sys_poll(a1);
+	case SYS_EIO:
+		return sys_eio(a1);
 	case SYS_OPEN:
 		return sys_open(a1);
 	case SYS_INTMAP:

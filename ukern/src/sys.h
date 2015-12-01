@@ -59,6 +59,15 @@ typedef enum {
 #define SYS_IO     0x22
 #define SYS_CREAT  0x30
 
+#ifndef _ASSEMBLER
+struct sys_poll_ior {
+	uint64_t port;
+	uint64_t val;
+};
+#endif
+#define SYS_POLL   0x31
+#define SYS_EIO    0x32
+
 /* System-processes only */
 #define SYS_PUTC 0x1000
 

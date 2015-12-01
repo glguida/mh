@@ -138,3 +138,19 @@ int sys_creat(u_long id, unsigned sig)
 		   ret);
 	return ret;
 }
+
+int sys_poll(struct sys_poll_ior *ior)
+{
+	int ret;
+
+	__syscall1(SYS_POLL, (unsigned long)ior, ret);
+	return ret;
+}
+
+int sys_eio(unsigned id)
+{
+	int ret;
+
+	__syscall1(SYS_EIO, (unsigned long)id, ret);
+	return ret;
+}

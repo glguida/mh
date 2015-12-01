@@ -42,6 +42,7 @@
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
 #include <uk/bus.h>
+#include <uk/usrdev.h>
 #include <lib/lib.h>
 #include <uk/sys.h>
 #include "kern.h"
@@ -106,7 +107,7 @@ static struct thread *thnew(void (*__start) (void))
 	th->userfl = 0;
 	th->softintrs = 0;
 
-	th->dev = 0;
+	th->usrdev = 0;
 	memset(&th->bus, 0, sizeof(th->bus));
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
@@ -145,7 +146,7 @@ struct thread *thfork(void)
 	nth->sigsp = cth->sigsp;
 
 	/* XXX: What to do on fork */
-	nth->dev = 0;
+	nth->usrdev = 0;
 	memset(&nth->bus, 0, sizeof(nth->bus));
 	/* XXX: FORK BUS! */
 
@@ -482,24 +483,38 @@ int devcreat(uint64_t id, unsigned sig)
 	if (sig > MAXSIGNALS)
 		return -1;
 
-	if (th->dev)
+	if (th->usrdev)
 		return -1;
 
-	th->dev = usrdev_creat(id, sig);
-	if (th->dev == NULL)
+	th->usrdev = usrdev_creat(id, sig);
+	if (th->usrdev == NULL)
 		return -1;
 	return 0;
 }
 
-void devremove(void)
+int devpoll(uint64_t *p, uint64_t *v)
 {
-	struct dev *d;
 	struct thread *th = current_thread();
 
-	if (th->dev) {
-		d = th->dev;
-		usrdev_destroy(d);
-		th->dev = NULL;
+	return usrdev_poll(th->usrdev, p, v);
+}
+
+int deveio(unsigned id)
+{
+	struct thread *th = current_thread();
+
+	return usrdev_eio(th->usrdev, id);
+}
+
+void devremove(void)
+{
+	struct usrdev *ud;
+	struct thread *th = current_thread();
+
+	if (th->usrdev) {
+		ud = th->usrdev;
+		usrdev_destroy(ud);
+		th->usrdev = NULL;
 	}
 }
 

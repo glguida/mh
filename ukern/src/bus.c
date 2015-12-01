@@ -55,9 +55,8 @@ static rb_tree_t sys_device_rbtree;
 
 int bus_plug(struct bus *b, uint64_t did)
 {
-	int i, ret = -1;
+	int i, devid, ret = -1;
 	struct dev *d;
-	void *opq;
 
 	spinlock(&sys_device_rbtree_lock);
 	d = rb_tree_find_node(&sys_device_rbtree, (void *)&did);
@@ -82,8 +81,8 @@ int bus_plug(struct bus *b, uint64_t did)
 		spinunlock(&d->lock);
 		goto out;
 	}
-	opq = d->ops->open(d->devopq, did);
-	if (opq == NULL) {
+	devid = d->ops->open(d->devopq, did);
+	if (devid < 0) {
 		spinunlock(&d->lock);
 		goto out;
 	}
@@ -92,7 +91,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	spinunlock(&d->lock);
 	b->devs[i].bus = b;
 	b->devs[i].dev = d;
-	b->devs[i].opq = opq;
+	b->devs[i].devid = devid;
 
 	/* Mark it open. */
 	b->devs[i].bsy = 1;
@@ -134,14 +133,14 @@ int bus_unplug(struct bus *b, unsigned desc)
 		spinunlock(&d->lock);
 		goto no_unplug;
 	}
-	d->ops->close(d->devopq, b->devs[desc].opq);
+	d->ops->close(d->devopq, b->devs[desc].devid);
 	LIST_REMOVE(b->devs + desc, list);
 	b->devs[desc].plg = 0;
 	spinunlock(&d->lock);
 
 	b->devs[desc].bus = NULL;
 	b->devs[desc].dev = NULL;
-	b->devs[desc].opq = NULL;
+	b->devs[desc].devid = 0;
 	ret = 0;
 no_unplug:
 	b->devs[desc].bsy = 0;
@@ -168,9 +167,8 @@ int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 		spinunlock(&d->lock);
 		goto out_io;
 	}
-	d->ops->io(d->devopq, b->devs[desc].opq, port, val);
+	ret = d->ops->io(d->devopq, b->devs[desc].devid, port, val);
 	spinunlock(&d->lock);
-	ret = 0;
 out_io:
 	spinunlock(&b->lock);
 	return ret;
@@ -195,7 +193,7 @@ int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig)
 		spinunlock(&d->lock);
 		goto out_io;
 	}
-	d->ops->intmap(d->devopq, b->devs[desc].opq, intr, sig);
+	d->ops->intmap(d->devopq, b->devs[desc].devid, intr, sig);
 	spinunlock(&d->lock);
 	ret = 0;
 out_io:
@@ -260,26 +258,24 @@ void dev_detach(struct dev *d)
 
 		spinlock(&b->lock);
 		spinlock(&d->lock);
-		d->ops->close(d->devopq, bd->opq);
+		d->ops->close(d->devopq, bd->devid);
 		bd->plg = 0;
 		spinunlock(&d->lock);
 		bd->bus = NULL;
 		bd->dev = NULL;
-		bd->opq = NULL;
+		bd->devid = 0;
 		spinunlock(&b->lock);
 	}
 }
 
-struct dev *dev_alloc(uint64_t id)
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops)
 {
-	struct dev *d;
-
-	d = structs_alloc(&devices);
 	d->did = id;
 	d->lock = 0;
 	d->offline = 0;
 	LIST_INIT(&d->busdevs);
-	return d;
+	d->devopq = opq;
+	d->ops = ops;
 }
 
 void dev_free(struct dev *d)

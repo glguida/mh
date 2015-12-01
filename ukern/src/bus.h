@@ -42,7 +42,7 @@ struct bus {
 	struct bdeve {
 		int bsy :1; /* Currently being used (open) */
 		int plg :1; /* Device not unplugged */
-		void *opq;
+		unsigned devid;
 		struct bus *bus;
 		struct dev *dev;
 		LIST_ENTRY(bdeve) list;		
@@ -50,10 +50,10 @@ struct bus {
 };
 
 struct devops {
-	void *(*open)(void *devopq, uint64_t did);
-	void (*io)(void *devopq, void *busopq, uint64_t port, uint64_t val);
-	void (*intmap)(void *devopq, void *busopq, unsigned intr, unsigned sig);
-	void (*close)(void *devopq, void *busopq);
+	unsigned (*open)(void *devopq, uint64_t did);
+	int (*io)(void *devopq, unsigned id, uint64_t port, uint64_t val);
+	void (*intmap)(void *devopq, unsigned id, unsigned intr, unsigned sig);
+	void (*close)(void *devopq, unsigned id);
 };
 
 struct dev {
@@ -72,7 +72,7 @@ int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_intmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
 
-struct dev *dev_alloc(uint64_t id);
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops);
 int dev_attach(struct dev *d);
 void dev_detach(struct dev *d);
 void dev_free(struct dev *d);

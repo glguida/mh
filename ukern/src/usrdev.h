@@ -27,9 +27,12 @@
  */
 
 
-struct dev;
+struct usrdev;
+#define INTMAPSZ 8
 
-struct dev *usrdev_creat(uint64_t id, unsigned sig);
-void usrdev_destroy(struct dev *d);
+struct usrdev *usrdev_creat(uint64_t id, unsigned sig);
+int usrdev_poll(struct usrdev *ud, uint64_t *p, uint64_t *);
+int usrdev_eio(struct usrdev *ud, unsigned id);
+void usrdev_destroy(struct usrdev *d);
 void usrdevs_init(void);
 
