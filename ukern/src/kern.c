@@ -216,6 +216,7 @@ static void thswitch(struct thread *th)
 		if (thread_is_idle(th))
 			__sync_or_and_fetch(&cpu_idlemap,
 					    (1L << cpu_number()));
+		usrframe_switch();
 		_longjmp(th->ctx, 1);
 		panic("WTF.");
 	}

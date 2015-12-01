@@ -205,6 +205,12 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 
 void ___usrentry_enter(void *);
 
+void usrframe_switch(void)
+{
+	current_cpuinfo()->tss.esp0 =
+		(uint32_t) current_thread()->stack_4k + 0xff0;
+}
+
 void usrframe_enter(struct usrframe *f)
 {
 
