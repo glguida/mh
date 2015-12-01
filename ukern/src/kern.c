@@ -531,13 +531,6 @@ int devopen(uint64_t id)
 	return dd;
 }
 
-void devclose(unsigned dd)
-{
-	struct thread *th = current_thread();
-
-	bus_unplug(&th->bus, dd);
-}
-
 int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 {
 	struct thread *th = current_thread();
@@ -550,6 +543,13 @@ int devio(unsigned dd, uint64_t port, uint64_t val)
 	struct thread *th = current_thread();
 
 	return bus_io(&th->bus, dd, port, val);
+}
+
+void devclose(unsigned dd)
+{
+	struct thread *th = current_thread();
+
+	bus_unplug(&th->bus, dd);
 }
 
 static vaddr_t elfld(void *elfimg)
