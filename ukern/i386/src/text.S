@@ -55,7 +55,7 @@ END(vptrmax)
 /* HACK AHEAD */
 
 ENTRY(b800_sysputc)
-	mov $2, %ah
+	mov $6, %ah
 	jmp .LPRINT
 
 ENTRY(b800_putc)
