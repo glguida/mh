@@ -27,6 +27,7 @@
  */
 
 
+#include <uk/types.h>
 #include <uk/sys.h>
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
