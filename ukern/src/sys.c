@@ -185,6 +185,13 @@ static int sys_move(vaddr_t dst, vaddr_t src)
 	return vmmove(dst, src);
 }
 
+static int sys_yield(void)
+{
+
+	schedule(THST_RUNNABLE);
+	return 0;
+}
+
 static int sys_die(void)
 {
 	die();
@@ -206,6 +213,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_cli();
 	case SYS_WAIT:
 		return sys_wait();
+	case SYS_YIELD:
+		return sys_yield();
 	case SYS_MAP:
 		return sys_map(a1, a2);
 	case SYS_MOVE:
