@@ -49,34 +49,11 @@ int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 {
 	static int i = 0;
 
-	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
-	if (vect == XCPT_PGFAULT) {
-		if (i == 0) {
-			printf("Mapping read only: %d",
-			       vmmap(va, VM_PROT_RO));
-			i++;
-		} else if (i == 1) {
-			printf("Mapping writeable: %d",
-			       vmchprot(va, VM_PROT_RW));
-			i++;
-		} else if (i == 2) {
-			printf("A-ha! Mapping again!\n");
-			vmmap(va, VM_PROT_RO);
-			i++;
-		} else {
-			printf("WTF?\n");
-			sys_die();
-		}
-	} else if (vect == 64) {
-		unsigned id;
-		struct sys_poll_ior ior;
-
-		id = sys_poll(&ior);
-		printf("(" PRIx64 ") ExtINT! %d p:%" PRIx64 " v:%" PRIx64
-		       "\n", id, ior.port, ior.val);
-		sys_eio(id);
+	if (vect == INTR_EXT) {
 		return;
 	}
+	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
+
 	framedump(f);
 	printf("\n");
 
@@ -111,8 +88,16 @@ int main()
 		int i;
 		printf("Parent!\n");
 		while (1) {
+			unsigned id;
+			struct sys_poll_ior ior;
+
 			sys_wait();
-			printf("B");
+			sys_cli();
+			id = sys_poll(&ior);
+			printf("I/O at port %" PRIx64 " with val %" PRIx64
+			       "\n", ior.port, ior.val);
+			sys_irq(id, 3);
+			sys_eio(id);
 		}
 	} else {
 		uint64_t i;
@@ -120,11 +105,15 @@ int main()
 		for (i = 0; i < 50; i++) {
 			printf(".");
 		}
+		printf("\n");
 		printf("%d = open()\n", sys_open(0));
+		printf("%d = intmap()\n", sys_mapirq(0, 3, 5));
+
 		i = 0;
 		while (1) {
 			sys_io(0, 10, 255);
-			sys_yield();
+			sys_wait();
+			printf("IRQ received!\n");
 		}
 	}
 
