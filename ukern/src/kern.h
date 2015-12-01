@@ -48,8 +48,8 @@
 #define THST_DELETED 3
 
 #define thread_is_idle(_th) (_th == current_cpu()->idle_thread)
-#define thread_has_interrupts(_th) ((_th->status & THFL_INTR)	\
-				    && th->softintrs)
+#define thread_has_interrupts(_th) (((_th)->userfl & THFL_INTR)	\
+				    && (_th)->softintrs)
 
 struct thread {
 	jmp_buf ctx;

@@ -310,8 +310,7 @@ void wake(struct thread *th)
 	case THST_STOPPED:
 		TAILQ_REMOVE(&stopped_threads, th, sched_list);
 		th->status = THST_RUNNABLE;
-		TAILQ_INSERT_TAIL(&current_cpu()->resched, th, sched_list);
-		cpu_softirq_raise(SOFTIRQ_RESCHED);
+		TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
 		break;
 	}
 	spinunlock(&sched_lock);
@@ -331,14 +330,11 @@ void schedule(int newst)
 		goto _skip_resched;
 	}
 
-	spinlock(&sched_lock);
-
 	/* Do not sleep if active signals */
-	if (newst == THST_STOPPED && thread_has_interrupts(oldth)) {
-		spinunlock(&sched_lock);
+	if ((newst == THST_STOPPED) && thread_has_interrupts(oldth))
 		return;
-	}
 
+	spinlock(&sched_lock);
 	oldth->status = newst;
 	switch (oldth->status) {
 	case THST_RUNNABLE:
