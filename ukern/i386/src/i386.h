@@ -67,7 +67,7 @@ struct tss {
 
 #define SERIAL_PORT 0x3f8
 
-static int inb(int port)
+static inline int inb(int port)
 {
 	int ret;
 
@@ -75,7 +75,7 @@ static int inb(int port)
 	return ret;
 }
 
-static void outb(int port, int val)
+static inline void outb(int port, int val)
 {
 	asm volatile ("outb %%al, %%dx"::"d" (port), "a"(val));
 }
