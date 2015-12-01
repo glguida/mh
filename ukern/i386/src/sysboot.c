@@ -133,7 +133,8 @@ void sysboot(void)
 	/* Finish up initialization quickly.
 	   We can now setup per-cpu data. */
 	cpuid = cpu_number_from_lapic();
-	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss, &cpuinfo_get(cpuid)->self);
+	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss,
+		   &cpuinfo_get(cpuid)->self);
 	__insn_barrier();	/* FS: now valid */
 
 	kern_boot();
@@ -149,7 +150,8 @@ void sysboot_ap(void)
 	lapic_write(L_MISC, lapic_read(L_MISC) | 0x100);
 
 	cpuid = cpu_number_from_lapic();
-	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss, &cpuinfo_get(cpuid)->self);
+	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss,
+		   &cpuinfo_get(cpuid)->self);
 	__insn_barrier();	/* FS: now valid */
 	printf("CPU %d on.\n", cpu_number());
 

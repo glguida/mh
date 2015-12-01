@@ -110,7 +110,7 @@ static int sys_poll(uaddr_t uior)
 	if (id < 0)
 		return id;
 
-	printf("sior.val = %"PRIx64"\n", sior.val);
+	printf("sior.val = %" PRIx64 "\n", sior.val);
 	ret = copy_to_user(uior, &sior, sizeof(struct sys_poll_ior));
 	if (ret)
 		return ret;
@@ -182,7 +182,7 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 static int sys_move(vaddr_t dst, vaddr_t src)
 {
 	procassert(__chkuaddr(trunc_page(dst), PAGE_SIZE));
-	procassert(__chkuaddr(trunc_page(src), PAGE_SIZE));	
+	procassert(__chkuaddr(trunc_page(src), PAGE_SIZE));
 	return vmmove(dst, src);
 }
 

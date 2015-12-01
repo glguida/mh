@@ -489,7 +489,7 @@ int devcreat(uint64_t id, unsigned sig)
 	return 0;
 }
 
-int devpoll(uint64_t *p, uint64_t *v)
+int devpoll(uint64_t * p, uint64_t * v)
 {
 	struct thread *th = current_thread();
 
