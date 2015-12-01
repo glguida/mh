@@ -27,7 +27,7 @@
  */
 
 
-#include <sys/stdint.h>
+#include <sys/inttypes.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
 #include <syslib.h>

@@ -2,8 +2,8 @@ SRCROOT=../../../
 include $(SRCROOT)/mk/mk.conf
 
 INCS= ansi.h asm.h bswap.h byte_swap.h cdefs.h endian.h			\
-	endian_machdep.h int_const.h int_limits.h int_mwgwtypes.h	\
-	int_types.h types.h vmparam.h wchar_limits.h
+	endian_machdep.h int_const.h int_fmtio.h int_limits.h		\
+	int_mwgwtypes.h int_types.h types.h vmparam.h wchar_limits.h
 INCDIR= machine
 
 include $(MAKEDIR)/inc.mk
