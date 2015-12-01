@@ -50,8 +50,6 @@ int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 	static int i = 0;
 
 	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
-	framedump(f);
-
 	if (vect == XCPT_PGFAULT) {
 		if (i == 0) {
 			printf("Mapping read only: %d",
@@ -69,8 +67,20 @@ int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 			printf("WTF?\n");
 			sys_die();
 		}
+	} else if (vect == 64) {
+		unsigned id;
+		struct sys_poll_ior ior;
+
+		id = sys_poll(&ior);
+		printf("(" PRIx64 ") ExtINT! %d p:%" PRIx64 " v:%" PRIx64
+		       "\n", id, ior.port, ior.val);
+		sys_eio(id);
+		return;
 	}
+	framedump(f);
 	printf("\n");
+
+
 }
 
 int *d = (void *) (50L * PAGE_SIZE);
@@ -100,20 +110,22 @@ int main()
 	if (sys_fork()) {
 		int i;
 		printf("Parent!\n");
-		sys_wait();
+		while (1) {
+			sys_wait();
+			printf("B");
+		}
 	} else {
-		int i;
+		uint64_t i;
 		printf("child!\n");
 		for (i = 0; i < 50; i++) {
 			printf(".");
 		}
 		printf("%d = open()\n", sys_open(0));
-		i = 10;
-		do {
+		i = 0;
+		while (1) {
 			sys_io(0, 10, 255);
-			printf("io(): %d", i);
-			i--;
-		} while (i);
+			sys_yield();
+		}
 	}
 
 	printf("Goodbye!\n");
