@@ -50,6 +50,7 @@ void fixmem_dumpstats(void);
 
 extern struct slab m4k;
 extern struct slab m12k;
+extern struct slab m16k;
 
 void fixmems_init();
 
@@ -58,5 +59,8 @@ void fixmems_init();
 
 #define alloc12k() fixmem_alloc_opq(&m12k, NULL)
 #define free12k(_p) fixmem_free(_p)
+
+#define alloc16k() fixmem_alloc_opq(&m16k, NULL)
+#define free16k(_p) fixmem_free(_p)
 
 #endif

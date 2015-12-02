@@ -32,10 +32,12 @@
 
 struct slab m4k;
 struct slab m12k;
+struct slab m16k;
 
 void fixmems_init()
 {
 
 	setup_fixmem(&m4k, 4096);
 	setup_fixmem(&m12k, 12 * 1024);
+	setup_fixmem(&m16k, 16 * 1024);
 }

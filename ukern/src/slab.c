@@ -122,7 +122,7 @@ static void ___slabfree(void *addr)
 #define SLABFUNC(_s) structs_##_s
 #define SLABSQUEUE structsq
 
-#define ___slabsize() (12L * 1024)
+#define ___slabsize() (16L * 1024)
 
 static const size_t ___slabobjs(const size_t size)
 {
@@ -134,7 +134,7 @@ static struct slabhdr *___slaballoc(struct objhdr **ohptr)
 {
 	void *ptr;
 
-	ptr = alloc12k();
+	ptr = alloc16k();
 	if (ptr == NULL)
 		return NULL;
 
@@ -157,7 +157,7 @@ static struct slabhdr *___slabgethdr(void *obj)
 static void ___slabfree(void *ptr)
 {
 
-	free12k(ptr);
+	free16k(ptr);
 }
 
 #endif
