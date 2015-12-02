@@ -45,7 +45,7 @@ ENTRY(vptrscrdst)
 END(vptrscrdst)
 
 ENTRY(vptr)
-	.long 0xb8000
+	.long 0xb8000 + 80 * 24 + 2
 END(vptr)
 
 ENTRY(vptrmax)
