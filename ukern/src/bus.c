@@ -36,7 +36,6 @@
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
 
-static struct slab devices;
 static lock_t sys_device_rbtree_lock = 0;
 static rb_tree_t sys_device_rbtree;
 
@@ -347,7 +346,6 @@ static const rb_tree_ops_t sys_device_tree_ops = {
 
 void devices_init(void)
 {
-	setup_structcache(&devices, dev);
 	rb_tree_init(&sys_device_rbtree, &sys_device_tree_ops);
 	sys_device_rbtree_lock = 0;
 
