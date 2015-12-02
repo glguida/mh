@@ -81,37 +81,42 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
-
 	printf("%d creat()", sys_creat(0, 9));
 
 	if (sys_fork()) {
 		int i;
+		int *d = (int *) (0x53 * PAGE_SIZE);
+
 		printf("Parent!\n");
 		while (1) {
+			int ret;
 			unsigned id;
 			struct sys_poll_ior ior;
 
 			sys_wait();
 			sys_cli();
 			id = sys_poll(&ior);
+			ret = sys_import(id, 1, d);
+			printf("import: %d\n", ret);
 			printf("I/O at port %" PRIx64 " with val %" PRIx64
 			       "\n", ior.port, ior.val);
+			printf("d is %x (%p)\n", *d, d);
 			sys_irq(id, 3);
 			sys_eio(id);
 		}
 	} else {
-		uint64_t i;
-		printf("child!\n");
-		for (i = 0; i < 50; i++) {
-			printf(".");
-		}
-		printf("\n");
-		printf("%d = open()\n", sys_open(0));
-		printf("%d = intmap()\n", sys_mapirq(0, 3, 5));
+		int desc, ret;
+		int *p = (int *) (0x12 * PAGE_SIZE);
 
-		i = 0;
+		printf("child!\n");
+		*p = 0;
+		desc = sys_open(0);
+		sys_mapirq(desc, 3, 5);
+		printf("MAPPING %d\n", sys_export(0, p, 1));
 		while (1) {
-			sys_io(0, 10, 255);
+			(*p) += 1;
+			printf("-> P is %lx\n", (unsigned long) *p);
+			sys_io(desc, 10, 255);
 			sys_wait();
 			printf("IRQ received!\n");
 		}
