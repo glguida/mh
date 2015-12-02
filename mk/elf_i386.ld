@@ -20,6 +20,7 @@ SECTIONS
       _sdata = .;
       *(.data)
       *(.comment)
+      *(.note.*)
       _edata = .;
     }
     .bss ALIGN (0x200000) :

@@ -50,10 +50,10 @@
  * DMAP_END:ffe00000     Kernel VA allocation range
  */
 
-#define USERBASE  __ULONG(0x00000000)
+#define USERBASE  __ULONG(1L * PAGE_SIZE)
 /* ZEROCOW: No COW area on fork */
 #define ZCOWBASE  USERBASE
-#define ZCOWEND   __ULONG(2 * PAGE_SIZE)
+#define ZCOWEND   __ULONG(2L * PAGE_SIZE)
 #define COWBASE   ZCOWEND
 #define USEREND   __paeoffva(2, LINOFF, 0)
 #define COWEND    USEREND
