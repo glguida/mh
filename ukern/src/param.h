@@ -41,4 +41,6 @@
 #define __isuaddr(_a) (((_a) >= USERBASE) && ((_a) < USEREND))
 #define __chkuaddr(_a, _sz) (__isuaddr(_a) && ((_a) + (_sz) < USEREND) && ((_a) < (_a) + (_sz)))
 
+#define PFN_INVALID ((pfn_t)-1)
+
 #endif

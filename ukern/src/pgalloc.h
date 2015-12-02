@@ -55,6 +55,4 @@ void pgfree(pfn_t, size_t);
 #define __allocpage(_t) pgalloc(1, (_t), GFP_KERN)
 #define __freepage(_p) pgfree((_p), 1)
 
-#define PFN_INVALID ((pfn_t)-1)
-
 #endif

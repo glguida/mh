@@ -157,6 +157,7 @@ struct thread *thfork(void)
 	/* Copy the no cow area */
 	for (va = ZCOWBASE; va < ZCOWEND; va += PAGE_SIZE) {
 		pfn_t pfn;
+		int ret;
 
 		/* XXX: Allocate in KERN pool to directly map and
 		 * copy, avoiding global vmapping. Fix properly by
@@ -169,8 +170,8 @@ struct thread *thfork(void)
 			pgfree(pfn, 1);
 			continue;
 		}
-		pmap_uenter(nth->pmap, va, pfn, PROT_USER_WR, &pfn);
-		assert(pfn == PFN_INVALID);
+		ret = pmap_uenter(nth->pmap, va, pfn, PROT_USER_WR, &pfn);
+		assert(!ret && (pfn == PFN_INVALID));
 	}
 	/* Finished handling the pmaps. */
 	pmap_commit(NULL);
@@ -423,14 +424,19 @@ unsigned vmclear(vaddr_t addr, size_t sz)
 int vmmap(vaddr_t addr, pmap_prot_t prot)
 {
 	int ret = 0;
-	pfn_t pfn;
+	pfn_t pfn, opfn;
 
 	pfn = __allocuser();
-	pmap_uenter(NULL, addr, pfn, prot, &pfn);
+	ret = pmap_uenter(NULL, addr, pfn, prot, &opfn);
 	pmap_commit(NULL);
 
-	if (pfn != PFN_INVALID) {
+	if (ret < 0) {
 		__freepage(pfn);
+		return ret;
+	}
+
+	if (opfn != PFN_INVALID) {
+		__freepage(opfn);
 		ret = 1;
 	}
 	return ret;
@@ -441,8 +447,11 @@ int vmunmap(vaddr_t addr)
 	int ret = 0;
 	pfn_t pfn;
 
-	pmap_uenter(NULL, addr, PFN_INVALID, 0, &pfn);
+	ret = pmap_uenter(NULL, addr, PFN_INVALID, 0, &pfn);
 	pmap_commit(NULL);
+
+	if (ret < 0)
+		return ret;
 
 	if (pfn != PFN_INVALID) {
 		__freepage(pfn);
@@ -456,8 +465,12 @@ int vmmove(vaddr_t dst, vaddr_t src)
 	int ret;
 	pfn_t pfn;
 
-	pmap_uchaddr(NULL, src, dst, &pfn);
+	ret = pmap_uchaddr(NULL, src, dst, &pfn);
 	pmap_commit(NULL);
+
+	if (ret < 0)
+		return -1;
+
 	if (pfn != PFN_INVALID) {
 		__freepage(pfn);
 		ret = 1;
@@ -492,23 +505,42 @@ int devcreat(uint64_t id, unsigned sig)
 
 int devpoll(uint64_t * p, uint64_t * v)
 {
+	int ret = -1;
 	struct thread *th = current_thread();
 
-	return usrdev_poll(th->usrdev, p, v);
+	if (th->usrdev)
+		ret = usrdev_poll(th->usrdev, p, v);
+	return ret;
 }
 
 int deveio(unsigned id)
 {
+	int ret = -1;
 	struct thread *th = current_thread();
 
-	return usrdev_eio(th->usrdev, id);
+	if (th->usrdev)
+		ret = usrdev_eio(th->usrdev, id);
+	return ret;
 }
 
 int devirq(unsigned id, unsigned irq)
 {
+	int ret = -1;
 	struct thread *th = current_thread();
 
-	return usrdev_irq(th->usrdev, id, irq);
+	if (th->usrdev)
+		ret = usrdev_irq(th->usrdev, id, irq);
+	return ret;
+}
+
+int devimport(unsigned id, unsigned iopfn, unsigned va)
+{
+	int ret = -1;
+	struct thread *th = current_thread();
+
+	if (th->usrdev)
+		ret = usrdev_import(th->usrdev, id, iopfn, va);
+	return ret;
 }
 
 void devremove(void)
@@ -530,6 +562,13 @@ int devopen(uint64_t id)
 
 	dd = bus_plug(&th->bus, id);
 	return dd;
+}
+
+int devexport(unsigned dd, vaddr_t va, unsigned iopfn)
+{
+	struct thread *th = current_thread();
+
+	return bus_export(&th->bus, dd, va, iopfn);
 }
 
 int devirqmap(unsigned dd, unsigned irq, unsigned sig)

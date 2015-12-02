@@ -33,9 +33,11 @@
 #include <uk/kern.h>
 #include <uk/usrdev.h>
 #include <machine/uk/cpu.h>
+#include <uk/pgalloc.h>
 #include <lib/lib.h>
 
 #define MAXUSRDEVREMS 256
+#define MAXUSRDEVAPERTS 16
 
 static struct slab usrdevs;
 static struct slab usrioreqs;
@@ -49,20 +51,27 @@ struct usrioreq {
 };
 
 struct remth {
-	int use :1;			/* Entry in use (proc) */
-	int bsy :1;			/* Request in progress (device) */
-	unsigned id;			/* Remote ID descriptor */
-	struct thread *th;		/* Remote threads */
+	int use:1;		/* Entry in use (proc) */
+	int bsy:1;		/* Request in progress (device) */
+	unsigned id;		/* Remote ID descriptor */
+	struct thread *th;	/* Remote threads */
 	unsigned irqmap[IRQMAPSZ];	/* Interrupt Remapping Table */
+};
+
+struct apert {
+	vaddr_t procva;
+	vaddr_t devva;
+	l1e_t l1e;
 };
 
 struct usrdev {
 	lock_t lock;
-	struct dev dev;    /* Registered device */
-	struct thread *th; /* Device thread */
-	unsigned sig;      /* Request Signal */
+	struct dev dev;		/* Registered device */
+	struct thread *th;	/* Device thread */
+	unsigned sig;		/* Request Signal */
 
 	struct remth remths[MAXUSRDEVREMS];
+	struct apert apertbl[MAXUSRDEVAPERTS];
 
 	TAILQ_HEAD(,usrioreq) ioreqs;
 };
@@ -74,14 +83,13 @@ struct usrdev_procopq {
 static unsigned _usrdev_open(void *devopq, uint64_t did)
 {
 	int i, ret = -1;
-	struct usrdev *ud = (struct usrdev *)devopq;
+	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
 
 	spinlock(&ud->lock);
 	for (i = 0; i < MAXUSRDEVREMS; i++) {
-		if (!ud->remths[i].use
-		    && !ud->remths[i].bsy)
+		if (!ud->remths[i].use && !ud->remths[i].bsy)
 			break;
 	}
 	if (i >= MAXUSRDEVREMS)
@@ -96,22 +104,15 @@ out:
 	return ret;
 }
 
-static void _usrdev_close(void *devopq, unsigned id)
-{
-	struct usrdev *ud = (struct usrdev *)devopq;
-	/* Current thread: Process or Device */
-
-	spinlock(&ud->lock);
-	ud->remths[id].use = 0;
-	spinunlock(&ud->lock);
-	printf("close(%d)!\n", id);
-}
-
-static int _usrdev_io(void *devopq, unsigned id, uint64_t port, uint64_t val)
+static int _usrdev_io(void *devopq, unsigned id, uint64_t port,
+		      uint64_t val)
 {
 	/* Current thread: Process */
 	struct usrdev *ud = (struct usrdev *)devopq;
 	struct usrioreq *ior;
+
+	if (id >= MAXUSRDEVREMS)
+		return -1;
 
 	ior = structs_alloc(&usrioreqs);
 	ior->id = id;
@@ -119,7 +120,6 @@ static int _usrdev_io(void *devopq, unsigned id, uint64_t port, uint64_t val)
 	ior->val = val;
 
 	spinlock(&ud->lock);
-	printf("ud->remths[%d].bsy = %d\n", id, ud->remths[id].bsy);
 	if (ud->remths[id].bsy) {
 		spinunlock(&ud->lock);
 		structs_free(ior);
@@ -128,14 +128,60 @@ static int _usrdev_io(void *devopq, unsigned id, uint64_t port, uint64_t val)
 	ud->remths[id].bsy = 1;
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
 	spinunlock(&ud->lock);
-	printf("io(%"PRIx64") = %"PRIx64"\n", port, val);
 	thraise(ud->th, ud->sig);
 	return 0;
 }
 
-static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
+static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
+			  unsigned iopfn)
 {
-	struct usrdev *ud = (struct usrdev *)devopq;
+	/* Current thread: Process */
+	int ret;
+	l1e_t expl1e;
+	struct usrdev *ud = (struct usrdev *) devopq;
+
+	assert(__isuaddr(va));
+	if (id >= MAXUSRDEVREMS)
+		return -1;
+	if (iopfn >= MAXUSRDEVAPERTS)
+		return -1;
+
+	ret = pmap_uexport(NULL, va, &expl1e);
+	if (ret)
+		return ret;
+
+	spinlock(&ud->lock);
+	if (ud->apertbl[iopfn].procva) {
+		ret = pmap_uexport_cancel(NULL, ud->apertbl[iopfn].procva);
+		assert(!ret);
+	}
+	if (ud->apertbl[iopfn].devva) {
+		pfn_t pfn;
+
+		ret = pmap_uimport_swap(ud->th->pmap,
+					ud->apertbl[iopfn].devva,
+					ud->apertbl[iopfn].l1e,
+					expl1e, &pfn);
+		assert(!ret);
+
+		if (pfn != PFN_INVALID) {
+			printf("Freeing where imported %x\n", pfn);
+			__freepage(pfn);
+			ret++;
+		}
+		pmap_commit(ud->th->pmap);
+	}
+	pmap_commit(NULL);
+	ud->apertbl[iopfn].procva = va;
+	ud->apertbl[iopfn].l1e = expl1e;
+	spinunlock(&ud->lock);
+	return 0;
+}
+
+static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
+			  unsigned sig)
+{
+	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
 	assert(id < MAXUSRDEVREMS);
@@ -148,10 +194,22 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
 	return 0;
 }
 
+static void _usrdev_close(void *devopq, unsigned id)
+{
+	struct usrdev *ud = (struct usrdev *) devopq;
+	/* Current thread: Process or Device */
+
+	spinlock(&ud->lock);
+	ud->remths[id].use = 0;
+	spinunlock(&ud->lock);
+	printf("close(%d)!\n", id);
+}
+
 static struct devops usrdev_ops = {
 	.open = _usrdev_open,
 	.close = _usrdev_close,
 	.io = _usrdev_io,
+	.export = _usrdev_export,
 	.irqmap = _usrdev_irqmap,
 };
 
@@ -164,9 +222,10 @@ struct usrdev *usrdev_creat(uint64_t id, unsigned sig)
 	ud->th = current_thread();
 	ud->sig = sig;
 	memset(&ud->remths, 0, sizeof(ud->remths));
+	memset(&ud->apertbl, 0, sizeof(ud->apertbl));
 	TAILQ_INIT(&ud->ioreqs);
 
-	dev_init(&ud->dev, id, (void *)ud, &usrdev_ops);
+	dev_init(&ud->dev, id, (void *) ud, &usrdev_ops);
 	if (dev_attach(&ud->dev)) {
 		structs_free(ud);
 		ud = NULL;
@@ -218,6 +277,36 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 		thraise(ud->remths[id].th, sig);
 	}
 	spinunlock(&ud->lock);
+	return 0;
+}
+
+int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
+		  unsigned va)
+{
+	int ret;
+	pfn_t pfn;
+
+	assert(__isuaddr(va));
+	if (id >= MAXUSRDEVREMS)
+		return -1;
+	if (iopfn >= MAXUSRDEVAPERTS)
+		return -1;
+	spinlock(&ud->lock);
+	if (ud->apertbl[iopfn].devva) {
+		ret = pmap_uimport_cancel(NULL, ud->apertbl[iopfn].devva);
+		assert(!ret);
+	}
+	ud->apertbl[iopfn].devva = va;
+	ret = pmap_uimport(NULL, va, ud->apertbl[iopfn].l1e, &pfn);
+	assert(!ret);
+	pmap_commit(NULL);
+	spinunlock(&ud->lock);
+
+	if (pfn != PFN_INVALID) {
+		printf("freeing where imported %x\n", pfn);
+		__freepage(pfn);
+		ret++;
+	}
 	return 0;
 }
 

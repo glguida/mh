@@ -58,6 +58,7 @@ typedef enum {
 #define SYS_OPEN   0x20
 #define SYS_MAPIRQ 0x21
 #define SYS_IO     0x22
+#define SYS_EXPORT 0x23
 
 #define SYS_CREAT  0x30
 #ifndef _ASSEMBLER
@@ -69,6 +70,7 @@ struct sys_poll_ior {
 #define SYS_POLL   0x31
 #define SYS_EIO    0x32
 #define SYS_IRQ    0x33
+#define SYS_IMPORT 0x34
 
 /* System-processes only */
 #define SYS_PUTC 0x1000

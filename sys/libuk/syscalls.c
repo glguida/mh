@@ -118,6 +118,15 @@ int sys_open(u_long id)
 	return ret;
 }
 
+int sys_export(unsigned ddno, u_long va, unsigned iopfn)
+{
+	int ret;
+
+	__syscall3(SYS_EXPORT, (unsigned long) ddno, (unsigned long) va,
+		   (unsigned long) iopfn, ret);
+	return ret;
+}
+
 int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 {
 	int ret;
@@ -167,5 +176,14 @@ int sys_irq(unsigned id, unsigned irq)
 	int ret;
 
 	__syscall2(SYS_IRQ, (unsigned long) id, (unsigned long) irq, ret);
+	return ret;
+}
+
+int sys_import(unsigned id, unsigned iopfn, u_long va)
+{
+	int ret;
+
+	__syscall3(SYS_IMPORT, (unsigned long) id, (unsigned long) iopfn,
+		   va, ret);
 	return ret;
 }

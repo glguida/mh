@@ -61,11 +61,15 @@
 #define PG_S       0x80
 #define PG_G       0x100
 #define PG_COW     0x200
+#define PG_EXPORTD 0x400
+#define PG_IMPORTD 0x800
 #if 0
 #define PG_NX      0x8000000000000000LL
 #else
 #define PG_NX      0
 #endif
+
+#define PG_FLAGS_EXTERNAL (PG_EXPORTD | PG_IMPORTD)
 
 #define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_l0))
 #define __val1tbl(_va) ((l1e_t *)__paeoffva(2, LINOFF+ 2, LINOFF + L2OFF(_va)))
@@ -83,5 +87,12 @@ typedef uint64_t l1e_t;
 
 #define l1epfn(_l1e) ((_l1e)>>PAGE_SHIFT)
 #define l1eflags(_l1e) ((_l1e) & 0x8000000000000fffULL)
+#define l1eprotfl(_l1e) ((_l1e) & (PG_NX|PG_U|PG_W|PG_P))
+
+#define l1e_present(_l1e) ((_l1e) & PG_P)
+#define l1e_imported(_l1e) ((_l1e) & PG_IMPORTD)
+#define l1e_exported(_l1e) ((_l1e) & PG_EXPORTD)
+#define l1e_external(_l1e) ((_l1e) & (PG_FLAGS_EXTERNAL))
+#define l1e_internal(_l1e) (!l1e_external(_l1e))
 
 #endif

@@ -190,7 +190,7 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 }
 
 /* Enter a new user page (or an non-present entry) in the pmap */
-void pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
 {
 	l1e_t ol1e, nl1e, *l1p;
@@ -209,24 +209,33 @@ void pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	else
 		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
 
-	if (is_prot_present(prot))
-		pfn_incref(l1epfn(pfn));
-
 	nl1e = mkl1e(ptoa(pfn), prot);
 	spinlock(&pmap->lock);
-	ol1e = _pmap_set(pmap, l1p, nl1e);
+	ol1e = *l1p;
+	if (l1e_external(ol1e)) {
+		/* Externally controlled */
+		spinunlock(&pmap->lock);
+		if (opfn)
+			*opfn = PFN_INVALID;
+		return -1;
+	}
+	if (nl1e & PG_P)
+		pfn_incref(l1epfn(nl1e));
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
 
 	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
+	return 0;
 }
 
-void pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
+int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		 pfn_t * opfn)
 {
-	l1e_t l1e, ol1e, *l1p1, *l1p2;
+	l1e_t nl1e, ol1e, *l1p1, *l1p2;
 
 	assert(__isuaddr(va));
 	assert(__isuaddr(newva));
@@ -241,15 +250,31 @@ void pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		panic("pmap_uchaddr not implemented (unneeded).");
 
 	spinlock(&pmap->lock);
-	l1e = *l1p1;
-	ol1e = _pmap_set(pmap, l1p2, l1e);
-	(void) _pmap_set(pmap, l1p1, mkl1e(PFN_INVALID, 0));
+	nl1e = *l1p1;
+	if (l1e_external(nl1e)) {
+		/* Cant move externally controlled page */
+		spinunlock(&pmap->lock);
+		*opfn = PFN_INVALID;
+		return -1;
+	}
+	ol1e = *l1p2;
+	if (l1e_external(ol1e)) {
+		/* Can't move into externally controlled page */
+		spinunlock(&pmap->lock);
+		*opfn = PFN_INVALID;
+		return -1;
+	}
+	__setl1e(l1p1, mkl1e(PFN_INVALID, 0));
+	__setl1e(l1p2, nl1e);
+	pmap->tlbflush |= __tlbflushp(ol1e, nl1e);
+	pmap->tlbflush |= __tlbflushp(nl1e, mkl1e(PFN_INVALID, 0));
 	spinunlock(&pmap->lock);
 
 	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
+	return 0;
 }
 
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
@@ -271,6 +296,11 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
+	if (l1e_external(ol1e)) {
+		/* Can't change external mappings. */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
 	if (!(l1eflags(ol1e) & PG_P)) {
 		/* Not present, do not change. */
 		spinunlock(&pmap->lock);
@@ -285,6 +315,172 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	return 0;
+}
+
+int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(l1e);
+	assert(__isuaddr(va));
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	if (l1e_external(ol1e)) {
+		/* Externally controlled already. */
+		spinunlock(&pmap->lock);
+		*l1e = mkl1e(PFN_INVALID, 0);
+		return -1;
+	}
+	nl1e = ol1e | PG_EXPORTD;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	*l1e = nl1e;
+	return 0;
+}
+
+int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(__isuaddr(va));
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	if (!l1e_exported(ol1e)) {
+		/* Not exported! */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+	nl1e = ol1e & ~(l1e_t) PG_EXPORTD;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+
+
+	spinunlock(&pmap->lock);
+
+	return 0;
+}
+
+int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(l1e_exported(extl1e) && "can't import non exported l1e");
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	spinlock(&pmap->lock);
+
+	ol1e = *l1p;
+	if (l1e_external(ol1e)) {
+		/* If you have the bad idea of allowing import mapping
+		 * to be removed, be sure to decref only non-import
+		 * ol1es later on this function. */
+		/* Externally controlled  */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+	nl1e = extl1e & ~(l1e_t) PG_EXPORTD;
+	nl1e |= PG_IMPORTD;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+
+	spinunlock(&pmap->lock);
+
+	if (l1e_present(ol1e) && !pfn_decref(l1epfn(ol1e))) {
+		*pfn = l1epfn(ol1e);
+	} else {
+		*pfn = PFN_INVALID;
+	}
+	return 0;
+}
+
+int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
+		      l1e_t extl1e, pfn_t * pfn)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(l1e_exported(extl1e) && "can't import non exported l1e");
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
+
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	if (!l1e_imported(ol1e)
+	    || l1epfn(ol1e) != l1epfn(curl1e)
+	    || l1eprotfl(ol1e) != l1eprotfl(ol1e))
+		return -1;
+	/* Expected l1e found. Can continume with the import */
+	nl1e = extl1e & ~(l1e_t) PG_EXPORTD;
+	nl1e |= PG_IMPORTD;
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	if (l1e_present(ol1e)
+	    && !l1e_imported(ol1e)
+	    && !pfn_decref(l1epfn(ol1e))) {
+		*pfn = l1epfn(ol1e);
+	} else {
+		*pfn = PFN_INVALID;
+	}
+	return 0;
+}
+
+int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("set to different pmap voluntarily not supported.");
+
+	spinlock(&pmap->lock);
+
+	ol1e = *l1p;
+	if (!l1e_imported(ol1e)) {
+		/* Not imported! */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+	nl1e = mkl1e(PFN_INVALID, 0);
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+
 	spinunlock(&pmap->lock);
 
 	return 0;
@@ -314,11 +510,15 @@ struct pmap *pmap_copy(void)
 		if (!(l1e & PG_P)) {
 			/* Not present, copy */
 			__setl1e(copy, l1e);
+		} else if (l1e_imported(l1e)) {
+			/* Do not inherit imported mappings */
+			__setl1e(copy, 0);
 		} else {
 			/* COW, even for readonly pages */
 			assert(l1e & PG_U);
 			pfn_incref(l1epfn(l1e));
-			l1e &= ~PG_W;
+			/* Remove writable and exported attributes */
+			l1e &= ~(PG_W | PG_EXPORTD);
 			l1e |= PG_COW;
 			__setl1e(orig, l1e);
 			__setl1e(copy, l1e);

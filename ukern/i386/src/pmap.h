@@ -86,11 +86,20 @@ uintptr_t __getpdptr(void);
 l1e_t pmap_setl1e(struct pmap *pmap, vaddr_t va, l1e_t l1e);
 int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
 		pmap_prot_t prot, pfn_t * pfn);
-void pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
+int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
 		pmap_prot_t prot, pfn_t * pfn);
-void pmap_uchaddr(struct pmap *pmap, vaddr_t oldva, vaddr_t newva, pfn_t *pfn);
+int pmap_uchaddr(struct pmap *pmap, vaddr_t oldva, vaddr_t newva,
+		 pfn_t * pfn);
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
+int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e);
+int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va);
+int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn);
+int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
+		      l1e_t extl1e, pfn_t * pfn);
+int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va);
 void pmap_commit(struct pmap *pmap);
+
+struct pmap *pmap_copy(void);
 
 #define pmap_kclear(_pmap, _va, _pfn) pmap_kenter((_pmap), (_va), 0, 0, _pfn)
 #define pmap_uclear(_pmap, _va, _pfn) pmap_uenter((_pmap), (_va), 0, 0, _pfn)

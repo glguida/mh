@@ -174,6 +174,32 @@ out_io:
 	return ret;
 }
 
+int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
+{
+	int ret = -1;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -1;
+
+	spinunlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		printf("Uh? %d\n", desc);
+		goto out_io;
+	}
+	assert(d != NULL);
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		goto out_io;
+	}
+	ret = d->ops->export(d->devopq, b->devs[desc].devid, va, iopfn);
+	spinunlock(&d->lock);
+      out_io:
+	return ret;
+}
+
 int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 {
 	int ret = -1;

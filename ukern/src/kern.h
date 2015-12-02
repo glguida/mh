@@ -104,6 +104,8 @@ int vmunmap(vaddr_t);
 int devcreat(uint64_t id, unsigned sig);
 int devpoll(uint64_t * p, uint64_t * v);
 int deveio(unsigned id);
+int devirq(unsigned id, unsigned irq);
+int devimport(unsigned id, unsigned iopfn, unsigned va);
 void devremove(void);
 int devopen(uint64_t id);
 int devintmap(unsigned ddno, unsigned id, unsigned sig);
