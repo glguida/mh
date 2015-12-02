@@ -163,6 +163,7 @@ struct thread *thfork(void)
 		 * implementing local high mem mapping, using only one
 		 * slot and a couple of INVLPG's */
 		pfn = pgalloc(1, PFNT_USER, GFP_KERN);
+		pfndb_clrref(pfn);
 		if (copy_from_user((void *) ptova(pfn), va, PAGE_SIZE)) {
 			/* Not present */
 			pgfree(pfn, 1);

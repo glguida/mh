@@ -89,4 +89,13 @@ uint64_t pfndb_clrref(unsigned pfn);
 #define pfn_clrref(_pfn) pfndb_clrref((_pfn))
 #define pfn_getref(_pfn) pfndb_getref((_pfn))
 
+static inline pfn_t __allocuser(void)
+{
+	pfn_t pfn;
+
+	pfn = pgalloc(1, PFNT_USER, GFP_HIGH);
+	pfn_clrref(pfn);
+	return pfn;
+}
+
 #endif
