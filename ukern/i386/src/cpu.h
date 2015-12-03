@@ -51,7 +51,7 @@ struct cpu_info {
 	int tlbop; /* TLB shootdown */
 
 	uint16_t phys_id;
-	uint16_t acpi_id;
+	uint16_t plat_id;
 	struct tss tss;
 	struct cpu_info *self;
 };

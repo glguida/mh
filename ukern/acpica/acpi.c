@@ -59,6 +59,8 @@ char *madt_subtstr[] = {
 
 #if _DREX_MACHINE==i386
 
+#include <machine/uk/apic.h>
+
 #define madt_foreach(_cases)						\
 	do {								\
 		len = acpi_madt->Header.Length - sizeof(*acpi_madt);	\
@@ -73,12 +75,16 @@ char *madt_subtstr[] = {
 		}							\
 	} while (0)
 
-void lapic_init(paddr_t);
-int cpu_add(uint16_t physid, uint16_t acpiid);
+void lapic_init(paddr_t, unsigned no);
+void lapic_add(uint16_t physid, uint16_t acpiid);
+void lapic_add_nmi(uint8_t platformid, int l);
+void lapic_platform_done(void);
+void ioapic_init(unsigned no);
+void ioapic_platform_done(void);
 
 static int acpi_madt_scan(void)
 {
-	unsigned nioapic = 0;
+	unsigned nlapic = 0, nioapic = 0;
 	int len;
 	uint8_t type;
 	paddr_t lapic_addr = acpi_madt->Address;
@@ -90,27 +96,35 @@ static int acpi_madt_scan(void)
 		struct acpi_madt_local_apic_nmi *lanmi;
 	} _;
 
-	/* Configure Local Apic */
+	/* Conf */
 	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC_OVERRIDE:
 			printf("ACPI MADT LAPIC OVERRIDE %08x\n",
 			       _.lavr->Address);
 			lapic_addr = _.lavr->Address;
 			break;
-		default:
-			break;
-		});
-	lapic_init(lapic_addr);
-
-	/* Search for APICs. Output of this stage is number of CPUs
-	   and I/O APICs */
-	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC:
 			printf("ACPI MADT LOCAL APIC %02d %02d %08x\n",
 			       _.lapic->Id, _.lapic->ProcessorId,
 			       _.lapic->LapicFlags);
 			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
-				cpu_add(_.lapic->Id, _.lapic->ProcessorId);
+				nlapic++;
+		default:
+			break;
+		});
+	if (nlapic == 0) {
+		printf("Warning: ZERO LAPIC ACPI SAYS");
+		nlapic = 1;
+	}
+	lapic_init(lapic_addr, nlapic);
+
+	/* Search for APICs. Output of this stage is number of CPUs
+	   and I/O APICs */
+	madt_foreach({
+		case ACPI_MADT_TYPE_LOCAL_APIC:
+			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
+				lapic_add(_.lapic->Id, _.lapic->ProcessorId);
+			//cpu_add(_.lapic->Id, _.lapic->ProcessorId);
 			break;
 		case ACPI_MADT_TYPE_LOCAL_SAPIC:
 			printf("Warning: LOCAL SAPIC ENTRY IGNORED\n");
@@ -118,54 +132,47 @@ static int acpi_madt_scan(void)
 		case ACPI_MADT_TYPE_LOCAL_X2APIC:
 			printf("Warning: LOCAL X2APIC ENTRY IGNORED\n");
 			break;
-		case ACPI_MADT_TYPE_IO_SAPIC:
-			printf("Warning: I/O SAPIC ENTRY IGNORED\n");
-			break;
 		case ACPI_MADT_TYPE_IO_APIC:
 			printf("ACPI MADT I/O APIC %02d %08x %02d\n",
 			       _.ioapic->Id, _.ioapic->Address,
 			       _.ioapic->GlobalIrqBase);
 			nioapic++;
 			break;
+		case ACPI_MADT_TYPE_IO_SAPIC:
+			printf("Warning: I/O SAPIC ENTRY IGNORED\n");
+			break;
 		default:
 			break;
 		});
 	ioapic_init(nioapic);
 
-	/* Setup I/O APICS. Output of this stage is number of GSIs */
+	/* Setup I/O APICS. Output of this stage is number of GSIs and
+	 * LAPIC NMI configuration */
 	nioapic = 0;
-	len = acpi_madt->Header.Length - sizeof(*acpi_madt);
-	_.ptr = (uint8_t *) acpi_madt + sizeof(*acpi_madt);
-	while (len > 0) {
-		type = *_.ptr;
-		switch (type) {
+	madt_foreach({
 		case ACPI_MADT_TYPE_IO_APIC:
 			ioapic_add(nioapic, _.ioapic->Address,
 				   _.ioapic->GlobalIrqBase);
-			nioapic++;
 			break;
 		case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
-			if (_.lanmi->ProcessorId == 0xff) {
-				/* ACPI SPEC is a bit contradictory on
-				 * this one case. */
-				printf("Warning: BCAST LAPIC NMI IGNORED\n");
-				break;
-			}
 			printf("ACPI MADT LOCAL APIC NMI"
 			       " LINT%01d FL:%04x PROC:%02d\n",
 			       _.lanmi->Lint, _.lanmi->IntiFlags,
 			       _.lanmi->ProcessorId);
+			/* Ignore IntiFlags as NMI vectors ignore
+			 * polarity and trigger */
+			lapic_add_nmi(_.lanmi->ProcessorId, _.lanmi->Lint);
 			break;
 		case ACPI_MADT_TYPE_LOCAL_X2APIC_NMI:
 			printf("Warning: LOCAL X2APIC NMI ENTRY IGNORED\n");
 			break;
 		default:
 			break;
-		}
-		len -= *(_.ptr + 1);
-		_.ptr += *(_.ptr + 1);
-	}
+		});
 
+
+	/* Finished configuring LAPIC */
+	lapic_platform_done();
 	return 0;
 }
 #endif				/* MACHINE=i386 */

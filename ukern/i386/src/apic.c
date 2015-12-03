@@ -34,8 +34,19 @@
 #include <machine/uk/apic.h>
 
 void *lapic_base = NULL;
+unsigned lapics_no;
+struct lapic_desc {
+	unsigned physid;
+	unsigned platformid;
+	uint32_t lint[2];
+} *lapics;
 unsigned ioapics_no;
-struct ioapic_desc *ioapics;
+struct ioapic_desc {
+	void *base;
+	unsigned irq;
+	unsigned pins;
+} *ioapics;
+
 
 /* Memory Registers */
 #define IO_REGSEL 0x00
@@ -48,11 +59,72 @@ struct ioapic_desc *ioapics;
 #define IO_PIN_LO(x) 	(0x10 + 2*(x))
 #define IO_PIN_HI(x)	(0x11 + 2*(x))
 
-void lapic_init(paddr_t base)
+void lapic_init(paddr_t base, unsigned no)
 {
-
 	lapic_base = kvmap(base, LAPIC_SIZE);
+	lapics = heap_alloc(sizeof(struct lapic_desc) * no);
+	lapics_no = no;
 	dprintf("LAPIC PA: %08llx VA: %p\n", base, lapic_base);
+}
+
+int lapic_add(uint16_t physid, uint16_t plid)
+{
+	static unsigned i = 0;
+
+	lapics[i].physid = physid;
+	lapics[i].platformid = plid;
+	lapics[i].lint[0] = 0;
+	lapics[i].lint[1] = 0;
+	i++;
+}
+
+void lapic_add_nmi(uint8_t pid, int l)
+{
+	int i;
+
+	if (pid = 0xff) {
+		for (i = 0; i < lapics_no; i++)
+			lapics[i].lint[l] = (1L << 16)|(APIC_DLVR_NMI << 8);
+		return;
+	}
+	for (i = 0; i < lapics_no; i++) {
+		if (lapics[i].platformid == pid) {
+			if (l) l = 1;
+			lapics[i].lint[l] = (1L << 16)|(APIC_DLVR_NMI << 8);
+			return;
+		}
+	}
+	printf("Warning: LAPIC NMI for non-existing platform ID %d\n", pid);
+}
+
+void lapic_configure(void)
+{
+	unsigned i, physid = lapic_getcurrent();
+	struct lapic_desc *d = NULL;
+
+	for (i = 0; i < lapics_no; i++) {
+		if (lapics[i].physid == physid)
+			d = lapics + i;
+	}
+	if (d == NULL) {
+		printf("Warning: Current CPU not in Platform Tables!\n");
+		/* Try to continue, ignore the NMI configuration */
+	} else  {
+		lapic_write(L_LVT_LINT(0), d->lint[0]);
+		lapic_write(L_LVT_LINT(1), d->lint[1]);
+	}
+	/* Enable LAPIC */
+	lapic_write(L_MISC, lapic_read(L_MISC) | 0x100);
+}
+
+void lapic_platform_done(void)
+{
+	int i;
+
+	for (i = 0; i < lapics_no; i++)
+		cpu_add(lapics[i].physid, lapics[i].platformid);
+	/* Since we're here, configure LAPIC of BSP */
+	lapic_configure();
 }
 
 void ioapic_init(unsigned no)

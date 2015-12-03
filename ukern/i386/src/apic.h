@@ -71,7 +71,8 @@
 #define LAPIC_SIZE      (1UL << 12)
 
 extern void *lapic_base;
-void lapic_init(paddr_t base);
+void lapic_init(paddr_t base, unsigned no);
+void lapic_enable(void);
 
 static inline void lapic_write(unsigned reg, uint32_t data)
 {
@@ -115,11 +116,6 @@ static inline void lapic_ipi_broadcast(uint8_t dlvr, uint8_t vct)
 #define IOAPIC_SIZE     (0x20)
 
 extern unsigned ioapics_no;
-extern struct ioapic_desc {
-	void *base;
-	unsigned irq;
-	unsigned pins;
-} *ioapics;
 
 void ioapic_init(unsigned no);
 void ioapic_add(unsigned num, paddr_t base, unsigned irqbase);

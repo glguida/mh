@@ -58,7 +58,7 @@ struct cpu_info *cpuinfo_get(unsigned id)
 
 struct cpu *cpu_setup(int);
 
-int cpu_add(uint16_t physid, uint16_t acpiid)
+int cpu_add(uint16_t physid, uint16_t platformid)
 {
 	int id;
 	struct cpu_info *cpuinfo;
@@ -74,14 +74,14 @@ int cpu_add(uint16_t physid, uint16_t acpiid)
 	}
 
 	id = number_cpus++;
-	dprintf("Adding CPU %d (P:%d, A:%d)\n", id, physid, acpiid);
+	dprintf("Adding CPU %d (PHYS:%d, PLAT:%d)\n", id, physid, platformid);
 
 	cpuinfo = heap_alloc(sizeof(struct cpu_info));
 	cpuinfo->cpu_id = id;
 	cpuinfo->thread = NULL;
 	cpuinfo->cpu = cpu_setup(id);
 	cpuinfo->phys_id = physid;
-	cpuinfo->acpi_id = acpiid;
+	cpuinfo->plat_id = platformid;
 	cpuinfo->tss.iomap = 108;
 	cpuinfo->self = cpuinfo;
 	cpus[id] = cpuinfo;
