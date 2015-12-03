@@ -96,10 +96,12 @@ static int acpi_madt_scan(void)
 		struct acpi_madt_local_apic_nmi *lanmi;
 	} _;
 
-	/* Conf */
+	/* Search for APICs. Output of this stage is number of Local
+	   and I/O APICs and Lapic address. */
+	/* *INDENT-OFF* */
 	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC_OVERRIDE:
-			printf("ACPI MADT LAPIC OVERRIDE %08x\n",
+			printf("ACPI MADT LAPIC OVERRIDE %08llx\n",
 			       _.lavr->Address);
 			lapic_addr = _.lavr->Address;
 			break;
@@ -109,22 +111,11 @@ static int acpi_madt_scan(void)
 			       _.lapic->LapicFlags);
 			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
 				nlapic++;
-		default:
-			break;
-		});
-	if (nlapic == 0) {
-		printf("Warning: ZERO LAPIC ACPI SAYS");
-		nlapic = 1;
-	}
-	lapic_init(lapic_addr, nlapic);
-
-	/* Search for APICs. Output of this stage is number of CPUs
-	   and I/O APICs */
-	madt_foreach({
-		case ACPI_MADT_TYPE_LOCAL_APIC:
-			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
-				lapic_add(_.lapic->Id, _.lapic->ProcessorId);
-			//cpu_add(_.lapic->Id, _.lapic->ProcessorId);
+		case ACPI_MADT_TYPE_IO_APIC:
+			printf("ACPI MADT I/O APIC %02d %08x %02d\n",
+			       _.ioapic->Id, _.ioapic->Address,
+			       _.ioapic->GlobalIrqBase);
+			nioapic++;
 			break;
 		case ACPI_MADT_TYPE_LOCAL_SAPIC:
 			printf("Warning: LOCAL SAPIC ENTRY IGNORED\n");
@@ -132,28 +123,42 @@ static int acpi_madt_scan(void)
 		case ACPI_MADT_TYPE_LOCAL_X2APIC:
 			printf("Warning: LOCAL X2APIC ENTRY IGNORED\n");
 			break;
-		case ACPI_MADT_TYPE_IO_APIC:
-			printf("ACPI MADT I/O APIC %02d %08x %02d\n",
-			       _.ioapic->Id, _.ioapic->Address,
-			       _.ioapic->GlobalIrqBase);
-			nioapic++;
-			break;
 		case ACPI_MADT_TYPE_IO_SAPIC:
 			printf("Warning: I/O SAPIC ENTRY IGNORED\n");
 			break;
+
 		default:
 			break;
 		});
+	/* *INDENT-ON* */
+	if (nlapic == 0) {
+		printf("Warning: NO LOCAL APICS, ACPI SAYS");
+		nlapic = 1;
+	}
+	lapic_init(lapic_addr, nlapic);
 	ioapic_init(nioapic);
 
-	/* Setup I/O APICS. Output of this stage is number of GSIs and
-	 * LAPIC NMI configuration */
-	nioapic = 0;
+	/* Add APICs. Local and I/O APICs existence is notified to the
+	 * kernel after this. */
+	/* *INDENT-OFF* */
 	madt_foreach({
+		case ACPI_MADT_TYPE_LOCAL_APIC:
+			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
+				lapic_add(_.lapic->Id, _.lapic->ProcessorId);
+			break;
 		case ACPI_MADT_TYPE_IO_APIC:
 			ioapic_add(nioapic, _.ioapic->Address,
 				   _.ioapic->GlobalIrqBase);
 			break;
+		default:
+			break;
+		});
+	/* *INDENT-ON* */
+
+	/* Setup APICs. */
+	nioapic = 0;
+	/* *INDENT-OFF* */
+	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
 			printf("ACPI MADT LOCAL APIC NMI"
 			       " LINT%01d FL:%04x PROC:%02d\n",
@@ -170,6 +175,7 @@ static int acpi_madt_scan(void)
 			break;
 		});
 
+	/* *INDENT-ON* */
 
 	/* Finished configuring LAPIC */
 	lapic_platform_done();
