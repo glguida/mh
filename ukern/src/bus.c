@@ -58,7 +58,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	struct dev *d;
 
 	spinlock(&sys_device_rbtree_lock);
-	d = rb_tree_find_node(&sys_device_rbtree, (void *)&did);
+	d = rb_tree_find_node(&sys_device_rbtree, (void *) &did);
 	spinunlock(&sys_device_rbtree_lock);
 
 	if (d == NULL)
@@ -67,8 +67,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	spinlock(&b->lock);
 
 	for (i = 0; i < MAXBUSDEVS; i++) {
-		if (!b->devs[i].bsy
-		    && !b->devs[i].dev)
+		if (!b->devs[i].bsy && !b->devs[i].dev)
 			break;
 	}
 	if (i >= MAXBUSDEVS)
@@ -95,7 +94,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	/* Mark it open. */
 	b->devs[i].bsy = 1;
 	ret = i;
-out:
+      out:
 	spinunlock(&b->lock);
 	return ret;
 }
@@ -141,7 +140,7 @@ int bus_unplug(struct bus *b, unsigned desc)
 	b->devs[desc].dev = NULL;
 	b->devs[desc].devid = 0;
 	ret = 0;
-no_unplug:
+      no_unplug:
 	b->devs[desc].bsy = 0;
 	spinunlock(&b->lock);
 	return ret;
@@ -168,7 +167,7 @@ int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 	}
 	ret = d->ops->io(d->devopq, b->devs[desc].devid, port, val);
 	spinunlock(&d->lock);
-out_io:
+      out_io:
 	spinunlock(&b->lock);
 	return ret;
 }
@@ -223,7 +222,7 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	}
 	ret = d->ops->irqmap(d->devopq, b->devs[desc].devid, irq, sig);
 	spinunlock(&d->lock);
-out_io:
+      out_io:
 	return ret;
 }
 
@@ -232,10 +231,10 @@ int dev_attach(struct dev *d)
 	spinlock(&sys_device_rbtree_lock);
 	if (rb_tree_find_node(&sys_device_rbtree, &d->did)) {
 		spinunlock(&sys_device_rbtree_lock);
-		printf("device %"PRIx64" already existing\n", d->did);
+		printf("device %" PRIx64 " already existing\n", d->did);
 		return -1;
 	}
-	rb_tree_insert_node(&sys_device_rbtree, (void *)d);
+	rb_tree_insert_node(&sys_device_rbtree, (void *) d);
 	spinunlock(&sys_device_rbtree_lock);
 
 	return 0;
@@ -265,10 +264,10 @@ int dev_attach(struct dev *d)
 void dev_detach(struct dev *d)
 {
 	struct bdeve *bd, *td;
-	LIST_HEAD(,bdeve) destroy_list;
+	LIST_HEAD(, bdeve) destroy_list;
 
 	spinlock(&sys_device_rbtree_lock);
-	rb_tree_remove_node(&sys_device_rbtree, (void *)d);
+	rb_tree_remove_node(&sys_device_rbtree, (void *) d);
 	spinunlock(&sys_device_rbtree_lock);
 
 	LIST_INIT(&destroy_list);

@@ -40,12 +40,12 @@
 struct bus {
 	lock_t lock;
 	struct bdeve {
-		int bsy :1; /* Currently being used (open) */
-		int plg :1; /* Device not unplugged */
+		int bsy:1;	/* Currently being used (open) */
+		int plg:1;	/* Device not unplugged */
 		unsigned devid;
 		struct bus *bus;
 		struct dev *dev;
-		LIST_ENTRY(bdeve) list;		
+		 LIST_ENTRY(bdeve) list;
 	} devs[MAXBUSDEVS];
 };
 
@@ -62,11 +62,11 @@ struct devops {
 struct dev {
 	uint64_t did;
 	lock_t lock;
-	int offline :1;
+	int offline:1;
 
 	void *devopq;
 	struct devops *ops;
-	LIST_HEAD(,bdeve) busdevs;
+	 LIST_HEAD(, bdeve) busdevs;
 	struct rb_node rb_node;
 };
 
