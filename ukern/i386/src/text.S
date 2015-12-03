@@ -29,6 +29,7 @@
 
 #include <machine/uk/asm.h>
 
+WEAK_ALIAS(_boot_putcinit, b800_putcinit)
 WEAK_ALIAS(_boot_putc, b800_putc)
 WEAK_ALIAS(_boot_sysputc, b800_sysputc)
 
@@ -53,6 +54,10 @@ ENTRY(vptrmax)
 END(vptrmax)
 
 /* HACK AHEAD */
+
+ENTRY(b800_putcinit)
+	ret
+END(b800_putcinit)
 
 ENTRY(b800_sysputc)
 	mov $6, %ah

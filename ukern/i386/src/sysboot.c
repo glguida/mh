@@ -69,13 +69,12 @@ void serial_putc(int c)
 }
 
 #ifdef SERIAL_PUTC
-#warning BUH
+__decl_alias(_boot_putcinit, serial_init);
 __decl_alias(_boot_putc, serial_putc);
 #endif
 
 void platform_init(void)
 {
-	serial_init();
 	acpi_findrootptr();
 	acpi_init();
 	pic_off();
@@ -93,6 +92,7 @@ void sysboot(void)
 	uint32_t pfn_maxmem = 0;
 	uint32_t pfn_maxaddr = 0;
 
+	printf("Welcome!\n");
 	if (_boot_cmdline != NULL)
 		printf("\ncmdline: %s\n\n", _boot_cmdline);
 

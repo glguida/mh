@@ -139,6 +139,7 @@ multiboot_entry:
 
 	call _C_LABEL(_fixup_gdt)
 	call _C_LABEL(_clear_bss)
+	call _C_LABEL(_boot_putcinit)
 	call sysboot
 halt:
 	pushl $haltstring
