@@ -34,7 +34,7 @@
 #include <uk/types.h>
 #include <uk/assert.h>
 #include <uk/queue.h>
-#include <machine/uk/lapic.h>
+#include <machine/uk/apic.h>
 #include <machine/uk/i386.h>
 
 #define UKERN_MAX_CPUS 64

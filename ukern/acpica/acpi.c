@@ -62,54 +62,68 @@ static int acpi_madt_scan(void)
 {
 	int len;
 	uint8_t type;
-	uint8_t *ptr;
+	unsigned nioapic = 0;	
+	union {
+		uint8_t *ptr;
+		struct acpi_madt_local_apic *lapic;
+		struct acpi_madt_io_apic *ioapic;
+	} _;
 	void lapic_init(paddr_t);
 	int cpu_add(uint16_t physid, uint16_t acpiid);
 
+
+
 	lapic_init(acpi_madt->Address);
 
+
+	/* Search for APICs. Output of this stage is number of CPUs
+	   and I/O APICs */
 	len = acpi_madt->Header.Length - sizeof(*acpi_madt);
-	ptr = (uint8_t *) acpi_madt + sizeof(*acpi_madt);
-
+	_.ptr = (uint8_t *) acpi_madt + sizeof(*acpi_madt);
 	while (len > 0) {
-		type = *ptr;
+		type = *_.ptr;
 		switch (type) {
-		case ACPI_MADT_TYPE_LOCAL_APIC:{
-				struct acpi_madt_local_apic *lapic =
-					(struct acpi_madt_local_apic *)
-					ptr;
-
-				if (!
-				    (lapic->
-				     LapicFlags & ACPI_MADT_ENABLED)) {
-					dprintf("Found disabled processor entry.\n");
-					break;
-				}
-
-				dprintf("Found Processor LAPIC %02x\n",
-					lapic->Id);
-				cpu_add(lapic->Id, lapic->ProcessorId);
-				break;
-			}
-			/* XXX: GIANLUCA: X2APIC? SAPIC?IOAPIC? */
-		case ACPI_MADT_TYPE_IO_APIC:{
-				struct acpi_madt_io_apic *ioapic =
-					(struct acpi_madt_io_apic *) ptr;
-
-				dprintf("Found I/O APIC %02x\n",
-					ioapic->Id);
-				//ioapic_add(ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
-				break;
-			}
+		case ACPI_MADT_TYPE_LOCAL_APIC:
+			printf("ACPI MADT LOCAL APIC %02d %02d %08x\n",
+			       _.lapic->Id, _.lapic->ProcessorId,
+			       _.lapic->LapicFlags);
+			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
+				cpu_add(_.lapic->Id, _.lapic->ProcessorId);
+			break;
+		/* XXX: GIANLUCA: X2APIC? SAPIC?IOAPIC? */
+		case ACPI_MADT_TYPE_IO_APIC:
+			printf("ACPI MADT I/O APIC %02d %08x, %02d\n",
+			       _.ioapic->Id, _.ioapic->Address,
+			       _.ioapic->GlobalIrqBase);
+			nioapic++;
+			break;
 		default:
-			printf("Found unhandled subtype: %02x (%s)\n",
-			       type, madt_subtype_str(*ptr));
 			break;
 		}
-		len -= *(ptr + 1);
-		ptr += *(ptr + 1);
+		len -= *(_.ptr + 1);
+		_.ptr += *(_.ptr + 1);
 	}
+	ioapic_init(nioapic);
 
+	/* Setup I/O APICS. Output of this stage is number of GSIs */
+	nioapic = 0;
+	len = acpi_madt->Header.Length - sizeof(*acpi_madt);
+	_.ptr = (uint8_t *) acpi_madt + sizeof(*acpi_madt);
+	while (len > 0) {
+		type = *_.ptr;
+		switch (type) {
+		/* XXX: GIANLUCA: X2APIC? SAPIC?IOAPIC? */
+		case ACPI_MADT_TYPE_IO_APIC:
+			ioapic_add(nioapic, _.ioapic->Address,
+				   _.ioapic->GlobalIrqBase);
+			nioapic++;
+			break;
+		default:
+			break;
+		}
+		len -= *(_.ptr + 1);
+		_.ptr += *(_.ptr + 1);
+	}
 
 	return 0;
 }

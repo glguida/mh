@@ -28,7 +28,7 @@
 
 
 #include <uk/types.h>
-#include <machine/uk/lapic.h>
+#include <machine/uk/apic.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <machine/uk/i386.h>

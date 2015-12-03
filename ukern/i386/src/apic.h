@@ -27,8 +27,8 @@
  */
 
 
-#ifndef _i386_lapic_h
-#define _i386_lapic_h
+#ifndef _i386_apic_h
+#define _i386_apic_h
 
 #define APIC_DLVR_FIX   0
 #define APIC_DLVR_PRIO  1
@@ -107,5 +107,19 @@ static inline void lapic_ipi_broadcast(uint8_t dlvr, uint8_t vct)
 }
 
 #define lapic_getcurrent(void)  (lapic_read(L_IDREG) >> 24)
+
+/*
+ * I/O APIC
+ */
+
+#define IOAPIC_SIZE     (0x20)
+
+extern unsigned ioapics_no;
+extern struct ioapic_desc {
+	void *base;
+	unsigned irq;
+	unsigned pins;
+} *ioapics;
+void ioapic_init(unsigned no);
 
 #endif

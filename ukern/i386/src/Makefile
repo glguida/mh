@@ -5,7 +5,7 @@ include $(SRCROOT)/mk/mk.conf
 INCS= ukparam.h
 INCDIR= machine/uk
 
-UKINCS= ansi.h asm.h cdefs.h cpu.h i386.h int_types.h lapic.h locks.h	\
+UKINCS= ansi.h asm.h cdefs.h cpu.h i386.h int_types.h apic.h locks.h	\
 	machdep.h pae.h param.h platform.h pmap.h types.h ukparam.h	\
 	vmparam.h tlb.h
 UKINCDIR= machine/uk

@@ -1,5 +1,5 @@
 SRCS+= boot.S biosops.S idt.S text.S locks.S pae.S
-SRCS+= cpu.c lapic.c sysboot.c tlb.c
+SRCS+= cpu.c apic.c sysboot.c tlb.c
 
 # Used by MI part.
 SRCS+= pmap.c machdep.c
