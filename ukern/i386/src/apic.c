@@ -82,7 +82,7 @@ void lapic_add_nmi(uint8_t pid, int l)
 {
 	int i;
 
-	if (pid = 0xff) {
+	if (pid == 0xff) {
 		for (i = 0; i < lapics_no; i++)
 			lapics[i].lint[l] = (1L << 16)|(APIC_DLVR_NMI << 8);
 		return;
