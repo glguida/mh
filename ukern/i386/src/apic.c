@@ -28,6 +28,7 @@
 
 
 #include <uk/types.h>
+#include <uk/heap.h>
 #include <uk/vmap.h>
 #include <lib/lib.h>
 #include <machine/uk/apic.h>
@@ -89,3 +90,16 @@ void ioapic_add(unsigned num, paddr_t base, unsigned irqbase)
 	       num, base, ioapics[num].base, irqbase, ioapics[num].pins);
 }
 
+unsigned ioapic_irqs(void)
+{
+	unsigned i;
+	unsigned lirq, maxirq = 0;
+
+	for (i = 0; i < ioapics_no; i++) {
+		lirq = ioapics[i].irq + ioapics[i].pins;
+		if (lirq > maxirq)
+			maxirq = lirq;
+	}
+
+	return maxirq;
+}

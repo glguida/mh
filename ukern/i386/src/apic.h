@@ -120,6 +120,9 @@ extern struct ioapic_desc {
 	unsigned irq;
 	unsigned pins;
 } *ioapics;
+
 void ioapic_init(unsigned no);
+void ioapic_add(unsigned num, paddr_t base, unsigned irqbase);
+unsigned ioapic_irqs(void);
 
 #endif

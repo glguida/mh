@@ -79,6 +79,7 @@ void platform_init(void)
 	acpi_findrootptr();
 	acpi_init();
 	pic_off();
+	while(1);
 }
 
 #define E820_START       ((struct e820e *)UKERN_BSMAP16)
