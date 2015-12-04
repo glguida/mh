@@ -201,8 +201,6 @@ unsigned ioapic_irqs(void)
 
 void ioapic_platform_done(void)
 {
-	/* Hand off PIC */
-	pic_off();
 }
 
 void gsi_init(void)

@@ -75,6 +75,7 @@ __decl_alias(_boot_putc, serial_putc);
 
 void platform_init(void)
 {
+	pic_off();
 	acpi_findrootptr();
 	acpi_init();
 	gsi_dump();
