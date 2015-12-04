@@ -84,8 +84,8 @@ void lapic_add(uint16_t physid, uint16_t plid)
 
 	lapics[i].physid = physid;
 	lapics[i].platformid = plid;
-	lapics[i].lint[0] = 0;
-	lapics[i].lint[1] = 0;
+	lapics[i].lint[0] = 0x10000;
+	lapics[i].lint[1] = 0x10000;
 	i++;
 }
 
@@ -104,7 +104,7 @@ void lapic_add_nmi(uint8_t pid, int l)
 			if (l)
 				l = 1;
 			lapics[i].lint[l] =
-				(1L << 16) | (APIC_DLVR_NMI << 8);
+				(APIC_DLVR_NMI << 8);
 			return;
 		}
 	}
