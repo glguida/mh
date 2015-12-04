@@ -54,7 +54,16 @@
 	
 	mov %esp, %eax
 	pushl %eax
+
+	.if \vct == VECT_SYSC
+
+	call _C_LABEL(syscall_entry)
+	add $4, %esp
+
+	.else
+
 	pushl $\vct
+
 	.if \vct == 2
 	call _C_LABEL(nmi_entry)
 	.elseif \vct < 32
@@ -62,7 +71,10 @@
 	.else
 	call _C_LABEL(intr_entry)
 	.endif
+
 	add $8, %esp
+
+	.endif
 .endm
 
 .macro _do_iret_exit

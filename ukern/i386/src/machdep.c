@@ -173,29 +173,36 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 	return 0;
 }
 
-int intr_entry(uint32_t vect, struct usrframe *f)
+int syscall_entry(struct usrframe *f)
 {
 	struct thread *th = current_thread();
 
-	/* Idle thread can receive NOP IPI */
-	if (thread_is_idle(th) && vect == IPI_NOP) {
-		printf("%d: idle nop!\n", cpu_number());
-		lapic_write(L_EOI, 0);
-		return 0;
-	}
+	assert(f->cs == UCS);
+	th->frame = f;
+	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
+	do_softirq();
+	th->frame = NULL;
+	return 0;
+}
+
+int intr_entry(uint32_t vect, struct usrframe *f)
+{
+
+	struct thread *th = current_thread();
 
 	/* We only expect interrupts in userspace. */
 	assert(f->cs == UCS || thread_is_idle(th));
 	th->frame = f;
 
-	if (vect == 0x80) {
-		f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
-	} else if (vect == IPI_NOP) {
-		printf("NOP");
-		/* Nop */
-	} else {
-		printf("\nUnhandled interrupt %2u\n", vect);
+	switch(vect) {
+	case IPI_NOP:
+		printf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
+		lapic_write(L_EOI, 0);
+		break;
+	default:
+		printf("\nUnknown interrupt %2u\n", vect);
 		framedump(f);
+		lapic_write(L_EOI, 0);
 	}
 
 	do_softirq();
