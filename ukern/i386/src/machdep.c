@@ -185,7 +185,7 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	}
 
 	/* We only expect interrupts in userspace. */
-	assert(f->cs == UCS);
+	assert(f->cs == UCS || thread_is_idle(th));
 	th->frame = f;
 
 	if (vect == 0x80) {
