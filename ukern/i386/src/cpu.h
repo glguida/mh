@@ -40,8 +40,6 @@
 #define UKERN_MAX_CPUS 64
 #define UKERN_MAX_PHYSCPUS 64
 
-#define IPI_NOP 0x90
-
 struct cpu_info {
 	/* Must be first */
 	uint32_t cpu_id;	/* fs:0 */

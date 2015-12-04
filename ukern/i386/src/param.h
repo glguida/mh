@@ -120,6 +120,8 @@
 extern unsigned long _ukern_end;
 #endif
 
+#define VECT_NOP 0x90
+
 #endif				/* _UKERNEL */
 
 #define VECT_SYSC 0x80

@@ -194,8 +194,8 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	assert(f->cs == UCS || thread_is_idle(th));
 	th->frame = f;
 
-	switch(vect) {
-	case IPI_NOP:
+	switch (vect) {
+	case VECT_NOP:
 		printf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
 		lapic_write(L_EOI, 0);
 		break;

@@ -282,7 +282,7 @@ static void do_resched(void)
 			printf("Added runnable!\n");
 			printf("Waking first idle cpu! (%llx)\n",
 			       cpu_idlemap);
-			once_cpumask(cpu_idlemap, cpu_ipi(i, IPI_NOP));
+			once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
 			spinunlock(&sched_lock);
 			break;
 		case THST_STOPPED:
