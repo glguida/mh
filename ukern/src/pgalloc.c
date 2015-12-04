@@ -110,7 +110,7 @@ ___get_neighbors(pfn_t addr, size_t size,
 
 	pze = (struct pgzentry *) pfndb_getptr(addr - 1);
 	if (is_pgzterm(addr - 1))
-		*pz = pze;
+		*pz = pfndb_getptr(addr - pze->size);
 
       _next:
 	if (PFNZ_TYPE(addr) != PFNZ_TYPE(addr + 1))
