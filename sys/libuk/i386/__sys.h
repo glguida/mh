@@ -26,11 +26,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <machine/uk/ukparam.h>
 
-
-#define __systrap		\
+#define _str(_x) #_x
+#define ___systrap(_vect)	\
 	"movl %0, %%eax;"	\
-	"int $0x80;"
+	"int $" _str(_vect)
+
+#define __systrap ___systrap(VECT_SYSC)
+
 
 #define __syscall0(__sys, __ret)	\
 	asm volatile(__systrap		\

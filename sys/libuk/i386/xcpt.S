@@ -28,6 +28,7 @@
 
 
 #include <machine/asm.h>
+#include <machine/uk/ukparam.h>
 #include <uk/sys.h>
 
 ENTRY(__inthdlr)
@@ -73,5 +74,5 @@ ENTRY(__inthdlr)
 
 	push %eax
 	mov $SYS_IRET, %eax
-	int $0x80
+	int $VECT_SYSC
 END(__inthdlr)
