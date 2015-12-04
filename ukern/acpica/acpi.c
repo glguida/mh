@@ -84,8 +84,8 @@ void ioapic_platform_done(void);
 
 static int acpi_madt_scan(void)
 {
-	unsigned nlapic = 0, nioapic = 0;
 	int len;
+	unsigned flags, nlapic = 0, nioapic = 0;
 	uint8_t type;
 	paddr_t lapic_addr = acpi_madt->Address;
 	union {
@@ -94,6 +94,7 @@ static int acpi_madt_scan(void)
 		struct acpi_madt_io_apic *ioapic;
 		struct acpi_madt_local_apic_override *lavr;
 		struct acpi_madt_local_apic_nmi *lanmi;
+		struct acpi_madt_interrupt_override *intovr;
 	} _;
 
 	/* Search for APICs. Output of this stage is number of Local
@@ -111,6 +112,7 @@ static int acpi_madt_scan(void)
 			       _.lapic->LapicFlags);
 			if (_.lapic->LapicFlags & ACPI_MADT_ENABLED)
 				nlapic++;
+			break;
 		case ACPI_MADT_TYPE_IO_APIC:
 			printf("ACPI MADT I/O APIC %02d %08x %02d\n",
 			       _.ioapic->Id, _.ioapic->Address,
@@ -140,6 +142,7 @@ static int acpi_madt_scan(void)
 
 	/* Add APICs. Local and I/O APICs existence is notified to the
 	 * kernel after this. */
+	nioapic = 0;
 	/* *INDENT-OFF* */
 	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC:
@@ -149,14 +152,15 @@ static int acpi_madt_scan(void)
 		case ACPI_MADT_TYPE_IO_APIC:
 			ioapic_add(nioapic, _.ioapic->Address,
 				   _.ioapic->GlobalIrqBase);
+			nioapic++;
 			break;
 		default:
 			break;
 		});
 	/* *INDENT-ON* */
 
-	/* Setup APICs. */
-	nioapic = 0;
+	/* Setup Local APIC interrutps and setup GSIs for I/O APIC */
+	gsi_init();
 	/* *INDENT-OFF* */
 	madt_foreach({
 		case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
@@ -171,14 +175,52 @@ static int acpi_madt_scan(void)
 		case ACPI_MADT_TYPE_LOCAL_X2APIC_NMI:
 			printf("Warning: LOCAL X2APIC NMI ENTRY IGNORED\n");
 			break;
+		case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+			printf("ACPI MADT INTERRUPT OVERRIDE BUS %02d"
+			       " IRQ: %02d GSI: %02d FL: %04x\n",
+			       _.intovr->Bus, _.intovr->SourceIrq,
+			       _.intovr->GlobalIrq, _.intovr->IntiFlags);
+			flags = _.intovr->IntiFlags;
+			switch (flags & ACPI_MADT_TRIGGER_MASK) {
+			case ACPI_MADT_TRIGGER_RESERVED:
+				printf("Warning: reserved trigger value\n");
+				/* Passtrhough to edge. */
+			case ACPI_MADT_TRIGGER_CONFORMS:
+				/* ISA is EDGE */
+			case ACPI_MADT_TRIGGER_EDGE:
+				gsi_setup(_.intovr->GlobalIrq,
+					  _.intovr->SourceIrq, EDGE);
+				break;
+			case ACPI_MADT_TRIGGER_LEVEL:
+				switch(flags &ACPI_MADT_POLARITY_MASK) {
+				case ACPI_MADT_POLARITY_RESERVED:
+					printf("Warning: reserved "
+					       "polarity value\n");
+					/* Passthrough to Level Low */
+				case ACPI_MADT_POLARITY_CONFORMS:
+					/* Default for EISA is LOW */
+				case ACPI_MADT_POLARITY_ACTIVE_LOW:
+					gsi_setup(_.intovr->GlobalIrq,
+						  _.intovr->SourceIrq, LVLLO);
+					break;
+				case ACPI_MADT_POLARITY_ACTIVE_HIGH:
+					gsi_setup(_.intovr->GlobalIrq,
+						  _.intovr->SourceIrq, LVLHI);
+					break;
+				}
+				break;
+			}
+			break;
 		default:
 			break;
 		});
 
 	/* *INDENT-ON* */
 
-	/* Finished configuring LAPIC */
+	/* Finished configuring APICs */
 	lapic_platform_done();
+	ioapic_platform_done();
+	gsi_setup_done();
 	return 0;
 }
 #endif				/* MACHINE=i386 */

@@ -30,7 +30,9 @@
 #include <uk/types.h>
 #include <uk/heap.h>
 #include <uk/vmap.h>
+#include "i386.h"
 #include <lib/lib.h>
+#include <machine/uk/cpu.h>
 #include <machine/uk/apic.h>
 
 void *lapic_base = NULL;
@@ -46,6 +48,15 @@ struct ioapic_desc {
 	unsigned irq;
 	unsigned pins;
 } *ioapics;
+unsigned gsis_no;
+struct gsi_desc {
+	unsigned irq;
+	enum gsimode mode;
+	unsigned ioapic;
+	unsigned pin;
+} *gsis;
+
+
 
 
 /* Memory Registers */
@@ -56,8 +67,8 @@ struct ioapic_desc {
 #define IO_ID		0x00
 #define IO_VER		0x01
 #define IO_ARB		0x02
-#define IO_PIN_LO(x) 	(0x10 + 2*(x))
-#define IO_PIN_HI(x)	(0x11 + 2*(x))
+#define IO_RED_LO(x) 	(0x10 + 2*(x))
+#define IO_RED_HI(x)	(0x11 + 2*(x))
 
 void lapic_init(paddr_t base, unsigned no)
 {
@@ -67,7 +78,7 @@ void lapic_init(paddr_t base, unsigned no)
 	dprintf("LAPIC PA: %08llx VA: %p\n", base, lapic_base);
 }
 
-int lapic_add(uint16_t physid, uint16_t plid)
+void lapic_add(uint16_t physid, uint16_t plid)
 {
 	static unsigned i = 0;
 
@@ -154,10 +165,17 @@ static uint32_t ioapic_read(unsigned i, uint8_t reg)
 
 void ioapic_add(unsigned num, paddr_t base, unsigned irqbase)
 {
+	unsigned i;
 
 	ioapics[num].base = kvmap(base, IOAPIC_SIZE);
 	ioapics[num].irq = irqbase;
 	ioapics[num].pins = 1 + ((ioapic_read(num, IO_VER) >> 16) & 0xff);
+
+	/* Mask all interrupts */
+	for (i = 0; i < ioapics[num].pins; i++) {
+		ioapic_write(num, IO_RED_LO(i), 0x00010000);
+		ioapic_write(num, IO_RED_HI(i), 0x00000000);
+	}
 	printf("IOAPIC ID: %02d PA: %08llx VA: %p IRQ:%02d PINS: %02d\n",
 	       num, base, ioapics[num].base, irqbase, ioapics[num].pins);
 }
@@ -172,6 +190,134 @@ unsigned ioapic_irqs(void)
 		if (lirq > maxirq)
 			maxirq = lirq;
 	}
-
 	return maxirq;
+}
+
+void ioapic_platform_done(void)
+{
+	/* Hand off PIC */
+	pic_off();
+}
+
+void gsi_init(void)
+{
+	unsigned i, irqs = ioapic_irqs();
+	gsis_no = irqs;
+	gsis = heap_alloc(sizeof(struct gsi_desc) * irqs);
+
+	/* Setup identity map, edge triggered (this is ISA) */
+	for (i = 0; i < gsis_no; i++) {
+		gsis[i].mode = EDGE;
+		gsis[i].irq = i;
+	}
+}
+
+void gsi_setup(unsigned i, unsigned irq, enum gsimode mode)
+{
+	if (i >= gsis_no) {
+		printf("Warning: GSI %d bigger than existing I/O APIC GSIs\n",
+		       i);
+		return;
+	}
+	gsis[i].irq = irq;
+	gsis[i].mode = mode;
+}
+
+static void irqresolve(unsigned gsi) {
+	unsigned irq = gsis[gsi].irq;
+	unsigned i, start, end;
+
+	for (i = 0; i < ioapics_no; i++) {
+		start = ioapics[i].irq;
+		end = start + ioapics[i].pins;
+		
+		if ((irq >= start) && (irq < end)) {
+			gsis[gsi].ioapic = i;
+			gsis[gsi].pin = irq - start;
+			return;
+		}
+	}
+	printf("Hello Impossiblity, I was waiting for you!\n");
+	asm volatile ("ud2;");
+}
+
+void gsi_setup_done(void)
+{
+	unsigned i;
+	uint32_t hi, lo;
+
+	lo = 0; /* No vector */
+	lo |= 1L << 8; /* Lowest Priority */
+	lo |= 1L << 16; /* Masked */
+	hi = 0xffL << 24; /* All Processors */
+
+	for (i = 0; i < gsis_no; i++) {
+		/* Now that we have the proper GSI to IRQ mapping, resolve the
+		 * IOAPIC/PIN of the GSI. */
+		irqresolve(i);
+
+		/* Setup Masked IOAPIC entry with no vector information */
+		switch (gsis[i].mode) {
+		default:
+			printf("Warning: GSI table corrupted. "
+			       "Setting GSI %d to EDGE\n", i);
+		case EDGE:
+			break;
+		case LVLHI:
+			lo |= (1L << 15);
+			break;
+		case LVLLO:
+			lo |= ((1L << 15) | (1L << 13));
+			break;
+		}
+
+		ioapic_write(gsis[i].ioapic, IO_RED_LO(gsis[i].pin), lo);
+		ioapic_write(gsis[i].ioapic, IO_RED_HI(gsis[i].pin), hi);
+	}
+}
+
+void gsi_dump(void)
+{
+	unsigned i;
+
+	for (i = 0; i < gsis_no; i++) {
+		printf("GSI: %02d IRQ: %02d MODE: %5s APIC: %02d PIN: %02d\n",
+		       i, gsis[i].irq,
+		       gsis[i].mode == EDGE ? "EDGE"
+		       : gsis[i].mode == LVLHI ? "LVLHI" : "LVLLO",
+		       gsis[i].ioapic, gsis[i].pin);
+	}
+}
+
+void gsi_register(unsigned gsi, unsigned vect)
+{
+	uint32_t lo;
+
+	assert(gsi < gsis_no);
+	assert(vect < 256);
+
+	printf("Registering GSI %d to vect %d\n", gsi, vect);
+	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
+	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo | vect);
+	printf("GIANL: %02d: [%d/%d] = %08x\n", gsi, gsis[gsi].ioapic, gsis[gsi].pin, lo | vect);
+}
+
+void gsi_enable(unsigned gsi)
+{
+	uint32_t lo;
+
+	assert(gsi < gsis_no);
+	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
+	lo &= ~0x10000L; /* UNMASK */
+	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo);;
+}
+
+void gsi_disable(unsigned gsi)
+{
+	uint32_t lo;
+
+	assert(gsi < gsis_no);
+	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
+	lo |= 0x10000L; /* MASK */
+	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo);;
 }

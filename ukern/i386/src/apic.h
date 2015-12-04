@@ -72,6 +72,7 @@
 
 extern void *lapic_base;
 void lapic_init(paddr_t base, unsigned no);
+void lapic_add(uint16_t physid, uint16_t plid);
 void lapic_enable(void);
 
 static inline void lapic_write(unsigned reg, uint32_t data)
@@ -119,6 +120,21 @@ extern unsigned ioapics_no;
 
 void ioapic_init(unsigned no);
 void ioapic_add(unsigned num, paddr_t base, unsigned irqbase);
-unsigned ioapic_irqs(void);
+
+
+/*
+ * Global System Interrupts
+ */
+
+enum gsimode {
+	EDGE,
+	LVLHI,
+	LVLLO,
+};
+
+void gsi_init(void);
+void gsi_setup(unsigned i, unsigned irq, enum gsimode mode);
+void gsi_setup_done(void);
+void gsi_dump(void);
 
 #endif
