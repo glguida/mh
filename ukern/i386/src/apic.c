@@ -95,17 +95,21 @@ void lapic_add_nmi(uint8_t pid, int l)
 
 	if (pid == 0xff) {
 		for (i = 0; i < lapics_no; i++)
-			lapics[i].lint[l] = (1L << 16)|(APIC_DLVR_NMI << 8);
+			lapics[i].lint[l] =
+				(1L << 16) | (APIC_DLVR_NMI << 8);
 		return;
 	}
 	for (i = 0; i < lapics_no; i++) {
 		if (lapics[i].platformid == pid) {
-			if (l) l = 1;
-			lapics[i].lint[l] = (1L << 16)|(APIC_DLVR_NMI << 8);
+			if (l)
+				l = 1;
+			lapics[i].lint[l] =
+				(1L << 16) | (APIC_DLVR_NMI << 8);
 			return;
 		}
 	}
-	printf("Warning: LAPIC NMI for non-existing platform ID %d\n", pid);
+	printf("Warning: LAPIC NMI for non-existing platform ID %d\n",
+	       pid);
 }
 
 void lapic_configure(void)
@@ -120,7 +124,7 @@ void lapic_configure(void)
 	if (d == NULL) {
 		printf("Warning: Current CPU not in Platform Tables!\n");
 		/* Try to continue, ignore the NMI configuration */
-	} else  {
+	} else {
 		lapic_write(L_LVT_LINT(0), d->lint[0]);
 		lapic_write(L_LVT_LINT(1), d->lint[1]);
 	}
@@ -147,8 +151,9 @@ void ioapic_init(unsigned no)
 
 static void ioapic_write(unsigned i, uint8_t reg, uint32_t val)
 {
-	volatile uint32_t *regsel = (uint32_t *)(ioapics[i].base + IO_REGSEL);
-	volatile uint32_t *win = (uint32_t *)(ioapics[i].base + IO_WIN);
+	volatile uint32_t *regsel =
+		(uint32_t *) (ioapics[i].base + IO_REGSEL);
+	volatile uint32_t *win = (uint32_t *) (ioapics[i].base + IO_WIN);
 
 	*regsel = reg;
 	*win = val;
@@ -156,8 +161,9 @@ static void ioapic_write(unsigned i, uint8_t reg, uint32_t val)
 
 static uint32_t ioapic_read(unsigned i, uint8_t reg)
 {
-	volatile uint32_t *regsel = (uint32_t *)(ioapics[i].base + IO_REGSEL);
-	volatile uint32_t *win = (uint32_t *)(ioapics[i].base + IO_WIN);
+	volatile uint32_t *regsel =
+		(uint32_t *) (ioapics[i].base + IO_REGSEL);
+	volatile uint32_t *win = (uint32_t *) (ioapics[i].base + IO_WIN);
 
 	*regsel = reg;
 	return *win;
@@ -215,22 +221,22 @@ void gsi_init(void)
 void gsi_setup(unsigned i, unsigned irq, enum gsimode mode)
 {
 	if (i >= gsis_no) {
-		printf("Warning: GSI %d bigger than existing I/O APIC GSIs\n",
-		       i);
+		printf("Warning: GSI %d bigger than existing I/O APIC GSIs\n", i);
 		return;
 	}
 	gsis[i].irq = irq;
 	gsis[i].mode = mode;
 }
 
-static void irqresolve(unsigned gsi) {
+static void irqresolve(unsigned gsi)
+{
 	unsigned irq = gsis[gsi].irq;
 	unsigned i, start, end;
 
 	for (i = 0; i < ioapics_no; i++) {
 		start = ioapics[i].irq;
 		end = start + ioapics[i].pins;
-		
+
 		if ((irq >= start) && (irq < end)) {
 			gsis[gsi].ioapic = i;
 			gsis[gsi].pin = irq - start;
@@ -246,10 +252,10 @@ void gsi_setup_done(void)
 	unsigned i;
 	uint32_t hi, lo;
 
-	lo = 0; /* No vector */
-	lo |= 1L << 8; /* Lowest Priority */
-	lo |= 1L << 16; /* Masked */
-	hi = 0xffL << 24; /* All Processors */
+	lo = 0;			/* No vector */
+	lo |= 1L << 8;		/* Lowest Priority */
+	lo |= 1L << 16;		/* Masked */
+	hi = 0xffL << 24;	/* All Processors */
 
 	for (i = 0; i < gsis_no; i++) {
 		/* Now that we have the proper GSI to IRQ mapping, resolve the
@@ -298,8 +304,10 @@ void gsi_register(unsigned gsi, unsigned vect)
 
 	printf("Registering GSI %d to vect %d\n", gsi, vect);
 	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
-	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo | vect);
-	printf("GIANL: %02d: [%d/%d] = %08x\n", gsi, gsis[gsi].ioapic, gsis[gsi].pin, lo | vect);
+	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin),
+		     lo | vect);
+	printf("GIANL: %02d: [%d/%d] = %08x\n", gsi, gsis[gsi].ioapic,
+	       gsis[gsi].pin, lo | vect);
 }
 
 void gsi_enable(unsigned gsi)
@@ -308,7 +316,7 @@ void gsi_enable(unsigned gsi)
 
 	assert(gsi < gsis_no);
 	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
-	lo &= ~0x10000L; /* UNMASK */
+	lo &= ~0x10000L;	/* UNMASK */
 	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo);;
 }
 
@@ -318,6 +326,6 @@ void gsi_disable(unsigned gsi)
 
 	assert(gsi < gsis_no);
 	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
-	lo |= 0x10000L; /* MASK */
+	lo |= 0x10000L;		/* MASK */
 	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin), lo);;
 }
