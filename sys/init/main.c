@@ -81,7 +81,7 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
-	printf("%d creat()", sys_creat(0, 9));
+	printf("%d creat()", sys_creat(500, 9));
 
 	if (sys_fork()) {
 		int i;
@@ -110,7 +110,7 @@ int main()
 
 		printf("child!\n");
 		*p = 0;
-		desc = sys_open(0);
+		desc = sys_open(500);
 		sys_mapirq(desc, 3, 5);
 		printf("MAPPING %d\n", sys_export(0, p, 1));
 		while (1) {
