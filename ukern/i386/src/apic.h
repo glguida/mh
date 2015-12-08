@@ -137,4 +137,8 @@ void gsi_setup(unsigned i, unsigned irq, enum gsimode mode);
 void gsi_setup_done(void);
 void gsi_dump(void);
 
+void gsi_register(unsigned gsi, unsigned vect);
+void gsi_enable(unsigned gsi);
+void gsi_disable(unsigned gsi);
+
 #endif

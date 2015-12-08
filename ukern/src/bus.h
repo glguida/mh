@@ -72,7 +72,8 @@ struct dev {
 };
 
 int bus_plug(struct bus *b, uint64_t did);
-int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
+int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t *valptr);
+int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
