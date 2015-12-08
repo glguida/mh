@@ -77,6 +77,7 @@ int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
+void bus_remove(struct bus *b);
 
 void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops);
 int dev_attach(struct dev *d);

@@ -373,9 +373,12 @@ void schedule(int newst)
 
 __dead void die(void)
 {
+	int i;
+	struct thread *th = current_thread();
 
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
+	bus_remove(&th->bus);
 	devremove();
 	vmclear(USERBASE, USEREND - USERBASE);
 	schedule(THST_DELETED);

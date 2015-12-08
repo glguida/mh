@@ -252,6 +252,14 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	return ret;
 }
 
+void bus_remove(struct bus *b)
+{
+	unsigned i;
+
+	for (i = 0; i < MAXBUSDEVS; i++)
+		bus_unplug(b, i);
+}
+
 int dev_attach(struct dev *d)
 {
 	spinlock(&sys_device_rbtree_lock);
