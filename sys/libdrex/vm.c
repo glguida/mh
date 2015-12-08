@@ -59,7 +59,7 @@ static vm_prot_t _resolve_va(vaddr_t va)
 	if (va < (vaddr_t) __getbrk()) {
 		/* Before the BRK */
 
-		if (va > (vaddr_t) & _sdata)
+		if (va >= (vaddr_t) & _sdata)
 			return VM_PROT_RW;
 		if (va < (vaddr_t) & _ecode && va > (vaddr_t) & _scode)
 			return VM_PROT_RX;
