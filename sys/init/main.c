@@ -116,7 +116,7 @@ int main()
 		while (1) {
 			(*p) += 1;
 			printf("-> P is %lx\n", (unsigned long) *p);
-			sys_io(desc, 10, 255);
+			sys_out(desc, 10, 255);
 			sys_wait();
 			printf("IRQ received!\n");
 		}

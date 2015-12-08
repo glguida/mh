@@ -148,9 +148,23 @@ static int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 	return devirqmap(ddno, id, sig);
 }
 
-static int sys_io(unsigned ddno, u_long port, u_long val)
+static int sys_in(unsigned ddno, uint64_t port, uaddr_t valptr)
 {
-	return devio(ddno, port, val);
+	int ret;
+	uint64_t val;
+
+	ret = devin(ddno, port, &val);
+	if (ret)
+		return ret;
+
+	ret = copy_to_user(valptr, &val, sizeof(val));
+	return ret;
+}
+
+static int sys_out(unsigned ddno, uint64_t port, uint64_t val)
+{
+
+	return devout(ddno, port, val);
 }
 
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
@@ -256,8 +270,10 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_export(a1, a2, a3);
 	case SYS_MAPIRQ:
 		return sys_mapirq(a1, a2, a3);
-	case SYS_IO:
-		return sys_io(a1, a2, a3);
+	case SYS_IN:
+		return sys_in(a1, a2, a3);
+	case SYS_OUT:
+		return sys_out(a1, a2, a3);
 	default:
 		return -1;
 	}

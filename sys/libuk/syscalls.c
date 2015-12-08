@@ -137,11 +137,20 @@ int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 
 }
 
-int sys_io(unsigned ddno, u_long port, u_long val)
+int sys_in(unsigned ddno, u_long port, uint64_t *val)
 {
 	int ret;
 
-	__syscall3(SYS_IO, (unsigned long) ddno, (unsigned long) port,
+	__syscall3(SYS_IN, (unsigned long) ddno, (unsigned long) port,
+		   (unsigned long) val, ret);
+	return ret;
+}
+
+int sys_out(unsigned ddno, u_long port, u_long val)
+{
+	int ret;
+
+	__syscall3(SYS_OUT, (unsigned long) ddno, (unsigned long) port,
 		   (unsigned long) val, ret);
 	return ret;
 }

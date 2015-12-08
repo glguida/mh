@@ -57,8 +57,17 @@ typedef enum {
 
 #define SYS_OPEN   0x20
 #define SYS_MAPIRQ 0x21
-#define SYS_IO     0x22
-#define SYS_EXPORT 0x23
+
+/* Platform device port mangling */
+#define PLTPORT_SIZESHIFT 3
+#define PLTPORT_SIZEMASK 0x7
+#define PLTPORT_BYTE(_x) (((_x) << PLTPORT_SIZESHIFT) | 1)
+#define PLTPORT_WORD(_X) (((_x) << PLTPORT_SIZESHIFT) | 2)
+#define PLTPORT_DWORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 4)
+#define SYS_IN     0x22
+#define SYS_OUT    0x23
+
+#define SYS_EXPORT 0x24
 
 #define SYS_CREAT  0x30
 #ifndef _ASSEMBLER

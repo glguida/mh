@@ -146,7 +146,7 @@ int bus_unplug(struct bus *b, unsigned desc)
 	return ret;
 }
 
-int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
+int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t *valptr)
 {
 	int ret = -1;
 	struct dev *d;
@@ -157,17 +157,43 @@ int bus_io(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg)
-		goto out_io;
+		goto out_io_in;
 	assert(d != NULL);
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
-		goto out_io;
+		goto out_io_in;
 	}
-	ret = d->ops->io(d->devopq, b->devs[desc].devid, port, val);
+	ret = d->ops->in(d->devopq, b->devs[desc].devid, port, valptr);
 	spinunlock(&d->lock);
-      out_io:
+      out_io_in:
+	spinunlock(&b->lock);
+	return ret;
+}
+
+int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
+{
+	int ret = -1;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -1;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg)
+		goto out_io_out;
+	assert(d != NULL);
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		goto out_io_out;
+	}
+	ret = d->ops->out(d->devopq, b->devs[desc].devid, port, val);
+	spinunlock(&d->lock);
+      out_io_out:
 	spinunlock(&b->lock);
 	return ret;
 }

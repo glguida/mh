@@ -104,7 +104,12 @@ out:
 	return ret;
 }
 
-static int _usrdev_io(void *devopq, unsigned id, uint64_t port,
+static int _usrdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
+{
+	return -1;
+}
+
+static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 		      uint64_t val)
 {
 	/* Current thread: Process */
@@ -208,7 +213,8 @@ static void _usrdev_close(void *devopq, unsigned id)
 static struct devops usrdev_ops = {
 	.open = _usrdev_open,
 	.close = _usrdev_close,
-	.io = _usrdev_io,
+	.in = _usrdev_in,
+	.out = _usrdev_out,
 	.export = _usrdev_export,
 	.irqmap = _usrdev_irqmap,
 };

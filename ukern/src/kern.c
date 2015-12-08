@@ -578,11 +578,18 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 	return bus_irqmap(&th->bus, dd, irq, sig);
 }
 
-int devio(unsigned dd, uint64_t port, uint64_t val)
+int devin(unsigned dd, uint64_t port, uint64_t *valptr)
 {
 	struct thread *th = current_thread();
 
-	return bus_io(&th->bus, dd, port, val);
+	return bus_in(&th->bus, dd, port, valptr);
+}
+
+int devout(unsigned dd, uint64_t port, uint64_t val)
+{
+	struct thread *th = current_thread();
+
+	return bus_out(&th->bus, dd, port, val);
 }
 
 void devclose(unsigned dd)
