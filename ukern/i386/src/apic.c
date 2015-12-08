@@ -34,6 +34,7 @@
 #include <lib/lib.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/apic.h>
+#include <machine/uk/param.h>
 
 void *lapic_base = NULL;
 unsigned lapics_no;
