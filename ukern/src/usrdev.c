@@ -60,6 +60,7 @@ struct remth {
 
 struct apert {
 	vaddr_t procva;
+	unsigned procid;
 	vaddr_t devva;
 	l1e_t l1e;
 };
@@ -178,6 +179,7 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 	}
 	pmap_commit(NULL);
 	ud->apertbl[iopfn].procva = va;
+	ud->apertbl[iopfn].procid = id;
 	ud->apertbl[iopfn].l1e = expl1e;
 	spinunlock(&ud->lock);
 	return 0;
@@ -201,12 +203,40 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 
 static void _usrdev_close(void *devopq, unsigned id)
 {
+	int i, ret;
+	l1e_t l1e;
+	vaddr_t procva, devva;
+	unsigned procid;
 	struct usrdev *ud = (struct usrdev *) devopq;
 	/* Current thread: Process or Device */
 
 	spinlock(&ud->lock);
+	for (i = 0; i < MAXUSRDEVAPERTS; i++) {
+		procid = ud->apertbl[i].procid;
+		procva = ud->apertbl[i].procva;
+		devva = ud->apertbl[i].devva;
+		if (procid != id)
+			continue;
+		if (devva) {
+			assert(procva);
+			printf("canceling dev %p\n", devva);
+			ret = pmap_uimport_cancel(ud->th->pmap, devva);
+			assert(!ret);
+		}
+		if (procva) {
+			printf("canceling prog %p\n", procva);
+			ret = pmap_uexport_cancel(ud->remths[id].th->pmap,
+						  procva);
+			assert(!ret);
+		}
+		ud->apertbl[i].procid = 0;
+		ud->apertbl[i].procva = 0;
+		ud->apertbl[i].l1e = 0;
+	}
 	ud->remths[id].use = 0;
 	spinunlock(&ud->lock);
+	pmap_commit(ud->remths[id].th->pmap);
+	pmap_commit(ud->th->pmap);
 	printf("close(%d)!\n", id);
 }
 

@@ -362,7 +362,7 @@ int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va)
 	if (pmap == pmap_current())
 		l1p = __val1tbl(va) + L1OFF(va);
 	else
-		panic("set to different pmap voluntarily not supported.");
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
 
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
@@ -467,7 +467,7 @@ int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va)
 	if (pmap == pmap_current())
 		l1p = __val1tbl(va) + L1OFF(va);
 	else
-		panic("set to different pmap voluntarily not supported.");
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
 
 	spinlock(&pmap->lock);
 
