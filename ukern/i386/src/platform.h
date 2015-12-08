@@ -30,12 +30,64 @@
 #ifndef _i386_platform_h
 #define _i386_platform_h
 
+#include <machine/uk/apic.h>
+
 void platform_init(void);
+
+static inline int platform_inb(unsigned port)
+{
+	int ret;
+
+	asm volatile ("xor %%eax, %%eax; inb %%dx, %%al":"=a" (ret):"d"(port));
+	return ret;
+}
+
+static inline int platform_inw(unsigned port)
+{
+	int ret;
+
+	asm volatile ("xor %%eax, %%eax; inw %%dx, %%ax":"=a" (ret):"d"(port));
+	return ret;
+}
+
+static inline int platform_inl(unsigned port)
+{
+	int ret;
+
+	asm volatile ("inl %%dx, %%eax":"=a" (ret):"d"(port));
+	return ret;
+}
+
+static inline void platform_outb(unsigned port, int val)
+{
+	asm volatile ("outb %%al, %%dx"::"d" (port), "a"(val));
+}
+
+static inline void platform_outw(unsigned port, int val)
+{
+	asm volatile ("outw %%ax, %%dx"::"d" (port), "a"(val));
+}
+
+static inline void platform_outl(unsigned port, int val)
+{
+	asm volatile ("outl %%eax, %%dx"::"d" (port), "a"(val));
+}
 
 static inline void platform_wait(void)
 {
 
 	asm volatile ("sti\n\thlt");
+}
+
+static inline void platform_irqon(unsigned irq)
+{
+	/* 1:1 Mapping GSI-IRQ, only ones supported for now. */
+	gsi_enable(irq);
+}
+
+static inline void platform_irqoff(unsigned irq)
+{
+	gsi_disable(irq);
 }
 
 #endif

@@ -278,6 +278,11 @@ void gsi_setup_done(void)
 		ioapic_write(gsis[i].ioapic, IO_RED_LO(gsis[i].pin), lo);
 		ioapic_write(gsis[i].ioapic, IO_RED_HI(gsis[i].pin), hi);
 	}
+
+	/* 1:1 map GSI <-> Kernel IRQ */
+	for (i = 0; i < gsis_no; i++)
+		gsi_register(i, VECT_IRQ0 + i);
+
 }
 
 void gsi_dump(void)

@@ -369,10 +369,14 @@ static const rb_tree_ops_t sys_device_tree_ops = {
 	.rbto_node_offset = offsetof(struct dev, rb_node),
 };
 
+void pltdev_init(void);
+void usrdevs_init(void);
+
 void devices_init(void)
 {
 	rb_tree_init(&sys_device_rbtree, &sys_device_tree_ops);
 	sys_device_rbtree_lock = 0;
 
+	pltdev_init();
 	usrdevs_init();
 }

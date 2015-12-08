@@ -60,6 +60,9 @@ lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
 
+static lock_t irqsigs_lock;
+LIST_HEAD(,irqsig) irqsigs[MAXIRQS];
+
 void __bad_thing(int user, const char *format, ...)
 {
 	va_list ap;
@@ -599,6 +602,41 @@ void devclose(unsigned dd)
 	bus_unplug(&th->bus, dd);
 }
 
+void irqsignal(unsigned irq)
+{
+	struct irqsig *irqsig;
+
+	spinlock(&irqsigs_lock);
+	LIST_FOREACH(irqsig, &irqsigs[irq], list) {
+		printf("Raising %p:%d\n", irqsig->th, irqsig->sig);
+		thraise(irqsig->th, irqsig->sig);
+	}
+	spinunlock(&irqsigs_lock);
+}
+
+void irqunregister(struct irqsig *irqsig)
+{
+
+	spinlock(&irqsigs_lock);
+	LIST_REMOVE(irqsig, list);
+	spinunlock(&irqsigs_lock);
+}
+
+int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th, unsigned sig)
+{
+	if (irq >= MAXIRQS)
+		return -1;
+
+	irqsig->th = th;
+	irqsig->sig = sig;
+
+	spinlock(&irqsigs_lock);
+	LIST_INSERT_HEAD(&irqsigs[irq], irqsig, list);
+	spinunlock(&irqsigs_lock);
+	platform_irqon(irq);
+	return 0;
+}
+
 static vaddr_t elfld(void *elfimg)
 {
 	int i;
@@ -645,6 +683,7 @@ void kern_boot(void)
 {
 	struct thread *th;
 
+	memset(irqsigs, 0, sizeof(irqsigs));
 	devices_init();
 	printf("Kernel loaded at va %08lx:%08lx\n", UKERNTEXTOFF,
 	       UKERNEND);

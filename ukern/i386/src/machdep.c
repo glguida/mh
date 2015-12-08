@@ -194,14 +194,12 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	assert(f->cs == UCS || thread_is_idle(th));
 	th->frame = f;
 
-	switch (vect) {
-	case VECT_NOP:
+	if (vect == VECT_NOP) {
 		printf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
 		lapic_write(L_EOI, 0);
-		break;
-	default:
-		printf("\nUnknown interrupt %2u\n", vect);
-		framedump(f);
+	} else if (vect >= VECT_IRQ0) {
+		printf("IRQ%d\n", vect - VECT_IRQ0);
+		irqsignal(vect - VECT_IRQ0);
 		lapic_write(L_EOI, 0);
 	}
 

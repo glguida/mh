@@ -108,11 +108,24 @@ int devirq(unsigned id, unsigned irq);
 int devimport(unsigned id, unsigned iopfn, unsigned va);
 void devremove(void);
 int devopen(uint64_t id);
-int devintmap(unsigned ddno, unsigned id, unsigned sig);
-int devio(unsigned ddno, uint64_t port, uint64_t val);
+int devirqmap(unsigned dd, unsigned irq, unsigned sig);
+int devexport(unsigned dd, vaddr_t va, unsigned iopfn);
+int devin(unsigned dd, uint64_t port, uint64_t *valptr);
+int devout(unsigned dd, uint64_t port, uint64_t val);
+void devclose(unsigned dd);
 
 void wake(struct thread *);
 void schedule(int newst);
 void die(void) __dead;
+
+struct irqsig {
+	struct thread *th;
+	unsigned sig;
+	LIST_ENTRY(irqsig) list;
+};
+
+void irqsignal(unsigned irq);
+int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th, unsigned sig);
+void irqunregister(struct irqsig *irqsig);
 
 #endif

@@ -120,7 +120,9 @@
 extern unsigned long _ukern_end;
 #endif
 
-#define VECT_NOP 0x90
+#define VECT_NOP 0x22
+#define VECT_IRQ0 0x23
+#define MAXIRQS (255 - VECT_IRQ0)
 
 #endif				/* _UKERNEL */
 
