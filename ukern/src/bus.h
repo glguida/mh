@@ -51,8 +51,10 @@ struct bus {
 
 struct devops {
 	int (*open) (void *devopq, uint64_t did);
-	int (*in) (void *devopq, unsigned id, uint64_t port, uint64_t *val);
-	int (*out) (void *devopq, unsigned id, uint64_t port, uint64_t val);
+	int (*in) (void *devopq, unsigned id, uint64_t port,
+		   uint64_t * val);
+	int (*out) (void *devopq, unsigned id, uint64_t port,
+		    uint64_t val);
 	int (*export) (void *devopq, unsigned id, vaddr_t va,
 		       unsigned iopfn);
 	int (*irqmap) (void *devopq, unsigned id, unsigned intr,
@@ -72,7 +74,7 @@ struct dev {
 };
 
 int bus_plug(struct bus *b, uint64_t did);
-int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t *valptr);
+int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);

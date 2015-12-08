@@ -146,7 +146,7 @@ int bus_unplug(struct bus *b, unsigned desc)
 	return ret;
 }
 
-int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t *valptr)
+int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr)
 {
 	int ret = -1;
 	struct dev *d;

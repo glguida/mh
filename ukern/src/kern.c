@@ -61,7 +61,7 @@ uint64_t softirqs = 0;
 #define SOFTIRQ_RESCHED (1 << 0)
 
 static lock_t irqsigs_lock;
-LIST_HEAD(,irqsig) irqsigs[MAXIRQS];
+LIST_HEAD(, irqsig) irqsigs[MAXIRQS];
 
 void __bad_thing(int user, const char *format, ...)
 {
@@ -584,7 +584,7 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 	return bus_irqmap(&th->bus, dd, irq, sig);
 }
 
-int devin(unsigned dd, uint64_t port, uint64_t *valptr)
+int devin(unsigned dd, uint64_t port, uint64_t * valptr)
 {
 	struct thread *th = current_thread();
 
@@ -625,7 +625,8 @@ void irqunregister(struct irqsig *irqsig)
 	spinunlock(&irqsigs_lock);
 }
 
-int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th, unsigned sig)
+int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
+		unsigned sig)
 {
 	if (irq >= MAXIRQS)
 		return -1;

@@ -99,22 +99,23 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	ud->remths[i].use = 1;
 	ud->remths[i].id = i;
 	ret = i;
-out:
+      out:
 	spinunlock(&ud->lock);
-	printf("open %"PRIx64"! = %d", did, ret);
+	printf("open %" PRIx64 "! = %d", did, ret);
 	return ret;
 }
 
-static int _usrdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
+static int _usrdev_in(void *devopq, unsigned id, uint64_t port,
+		      uint64_t * val)
 {
 	return -1;
 }
 
 static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
-		      uint64_t val)
+		       uint64_t val)
 {
 	/* Current thread: Process */
-	struct usrdev *ud = (struct usrdev *)devopq;
+	struct usrdev *ud = (struct usrdev *) devopq;
 	struct usrioreq *ior;
 
 	if (id >= MAXUSRDEVREMS)
@@ -269,7 +270,7 @@ struct usrdev *usrdev_creat(uint64_t id, unsigned sig)
 	return ud;
 }
 
-int usrdev_poll(struct usrdev *ud, uint64_t *p, uint64_t *v)
+int usrdev_poll(struct usrdev *ud, uint64_t * p, uint64_t * v)
 {
 	int id;
 	struct usrioreq *ior;
