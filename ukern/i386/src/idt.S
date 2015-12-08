@@ -144,7 +144,7 @@ ENTRY(_setup_idt)
 	repeat setidt 64, 95
 	repeat setidt 96, 127
 	repeat setidt 128, 159
-	_setidt 128 1 /* syscall */
+	_setidt 33 1 /* syscall */
 	ret
 
 	repeat handler 0, 7

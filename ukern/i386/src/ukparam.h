@@ -42,6 +42,6 @@
 #define L2_SHIFT 30
 #define L1_SHIFT 21
 
-#define VECT_SYSC 0x80
+#define VECT_SYSC 0x21
 
 #endif

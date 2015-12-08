@@ -44,7 +44,7 @@ _ENTRY(__start)
 
 ___endloop:
 	mov $SYS_DIE, %eax
-	int $0x80
+	int $VECT_SYSC
 	jmp ___endloop;
 
 
