@@ -50,7 +50,7 @@ struct bus {
 };
 
 struct devops {
-	unsigned (*open) (void *devopq, uint64_t did);
+	int (*open) (void *devopq, uint64_t did);
 	int (*in) (void *devopq, unsigned id, uint64_t port, uint64_t *val);
 	int (*out) (void *devopq, unsigned id, uint64_t port, uint64_t val);
 	int (*export) (void *devopq, unsigned id, vaddr_t va,

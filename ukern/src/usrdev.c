@@ -80,7 +80,7 @@ struct usrdev_procopq {
 	uint32_t id;
 };
 
-static unsigned _usrdev_open(void *devopq, uint64_t did)
+static int _usrdev_open(void *devopq, uint64_t did)
 {
 	int i, ret = -1;
 	struct usrdev *ud = (struct usrdev *) devopq;
