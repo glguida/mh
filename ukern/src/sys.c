@@ -40,12 +40,12 @@ static int sys_putc(int ch)
 	return 0;
 }
 
-static int sys_inthdlr(vaddr_t ip, vaddr_t sp)
+static int sys_inthdlr(uaddr_t ip, uaddr_t sp)
 {
 	struct thread *th = current_thread();
 
 	if (!__inthdlr_chk(ip, sp)) {
-		return -1;
+		return -EACCES;
 	}
 
 	th->sigip = ip;
@@ -275,6 +275,6 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
 	default:
-		return -1;
+		return -ENOSYS;
 	}
 }

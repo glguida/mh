@@ -83,7 +83,7 @@ struct usrdev_procopq {
 
 static int _usrdev_open(void *devopq, uint64_t did)
 {
-	int i, ret = -1;
+	int i, ret;
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
@@ -93,8 +93,10 @@ static int _usrdev_open(void *devopq, uint64_t did)
 		if (!ud->remths[i].use && !ud->remths[i].bsy)
 			break;
 	}
-	if (i >= MAXUSRDEVREMS)
+	if (i >= MAXUSRDEVREMS) {
+		ret = -ENFILE;
 		goto out;
+	}
 	ud->remths[i].th = current_thread();
 	ud->remths[i].use = 1;
 	ud->remths[i].id = i;
@@ -108,7 +110,7 @@ static int _usrdev_open(void *devopq, uint64_t did)
 static int _usrdev_in(void *devopq, unsigned id, uint64_t port,
 		      uint64_t * val)
 {
-	return -1;
+	return -ENODEV;
 }
 
 static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
@@ -118,8 +120,7 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	struct usrdev *ud = (struct usrdev *) devopq;
 	struct usrioreq *ior;
 
-	if (id >= MAXUSRDEVREMS)
-		return -1;
+	assert (id < MAXUSRDEVREMS);
 
 	ior = structs_alloc(&usrioreqs);
 	ior->id = id;
@@ -130,7 +131,7 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	if (ud->remths[id].bsy) {
 		spinunlock(&ud->lock);
 		structs_free(ior);
-		return -1;
+		return -EBUSY;
 	}
 	ud->remths[id].bsy = 1;
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
@@ -148,10 +149,10 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	assert(__isuaddr(va));
-	if (id >= MAXUSRDEVREMS)
-		return -1;
+	assert(id < MAXUSRDEVREMS);
+
 	if (iopfn >= MAXUSRDEVAPERTS)
-		return -1;
+		return -EINVAL;
 
 	ret = pmap_uexport(NULL, va, &expl1e);
 	if (ret)
@@ -194,7 +195,7 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	/* Current thread: Process */
 	assert(id < MAXUSRDEVREMS);
 	if (irq >= IRQMAPSZ)
-		return -1;
+		return -EINVAL;
 
 	spinlock(&ud->lock);
 	ud->remths[id].irqmap[irq] = sig;
@@ -291,7 +292,7 @@ int usrdev_poll(struct usrdev *ud, uint64_t * p, uint64_t * v)
 int usrdev_eio(struct usrdev *ud, unsigned id)
 {
 	if (id >= MAXUSRDEVREMS)
-		return -1;
+		return -EINVAL;
 	spinlock(&ud->lock);
 	printf("set busy of %d to zero\n", id);
 	ud->remths[id].bsy = 0;
@@ -305,7 +306,7 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 
 	if ((id >= MAXUSRDEVREMS)
 	    || (irq >= IRQMAPSZ))
-		return -1;
+		return -EINVAL;
 	spinlock(&ud->lock);
 	sig = ud->remths[id].irqmap[irq];
 	printf("-> %d, %d\n", ud->remths[id].use, sig);
@@ -325,9 +326,9 @@ int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 
 	assert(__isuaddr(va));
 	if (id >= MAXUSRDEVREMS)
-		return -1;
+		return -EINVAL;
 	if (iopfn >= MAXUSRDEVAPERTS)
-		return -1;
+		return -EINVAL;
 	spinlock(&ud->lock);
 	if (ud->apertbl[iopfn].devva) {
 		ret = pmap_uimport_cancel(NULL, ud->apertbl[iopfn].devva);

@@ -89,7 +89,7 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 	__insn_barrier();
 	if (_setjmp(current_cpu()->usrpgfaultctx)) {
 		current_cpu()->usrpgfault = 0;
-		return -1;
+		return -EFAULT;
 	}
 
 	memcpy(dst, src, sz);
@@ -475,7 +475,7 @@ int vmmove(vaddr_t dst, vaddr_t src)
 	pmap_commit(NULL);
 
 	if (ret < 0)
-		return -1;
+		return ret;
 
 	if (pfn != PFN_INVALID) {
 		__freepage(pfn);
@@ -498,20 +498,20 @@ int devcreat(uint64_t id, unsigned sig)
 	struct thread *th = current_thread();
 
 	if (sig > MAXSIGNALS)
-		return -1;
+		return -EINVAL;
 
 	if (th->usrdev)
-		return -1;
+		return -EBUSY;
 
 	th->usrdev = usrdev_creat(id, sig);
 	if (th->usrdev == NULL)
-		return -1;
+		return -EEXIST;
 	return 0;
 }
 
 int devpoll(uint64_t * p, uint64_t * v)
 {
-	int ret = -1;
+	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
@@ -521,7 +521,7 @@ int devpoll(uint64_t * p, uint64_t * v)
 
 int deveio(unsigned id)
 {
-	int ret = -1;
+	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
@@ -531,7 +531,7 @@ int deveio(unsigned id)
 
 int devirq(unsigned id, unsigned irq)
 {
-	int ret = -1;
+	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
@@ -541,7 +541,7 @@ int devirq(unsigned id, unsigned irq)
 
 int devimport(unsigned id, unsigned iopfn, unsigned va)
 {
-	int ret = -1;
+	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
@@ -629,7 +629,7 @@ int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
 		unsigned sig)
 {
 	if (irq >= MAXIRQS)
-		return -1;
+		return -EINVAL;
 
 	irqsig->th = th;
 	irqsig->sig = sig;

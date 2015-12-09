@@ -217,7 +217,7 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		spinunlock(&pmap->lock);
 		if (opfn)
 			*opfn = PFN_INVALID;
-		return -1;
+		return -EBUSY;
 	}
 	if (nl1e & PG_P)
 		pfn_incref(l1epfn(nl1e));
@@ -255,14 +255,14 @@ int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		/* Cant move externally controlled page */
 		spinunlock(&pmap->lock);
 		*opfn = PFN_INVALID;
-		return -1;
+		return -EBUSY;
 	}
 	ol1e = *l1p2;
 	if (l1e_external(ol1e)) {
 		/* Can't move into externally controlled page */
 		spinunlock(&pmap->lock);
 		*opfn = PFN_INVALID;
-		return -1;
+		return -EBUSY;
 	}
 	__setl1e(l1p1, mkl1e(PFN_INVALID, 0));
 	__setl1e(l1p2, nl1e);
@@ -299,17 +299,17 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	if (l1e_external(ol1e)) {
 		/* Can't change external mappings. */
 		spinunlock(&pmap->lock);
-		return -1;
+		return -EBUSY;
 	}
 	if (!(l1eflags(ol1e) & PG_P)) {
 		/* Not present, do not change. */
 		spinunlock(&pmap->lock);
-		return -1;
+		return -EPERM;
 	}
 	if (is_prot_writeable(prot) && (l1eflags(ol1e) & PG_COW)) {
 		/* Can't make COW writable with chprot */
 		spinunlock(&pmap->lock);
-		return -1;
+		return -EINVAL;
 	}
 
 	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
@@ -340,7 +340,7 @@ int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)
 		/* Externally controlled already. */
 		spinunlock(&pmap->lock);
 		*l1e = mkl1e(PFN_INVALID, 0);
-		return -1;
+		return -EBUSY;
 	}
 	nl1e = ol1e | PG_EXPORTD;
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);

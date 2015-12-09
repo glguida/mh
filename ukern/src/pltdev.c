@@ -55,36 +55,22 @@ static struct pltrems platform_rems[MAXPLTSIGS];
 
 int _pltdev_open(void *devopq, uint64_t did)
 {
-	int i, ret = -1;
+	int i, ret;
 
 	spinlock(&platform_lock);
 	for (i = 0; i < MAXPLTSIGS; i++)
 		if (!platform_rems[i].in_use)
 			break;
-	if (i >= MAXPLTSIGS)
+	if (i >= MAXPLTSIGS) {
+		ret = -ENFILE;
 		goto out;
+	}
 	LIST_INIT(&platform_rems[i].pltsigs);
 	platform_rems[i].in_use = 1;
 	ret = 0;
 out:
 	spinunlock(&platform_lock);
 	return ret;
-}
-
-static void _pltdev_close(void *devopq, unsigned id)
-{
-	struct pltsig *ps, *tps;
-
-	spinlock(&platform_lock);
-	assert(platform_rems[id].in_use);
-
-	LIST_FOREACH_SAFE(ps, &platform_rems[id].pltsigs, list, tps) {
-		LIST_REMOVE(ps, list);
-		irqunregister(&ps->irqsig);
-		structs_free(ps);
-	}
-	platform_rems[id].in_use = 0;
-	spinunlock(&platform_lock);
 }
 
 static int _pltdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
@@ -105,7 +91,7 @@ static int _pltdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
 		break;
 	default:
 		printf("Meh: %llx\n", port);
-		return -1;
+		return -EINVAL;
 	}
 	return 0;
 }
@@ -123,14 +109,14 @@ static int _pltdev_out(void *devopq, unsigned id, uint64_t port, uint64_t val)
 		platform_outl(port >> PLTPORT_SIZESHIFT, val);
 		break;
 	default:
-		return -1;
+		return -EINVAL;
 	}
 	return 0;
 }
 
 static int _pltdev_export(void *devopq, unsigned id, vaddr_t va, unsigned iopfn)
 {
-	return -1;
+	return -ENODEV;
 }
 
 static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
@@ -143,8 +129,23 @@ static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
 	spinlock(&platform_lock);
 	LIST_INSERT_HEAD(&platform_rems[id].pltsigs, pltsig, list);
 	spinunlock(&platform_lock);
-	irqregister(&pltsig->irqsig, irq, th, sig);
-	return 0;
+	return irqregister(&pltsig->irqsig, irq, th, sig);
+}
+
+static void _pltdev_close(void *devopq, unsigned id)
+{
+	struct pltsig *ps, *tps;
+
+	spinlock(&platform_lock);
+	assert(platform_rems[id].in_use);
+
+	LIST_FOREACH_SAFE(ps, &platform_rems[id].pltsigs, list, tps) {
+		LIST_REMOVE(ps, list);
+		irqunregister(&ps->irqsig);
+		structs_free(ps);
+	}
+	platform_rems[id].in_use = 0;
+	spinunlock(&platform_lock);
 }
 
 static struct devops pltdev_ops = {

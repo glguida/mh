@@ -54,7 +54,7 @@ static rb_tree_t sys_device_rbtree;
 
 int bus_plug(struct bus *b, uint64_t did)
 {
-	int i, devid, ret = -1;
+	int i, devid, ret;
 	struct dev *d;
 
 	spinlock(&sys_device_rbtree_lock);
@@ -62,7 +62,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	spinunlock(&sys_device_rbtree_lock);
 
 	if (d == NULL)
-		return -1;
+		return -ENOENT;
 
 	spinlock(&b->lock);
 
@@ -70,18 +70,22 @@ int bus_plug(struct bus *b, uint64_t did)
 		if (!b->devs[i].bsy && !b->devs[i].dev)
 			break;
 	}
-	if (i >= MAXBUSDEVS)
+	if (i >= MAXBUSDEVS) {
+		ret = -EMFILE;
 		goto out;
+	}
 
 	/* Plug device */
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto out;
 	}
 	devid = d->ops->open(d->devopq, did);
 	if (devid < 0) {
 		spinunlock(&d->lock);
+		ret = devid;
 		goto out;
 	}
 	LIST_INSERT_HEAD(&d->busdevs, b->devs + i, list);
@@ -113,22 +117,25 @@ int bus_plug(struct bus *b, uint64_t did)
 
 int bus_unplug(struct bus *b, unsigned desc)
 {
-	int ret = -1;
+	int ret;
 	struct dev *d;
 
 	if (desc >= MAXBUSDEVS)
-		return -1;
+		return -EBADF;
 
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg)
+	if (!b->devs[desc].plg) {
+		return -ENOENT;
 		goto no_unplug;
+	}
 	assert(d != NULL);
 
 	/* Unplug device */
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto no_unplug;
 	}
 	d->ops->close(d->devopq, b->devs[desc].devid);
@@ -148,21 +155,24 @@ int bus_unplug(struct bus *b, unsigned desc)
 
 int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr)
 {
-	int ret = -1;
+	int ret;
 	struct dev *d;
 
 	if (desc >= MAXBUSDEVS)
-		return -1;
+		return -EBADF;
 
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg)
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
 		goto out_io_in;
+	}
 	assert(d != NULL);
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto out_io_in;
 	}
 	ret = d->ops->in(d->devopq, b->devs[desc].devid, port, valptr);
@@ -174,21 +184,24 @@ int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr)
 
 int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 {
-	int ret = -1;
+	int ret;
 	struct dev *d;
 
 	if (desc >= MAXBUSDEVS)
-		return -1;
+		return -EBADF;
 
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg)
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
 		goto out_io_out;
+	}
 	assert(d != NULL);
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto out_io_out;
 	}
 	ret = d->ops->out(d->devopq, b->devs[desc].devid, port, val);
@@ -200,22 +213,24 @@ int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 {
-	int ret = -1;
+	int ret;
 	struct dev *d;
 
 	if (desc >= MAXBUSDEVS)
-		return -1;
+		return -EBADF;
 
 	spinunlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg) {
 		printf("Uh? %d\n", desc);
+		ret = -ENOENT;
 		goto out_io;
 	}
 	assert(d != NULL);
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto out_io;
 	}
 	ret = d->ops->export(d->devopq, b->devs[desc].devid, va, iopfn);
@@ -226,17 +241,18 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 
 int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 {
-	int ret = -1;
+	int ret;
 	struct dev *d;
 
 	printf("Buh!\n");
 	if (desc >= MAXBUSDEVS)
-		return -1;
+		return -EBADF;
 
 	spinunlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg) {
 		printf("Uh? %d\n", desc);
+		ret = -ENOENT;
 		goto out_io;
 	}
 	assert(d != NULL);
@@ -244,6 +260,7 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
+		ret = -ESRCH;
 		goto out_io;
 	}
 	ret = d->ops->irqmap(d->devopq, b->devs[desc].devid, irq, sig);
@@ -266,7 +283,7 @@ int dev_attach(struct dev *d)
 	if (rb_tree_find_node(&sys_device_rbtree, &d->did)) {
 		spinunlock(&sys_device_rbtree_lock);
 		printf("device %" PRIx64 " already existing\n", d->did);
-		return -1;
+		return -EEXIST;
 	}
 	rb_tree_insert_node(&sys_device_rbtree, (void *) d);
 	spinunlock(&sys_device_rbtree_lock);

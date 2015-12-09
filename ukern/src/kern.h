@@ -31,6 +31,7 @@
 #define _ukern_kern_h
 
 #include <uk/types.h>
+#include <uk/errno.h>
 #include <uk/queue.h>
 #include <machine/uk/pmap.h>
 #include <uk/sys.h>
