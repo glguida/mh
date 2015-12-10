@@ -53,4 +53,7 @@ typedef unsigned long long intmax_t;
 typedef uint64_t cpumask_t;
 #endif
 
+typedef uint32_t uid_t;
+typedef uint32_t gid_t;
+
 #endif

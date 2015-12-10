@@ -196,3 +196,67 @@ int sys_import(unsigned id, unsigned iopfn, u_long va)
 		   va, ret);
 	return ret;
 }
+
+uid_t sys_getuid(int sel)
+{
+	int ret;
+
+	__syscall1(SYS_GETUID, (unsigned long) sel, ret);
+	return ret;
+}
+
+gid_t sys_getgid(int sel)
+{
+	int ret;
+
+	__syscall1(SYS_GETGID, (unsigned long) sel, ret);
+	return ret;
+}
+
+int sys_setuid(uid_t uid)
+{
+	int ret;
+
+	__syscall1(SYS_SETUID, (unsigned long) uid, ret);
+	return ret;
+}
+
+int sys_seteuid(uid_t uid)
+{
+	int ret;
+
+	__syscall1(SYS_SETEUID, (unsigned long) uid, ret);
+	return ret;
+}
+
+int sys_setsuid(uid_t uid)
+{
+	int ret;
+
+	__syscall1(SYS_SETSUID, (unsigned long) uid, ret);
+	return ret;
+}
+
+int sys_setgid(gid_t gid)
+{
+	int ret;
+
+	__syscall1(SYS_SETGID, (unsigned long) gid, ret);
+	return ret;
+}
+
+int sys_setegid(gid_t gid)
+{
+	int ret;
+
+	__syscall1(SYS_SETEGID, (unsigned long) gid, ret);
+	return ret;
+}
+
+int sys_setsgid(gid_t gid)
+{
+	int ret;
+
+	__syscall1(SYS_SETSGID, (unsigned long) gid, ret);
+	return ret;
+}

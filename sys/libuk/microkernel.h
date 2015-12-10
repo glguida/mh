@@ -80,4 +80,13 @@ int sys_eio(unsigned id);
 int sys_irq(unsigned id, unsigned irq);
 int sys_import(unsigned id, unsigned iopfn, u_long va);
 
+uid_t sys_getuid(int sel);
+gid_t sys_getgid(int sel);
+int sys_setuid(uid_t uid);
+int sys_seteuid(uid_t uid);
+int sys_setsuid(uid_t uid);
+int sys_setgid(gid_t gid);
+int sys_setegid(gid_t gid);
+int sys_setsgid(gid_t gid);
+
 #endif

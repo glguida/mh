@@ -62,6 +62,14 @@ struct thread {
 	struct usrdev *usrdev;
 	struct bus bus;
 
+	int setuid;
+	uid_t ruid;
+	uid_t euid;
+	uid_t suid;
+	gid_t rgid;
+	gid_t egid;
+	gid_t sgid;
+
 	uaddr_t sigip;
 	uaddr_t sigsp;
 #define THFL_INTR (1L << 0)

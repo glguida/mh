@@ -229,6 +229,85 @@ static int sys_die(void)
 	return 0;
 }
 
+static uid_t sys_getuid(int sel)
+{
+	struct thread *th = current_thread();
+
+	if (sel < 0)
+		return th->suid;
+	if (sel > 0)
+		return th->euid;
+	return th->ruid;
+}
+
+static gid_t sys_getgid(int sel)
+{
+	struct thread *th = current_thread();
+
+	if (sel < 0)
+		return th->sgid;
+	if (sel > 0)
+		return th->egid;
+	return th->rgid;
+}
+
+static int sys_setuid(uid_t uid)
+{
+	struct thread *th = current_thread();
+
+	/* Super User or Real User */
+	if (th->euid && (th->ruid != uid))
+		return -EPERM;
+
+	th->ruid = uid;
+	th->euid = uid;
+	th->suid = uid;
+	return 0;
+}
+
+static int sys_seteuid(uid_t uid)
+{
+	struct thread *th = current_thread();
+
+	/* Super User or Real or Saved User */
+	if (th->euid && (th->ruid != uid) && (th->suid != uid))
+		return -EPERM;
+
+	th->euid = uid;
+	return 0;
+}
+
+static int sys_issetuid(void)
+{
+	return !!current_thread()->setuid;
+}
+
+static int sys_setgid(gid_t gid)
+{
+	struct thread *th = current_thread();
+
+	/* Super User or Real Group */
+	if (th->euid && (th->rgid != gid))
+		return -EPERM;
+
+	th->rgid = gid;
+	th->egid = gid;
+	th->sgid = gid;
+	return 0;
+}
+
+int sys_setegid(gid_t gid)
+{
+	struct thread *th = current_thread();
+
+	/* Super User or Real or Saved Group */
+	if (th->euid && (th->rgid != gid) && (th->sgid != gid))
+		return -EPERM;
+
+	th->egid = gid;
+	return 0;
+}
+
 int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 {
 	switch (sc) {
@@ -274,6 +353,18 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_in(a1, a2, a3);
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
+	case SYS_GETUID:
+		return sys_getuid(a1);
+	case SYS_SETUID:
+		return sys_setuid(a1);
+	case SYS_SETEUID:
+		return sys_seteuid(a1);
+	case SYS_GETGID:
+		return sys_getgid(a1);
+	case SYS_SETGID:
+		return sys_setgid(a1);
+	case SYS_SETEGID:
+		return sys_setegid(a1);
 	default:
 		return -ENOSYS;
 	}

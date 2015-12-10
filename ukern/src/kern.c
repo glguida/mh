@@ -110,6 +110,14 @@ static struct thread *thnew(void (*__start) (void))
 	th->userfl = 0;
 	th->softintrs = 0;
 
+	th->setuid = 0;
+	th->ruid = 0;
+	th->euid = 0;
+	th->suid = 0;
+	th->rgid = 0;
+	th->egid = 0;
+	th->sgid = 0;
+
 	th->usrdev = 0;
 	memset(&th->bus, 0, sizeof(th->bus));
 
@@ -144,6 +152,14 @@ struct thread *thfork(void)
 
 	nth->userfl = cth->userfl;
 	nth->softintrs = cth->softintrs;
+
+	nth->setuid = cth->setuid;
+	nth->ruid = cth->ruid;
+	nth->euid = cth->euid;
+	nth->suid = cth->suid;
+	nth->rgid = cth->rgid;
+	nth->egid = cth->egid;
+	nth->sgid = cth->sgid;
 
 	nth->sigip = cth->sigip;
 	nth->sigsp = cth->sigsp;
@@ -699,12 +715,20 @@ void kern_boot(void)
 	th->stack_4k = NULL;
 	th->userfl = 0;
 	th->softintrs = 0;
+
+	th->setuid = 0;
+	th->ruid = 0;
+	th->euid = 0;
+	th->suid = 0;
+	th->rgid = 0;
+	th->egid = 0;
+	th->sgid = 0;
+
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 	/* We are idle thread now. */
 
 	cpu_wakeup_aps();
-
 
 	/* Create init */
 	th = thnew(__initstart);
@@ -725,6 +749,15 @@ void kern_bootap(void)
 	th->stack_4k = NULL;
 	th->userfl = 0;
 	th->softintrs = 0;
+
+	th->setuid = 0;
+	th->ruid = 0;
+	th->euid = 0;
+	th->suid = 0;
+	th->rgid = 0;
+	th->egid = 0;
+	th->sgid = 0;
+
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 

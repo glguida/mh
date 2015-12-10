@@ -81,6 +81,17 @@ struct sys_poll_ior {
 #define SYS_IRQ    0x33
 #define SYS_IMPORT 0x34
 
+#define SYS_GETUID   0x50
+#define SYS_SETUID   0x51
+#define SYS_SETEUID  0x52
+#define SYS_SETSUID  0x53
+#define SYS_ISSETUID 0x54
+
+#define SYS_GETGID   0x60
+#define SYS_SETGID   0x61
+#define SYS_SETEGID  0x62
+#define SYS_SETSGID  0x63
+
 /* System-processes only */
 #define SYS_PUTC 0x1000
 
