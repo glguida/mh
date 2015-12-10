@@ -66,14 +66,24 @@ typedef enum {
 #define PLTPORT_DWORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 4)
 #define SYS_IN     0x22
 #define SYS_OUT    0x23
-
 #define SYS_EXPORT 0x24
 
 #define SYS_CREAT  0x30
 #ifndef _ASSEMBLER
+enum sys_poll_ior_op {
+	SYS_POLL_OP_OUT,
+};
+
 struct sys_poll_ior {
-	uint64_t port;
-	uint64_t val;
+	enum sys_poll_ior_op op;
+	union {
+		struct {
+			uint64_t port;
+			uint64_t val;
+		};
+	};
+	uid_t uid;
+	gid_t gid;
 };
 #endif
 #define SYS_POLL   0x31

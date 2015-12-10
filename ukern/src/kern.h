@@ -112,7 +112,7 @@ int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
 int devcreat(uint64_t id, unsigned sig, devmode_t mode);
-int devpoll(uint64_t * p, uint64_t * v);
+int devpoll(struct sys_poll_ior *ior);
 int deveio(unsigned id);
 int devirq(unsigned id, unsigned irq);
 int devimport(unsigned id, unsigned iopfn, unsigned va);

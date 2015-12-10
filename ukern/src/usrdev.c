@@ -42,10 +42,22 @@
 static struct slab usrdevs;
 static struct slab usrioreqs;
 
+enum usrior_op {
+	IOR_OP_OUT,
+};
+
 struct usrioreq {
 	unsigned id;
-	uint64_t port;
-	uint64_t val;
+	enum usrior_op op;
+	union {
+		struct {
+			/* OUT */
+			uint64_t port;
+			uint64_t val;
+		};
+	};
+	uid_t uid;
+	gid_t gid;
 
 	TAILQ_ENTRY(usrioreq) queue;
 };
@@ -118,14 +130,21 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 {
 	/* Current thread: Process */
 	struct usrdev *ud = (struct usrdev *) devopq;
+	struct thread *th = current_thread();
 	struct usrioreq *ior;
 
 	assert (id < MAXUSRDEVREMS);
 
 	ior = structs_alloc(&usrioreqs);
 	ior->id = id;
+	ior->op = IOR_OP_OUT;
+
 	ior->port = port;
 	ior->val = val;
+
+	printf("uid: %d, gid %d\n", th->euid, th->egid);
+	ior->uid = th->euid;
+	ior->gid = th->egid;
 
 	spinlock(&ud->lock);
 	if (ud->remths[id].bsy) {
@@ -135,8 +154,8 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	}
 	ud->remths[id].bsy = 1;
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
-	spinunlock(&ud->lock);
 	thraise(ud->th, ud->sig);
+	spinunlock(&ud->lock);
 	return 0;
 }
 
@@ -272,18 +291,33 @@ struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode)
 	return ud;
 }
 
-int usrdev_poll(struct usrdev *ud, uint64_t * p, uint64_t * v)
+int usrdev_poll(struct usrdev *ud, struct sys_poll_ior *poll)
 {
 	int id;
 	struct usrioreq *ior;
 
+retry:
 	spinlock(&ud->lock);
 	ior = TAILQ_FIRST(&ud->ioreqs);
-	TAILQ_REMOVE(&ud->ioreqs, ior, queue);
+	if (ior != NULL)
+		TAILQ_REMOVE(&ud->ioreqs, ior, queue);
 	spinunlock(&ud->lock);
 
-	*p = ior->port;
-	*v = ior->val;
+	if (ior == NULL)
+		return -1;
+
+	switch (ior->op) {
+	case IOR_OP_OUT:
+		poll->op = SYS_POLL_OP_OUT;
+		poll->port = ior->port;
+		poll->val = ior->val;
+		break;
+	default:
+		panic("Invalid IOR entry type %d!\n", ior->op);
+		goto retry;
+	}
+	poll->gid = ior->gid;
+	poll->uid = ior->uid;
 	id = ior->id;
 	structs_free(ior);
 	printf("poll: returning %d\n", id);

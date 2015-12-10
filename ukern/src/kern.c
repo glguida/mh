@@ -541,13 +541,13 @@ int devcreat(uint64_t id, unsigned sig, mode_t mode)
 	return 0;
 }
 
-int devpoll(uint64_t * p, uint64_t * v)
+int devpoll(struct sys_poll_ior *polld)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
-		ret = usrdev_poll(th->usrdev, p, v);
+		ret = usrdev_poll(th->usrdev, polld);
 	return ret;
 }
 

@@ -28,10 +28,11 @@
 
 
 struct usrdev;
+struct sys_poll_ior;
 #define IRQMAPSZ 8
 
 struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode);
-int usrdev_poll(struct usrdev *ud, uint64_t * p, uint64_t *);
+int usrdev_poll(struct usrdev *ud, struct sys_poll_ior *poll);
 int usrdev_eio(struct usrdev *ud, unsigned id);
 int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq);
 int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,

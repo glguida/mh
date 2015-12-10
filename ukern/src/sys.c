@@ -106,7 +106,7 @@ static int sys_poll(uaddr_t uior)
 	int id, ret;
 	struct sys_poll_ior sior;
 
-	id = devpoll(&sior.port, &sior.val);
+	id = devpoll(&sior);
 	if (id < 0)
 		return id;
 
