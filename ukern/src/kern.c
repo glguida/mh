@@ -99,6 +99,22 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 	return 0;
 }
 
+int __getperm(struct thread *th,uid_t uid, gid_t gid, mode_t mode)
+{
+	int perm;
+
+	if (uid == th->euid) {
+		perm = (mode & 0700);
+		perm >>= 6;
+	} else if (gid == th->egid) {
+		perm = (mode & 0070);
+		perm >>= 3;
+	} else {
+		perm = (mode & 0007);
+	}
+	return perm;
+}
+
 static struct thread *thnew(void (*__start) (void))
 {
 	struct thread *th;
@@ -509,7 +525,7 @@ int vmchprot(vaddr_t addr, pmap_prot_t prot)
 	return ret;
 }
 
-int devcreat(uint64_t id, unsigned sig)
+int devcreat(uint64_t id, unsigned sig, mode_t mode)
 {
 	struct thread *th = current_thread();
 
@@ -519,7 +535,7 @@ int devcreat(uint64_t id, unsigned sig)
 	if (th->usrdev)
 		return -EBUSY;
 
-	th->usrdev = usrdev_creat(id, sig);
+	th->usrdev = usrdev_creat(id, sig, mode);
 	if (th->usrdev == NULL)
 		return -EEXIST;
 	return 0;

@@ -9,7 +9,7 @@ UKINCS+= bus.h fixmems.h gfp.h heap.h kern.h pfndb.h	\
 UKINCDIR= uk
 
 # Public
-INCS= sys.h
+INCS= exttypes.h sys.h
 INCDIR= uk
 INCSUBDIRS=
 

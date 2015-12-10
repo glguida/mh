@@ -155,12 +155,12 @@ int sys_out(unsigned ddno, u_long port, u_long val)
 	return ret;
 }
 
-int sys_creat(u_long id, unsigned sig)
+int sys_creat(u_long id, unsigned sig, devmode_t mode)
 {
 	int ret;
 
-	__syscall2(SYS_CREAT, (unsigned long) id, (unsigned long) sig,
-		   ret);
+	__syscall3(SYS_CREAT, (unsigned long) id, (unsigned long) sig,
+		   (unsigned long) mode, ret);
 	return ret;
 }
 

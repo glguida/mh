@@ -251,19 +251,20 @@ static struct devops usrdev_ops = {
 	.irqmap = _usrdev_irqmap,
 };
 
-struct usrdev *usrdev_creat(uint64_t id, unsigned sig)
+struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode)
 {
 	struct usrdev *ud;
+	struct thread *th = current_thread();
 
 	ud = structs_alloc(&usrdevs);
 	ud->lock = 0;
-	ud->th = current_thread();
+	ud->th = th;
 	ud->sig = sig;
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	memset(&ud->apertbl, 0, sizeof(ud->apertbl));
 	TAILQ_INIT(&ud->ioreqs);
 
-	dev_init(&ud->dev, id, (void *) ud, &usrdev_ops);
+	dev_init(&ud->dev, id, (void *) ud, &usrdev_ops, th->euid, th->egid, mode);
 	if (dev_attach(&ud->dev)) {
 		structs_free(ud);
 		ud = NULL;

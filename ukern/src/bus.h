@@ -67,6 +67,10 @@ struct dev {
 	lock_t lock;
 	int offline:1;
 
+	uid_t uid;
+	gid_t gid;
+	devmode_t mode;
+
 	void *devopq;
 	struct devops *ops;
 	 LIST_HEAD(, bdeve) busdevs;
@@ -81,7 +85,7 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
 void bus_remove(struct bus *b);
 
-void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops);
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops, uid_t uid, gid_t gid, devmode_t mode);
 int dev_attach(struct dev *d);
 void dev_detach(struct dev *d);
 void dev_free(struct dev *d);

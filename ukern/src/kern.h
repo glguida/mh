@@ -90,6 +90,7 @@ struct cpu {
 	jmp_buf usrpgfaultctx;
 };
 
+int __chkperm(struct thread *th, uid_t uid, gid_t gid, uint32_t mode);
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz);
 
 void thintr(unsigned xcpt, vaddr_t va, unsigned long err);
@@ -110,7 +111,7 @@ int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
-int devcreat(uint64_t id, unsigned sig);
+int devcreat(uint64_t id, unsigned sig, devmode_t mode);
 int devpoll(uint64_t * p, uint64_t * v);
 int deveio(unsigned id);
 int devirq(unsigned id, unsigned irq);

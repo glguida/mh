@@ -96,9 +96,9 @@ static int sys_fork(void)
 	return ! !th;
 }
 
-static int sys_creat(u_long id, unsigned sig)
+static int sys_creat(u_long id, unsigned sig, devmode_t mode)
 {
-	return devcreat(id, sig);
+	return devcreat(id, sig, mode);
 }
 
 static int sys_poll(uaddr_t uior)
@@ -334,7 +334,7 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 	case SYS_DIE:
 		return sys_die();
 	case SYS_CREAT:
-		return sys_creat(a1, a2);
+		return sys_creat(a1, a2, a3);
 	case SYS_POLL:
 		return sys_poll(a1);
 	case SYS_EIO:

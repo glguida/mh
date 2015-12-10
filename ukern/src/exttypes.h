@@ -27,14 +27,15 @@
  */
 
 
-struct usrdev;
-#define IRQMAPSZ 8
+#ifndef _exttypes_h
+#define _exttypes_h
 
-struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode);
-int usrdev_poll(struct usrdev *ud, uint64_t * p, uint64_t *);
-int usrdev_eio(struct usrdev *ud, unsigned id);
-int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq);
-int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
-		  unsigned va);
-void usrdev_destroy(struct usrdev *d);
-void usrdevs_init(void);
+#define S_DMSKU 0000100			/* Mask for device owner */
+#define S_DOUSR 0000100			/* O for owner */
+#define S_DMSKG 0000010			/* Mask for group */
+#define S_DOGRP 0000010			/* O for group */
+#define S_DMSKO 0000001			/* Mask for other */
+#define S_DOOTH 0000001			/* O for other */
+typedef uint32_t devmode_t;
+
+#endif

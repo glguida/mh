@@ -82,6 +82,11 @@ int bus_plug(struct bus *b, uint64_t did)
 		ret = -ESRCH;
 		goto out;
 	}
+	if (__getperm(current_thread(), d->uid, d->gid, d->mode) != 1) {
+		spinunlock(&d->lock);
+		ret = -EACCES;
+		goto out;
+	}
 	devid = d->ops->open(d->devopq, did);
 	if (devid < 0) {
 		spinunlock(&d->lock);
@@ -345,7 +350,7 @@ void dev_detach(struct dev *d)
 	}
 }
 
-void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops)
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops, uid_t uid, gid_t gid, devmode_t mode)
 {
 	d->did = id;
 	d->lock = 0;
@@ -353,6 +358,10 @@ void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops)
 	LIST_INIT(&d->busdevs);
 	d->devopq = opq;
 	d->ops = ops;
+
+	d->uid = uid;
+	d->gid = gid;
+	d->mode = mode;
 }
 
 void dev_free(struct dev *d)

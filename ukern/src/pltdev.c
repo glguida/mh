@@ -161,6 +161,6 @@ void pltdev_init(void)
 {
 	setup_structcache(&platsigs, pltsig);
 	memset(platform_rems, 0, sizeof(platform_rems));
-	dev_init(&platform_dev, 0, NULL, &pltdev_ops);
+	dev_init(&platform_dev, 0, NULL, &pltdev_ops, 0, 0, 600);
 	dev_attach(&platform_dev);
 }

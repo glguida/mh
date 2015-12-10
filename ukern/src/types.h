@@ -56,4 +56,18 @@ typedef uint64_t cpumask_t;
 typedef uint32_t uid_t;
 typedef uint32_t gid_t;
 
+
+#define	S_IRWU	0000600			/* RW mask for owner */
+#define	S_IRUSR	0000400			/* R for owner */
+#define	S_IWUSR	0000200			/* W for owner */
+#define	S_IRWG	0000060			/* RW mask for group */
+#define	S_IRGRP	0000040			/* R for group */
+#define	S_IWGRP	0000020			/* W for group */
+#define	S_IRWO	0000006			/* RW mask for other */
+#define	S_IROTH	0000004			/* R for other */
+#define	S_IWOTH	0000002			/* W for other */
+typedef uint32_t mode_t;
+
+#include <uk/exttypes.h>
+
 #endif

@@ -111,5 +111,8 @@ struct sys_poll_ior {
 #ifdef _UKERNEL
 int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3);
 #endif
+#ifndef _ASSEMBLER
+#include <uk/exttypes.h>
+#endif
 
 #endif

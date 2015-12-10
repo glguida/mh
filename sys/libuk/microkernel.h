@@ -74,7 +74,7 @@ int sys_mapirq(unsigned ddno, unsigned id, unsigned sig);
 int sys_in(unsigned ddno, u_long port, uint64_t *val);
 int sys_out(unsigned ddno, u_long port, u_long val);
 
-int sys_creat(u_long id, unsigned sig);
+int sys_creat(u_long id, unsigned sig, devmode_t mode);
 int sys_poll(struct sys_poll_ior *ior);
 int sys_eio(unsigned id);
 int sys_irq(unsigned id, unsigned irq);
