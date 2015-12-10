@@ -81,7 +81,7 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
-	printf("%d creat()", sys_creat(500, 9));
+	printf("%d creat()", sys_creat(500, 9, 0111));
 
 	if (sys_fork()) {
 		int i;
