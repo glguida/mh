@@ -90,7 +90,7 @@ struct cpu {
 	jmp_buf usrpgfaultctx;
 };
 
-int __chkperm(struct thread *th, uid_t uid, gid_t gid, uint32_t mode);
+int __getperm(struct thread *th, uid_t uid, gid_t gid, uint32_t mode);
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz);
 
 void thintr(unsigned xcpt, vaddr_t va, unsigned long err);
