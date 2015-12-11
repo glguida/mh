@@ -151,7 +151,7 @@ void *heap_alloc(size_t size)
 	void *ptr = NULL;
 	struct kheap *hptr;
 
-	if (size >= HEAP_MAXALLOC) {
+	if (UROUND(size) >= HEAP_MAXALLOC) {
 		panic("heap: size too big");
 		return NULL;
 	}
