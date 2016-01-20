@@ -1,6 +1,6 @@
 diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
---- a/sys/i386/include/asm.h	2015-11-07 11:59:26.429136439 +0000
-+++ b/sys/i386/include/asm.h	2015-11-07 11:59:27.522141543 +0000
+--- a/sys/i386/include/asm.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/i386/include/asm.h	2016-01-18 21:46:27.000000000 +0000
 @@ -37,9 +37,11 @@
  #ifndef _I386_ASM_H_
  #define _I386_ASM_H_
@@ -13,9 +13,24 @@ diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
  
  #ifdef __PIC__
  #define PIC_PROLOGUE	\
+diff -ru a/sys/i386/include/param.h b/sys/i386/include/param.h
+--- a/sys/i386/include/param.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/i386/include/param.h	2016-01-18 21:46:27.000000000 +0000
+@@ -60,7 +60,11 @@
+ 
+ #define ALIGNED_POINTER(p,t)	1
+ 
++#ifndef _DREX_SOURCE
+ #define	PGSHIFT		12		/* LOG2(NBPG) */
++#else
++#define PGSHIFT		21
++#endif
+ #define	NBPG		(1 << PGSHIFT)	/* bytes/page */
+ #define	PGOFSET		(NBPG-1)	/* byte offset into page */
+ #define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
 diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
---- a/sys/i386/include/types.h	2015-11-07 11:59:26.659137513 +0000
-+++ b/sys/i386/include/types.h	2015-11-07 11:59:27.770142702 +0000
+--- a/sys/i386/include/types.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/i386/include/types.h	2016-01-18 21:46:27.000000000 +0000
 @@ -34,9 +34,12 @@
  #ifndef	_I386_MACHTYPES_H_
  #define	_I386_MACHTYPES_H_
@@ -48,9 +63,9 @@ diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
  typedef int		pmc_evid_t;
  typedef __uint64_t	pmc_ctr_t;
 diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
---- a/sys/i386/include/vmparam.h	2015-11-07 11:59:26.493136738 +0000
-+++ b/sys/i386/include/vmparam.h	2015-11-07 11:59:27.592141870 +0000
-@@ -37,8 +37,17 @@
+--- a/sys/i386/include/vmparam.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/i386/include/vmparam.h	2016-01-18 21:46:27.000000000 +0000
+@@ -37,8 +37,26 @@
  #ifndef _I386_VMPARAM_H_
  #define _I386_VMPARAM_H_
  
@@ -65,10 +80,19 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
  #include <sys/tree.h>
  #include <sys/mutex.h>
 +#endif
++
++#ifdef _DREX_SOURCE
++/*
++ * Round off or truncate to the nearest page.  These will work
++ * for either addresses or counts (i.e., 1 byte rounds to 1 page).
++ */
++#define	round_page(x)	(((x) + PAGE_MASK) & ~PAGE_MASK)
++#define	trunc_page(x)	((x) & ~PAGE_MASK)
++#endif
  
  /*
   * Machine dependent constants for 386.
-@@ -48,7 +57,10 @@
+@@ -48,7 +66,10 @@
   * Page size on the IA-32 is not variable in the traditional sense.
   * We override the PAGE_* definitions to compile-time constants.
   */
@@ -79,9 +103,15 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
  #define	PAGE_SIZE	(1 << PAGE_SHIFT)
  #define	PAGE_MASK	(PAGE_SIZE - 1)
  
-@@ -105,21 +117,28 @@
- #define	VM_MAX_ADDRESS		\
- 	((vaddr_t)((PDIR_SLOT_PTE << L2_SHIFT) + (PDIR_SLOT_PTE << L1_SHIFT)))
+@@ -101,25 +122,31 @@
+ 
+ /* user/kernel map constants */
+ #define VM_MIN_ADDRESS		((vaddr_t)0)
+-#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L2_SHIFT))
+-#define	VM_MAX_ADDRESS		\
+-	((vaddr_t)((PDIR_SLOT_PTE << L2_SHIFT) + (PDIR_SLOT_PTE << L1_SHIFT)))
++#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
++#define	VM_MAX_ADDRESS		((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
  #define	VM_MIN_KERNEL_ADDRESS	((vaddr_t)(PDIR_SLOT_KERN << L2_SHIFT))
 +#ifndef _DREX_SOURCE
  #define	VM_MAX_KERNEL_ADDRESS	((vaddr_t)((PDIR_SLOT_KERN + NKL2_MAX_ENTRIES) << L2_SHIFT))
@@ -108,7 +138,7 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
  /* XXX max. amount of KVM to be used by buffers. */
  #ifndef VM_MAX_KERNEL_BUF
  #define VM_MAX_KERNEL_BUF	(384 * 1024 * 1024)
-@@ -142,4 +161,6 @@
+@@ -142,4 +169,6 @@
  #endif /* XEN */
  #define	VM_FREELIST_DEFAULT	0
  
@@ -116,8 +146,8 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
 +
  #endif /* _I386_VMPARAM_H_ */
 diff -ru a/sys/lib/libsys/printf.c b/sys/lib/libsys/printf.c
---- a/sys/lib/libsys/printf.c	2015-11-07 11:59:26.858138443 +0000
-+++ b/sys/lib/libsys/printf.c	2015-11-07 11:59:27.980143682 +0000
+--- a/sys/lib/libsys/printf.c	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/lib/libsys/printf.c	2016-01-18 21:46:27.000000000 +0000
 @@ -35,7 +35,11 @@
  #include <sys/types.h>
  #include <sys/stdarg.h>
@@ -131,8 +161,8 @@ diff -ru a/sys/lib/libsys/printf.c b/sys/lib/libsys/printf.c
  void
  printf(const char *fmt, ...)
 diff -ru a/sys/lib/libsys/subr_prf.c b/sys/lib/libsys/subr_prf.c
---- a/sys/lib/libsys/subr_prf.c	2015-11-07 11:59:26.890138592 +0000
-+++ b/sys/lib/libsys/subr_prf.c	2015-11-07 11:59:27.992143738 +0000
+--- a/sys/lib/libsys/subr_prf.c	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/lib/libsys/subr_prf.c	2016-01-18 21:46:27.000000000 +0000
 @@ -38,8 +38,17 @@
  #include <sys/cdefs.h>
  #include <sys/types.h>
@@ -152,9 +182,54 @@ diff -ru a/sys/lib/libsys/subr_prf.c b/sys/lib/libsys/subr_prf.c
  
  #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
  #define INTMAX_T	longlong_t
+diff -ru a/sys/libcsys/malloc.c b/sys/libcsys/malloc.c
+--- a/sys/libcsys/malloc.c	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/libcsys/malloc.c	2016-01-18 21:46:27.000000000 +0000
+@@ -1,3 +1,13 @@
++#ifdef _DREX_SOURCE
++#include <machine/vmparam.h>
++
++#define fprintf(_x, ...) printf(__VA_ARGS__)
++#define brk drex_brk
++#define sbrk drex_sbrk
++#define getpagesize() PAGE_SIZE
++
++#endif
++
+ /*	$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $	*/
+ 
+ /*
+@@ -58,8 +68,13 @@
+ #endif
+ #include <stdlib.h>
+ #include <string.h>
++#ifndef _DREX_SOURCE
+ #include <unistd.h>
+ #include "reentrant.h"
++#else
++#define mutex_lock(_x)
++#define mutex_unlock(_x)
++#endif
+ 
+ 
+ /*
+diff -ru a/sys/sys/ansi.h b/sys/sys/ansi.h
+--- a/sys/sys/ansi.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/sys/ansi.h	2016-01-18 21:46:27.000000000 +0000
+@@ -47,6 +47,10 @@
+ typedef	__uint64_t	__fsblkcnt_t;	/* fs block count (statvfs) */
+ typedef	__uint64_t	__fsfilcnt_t;	/* fs file count */
+ 
++#ifdef _DREX_SOURCE
++typedef __uint32_t	__ioaddr_t;	/* External I/O address */
++#endif
++
+ struct __tag_wctrans_t;
+ typedef struct __tag_wctrans_t *__wctrans_t;
+ 
 diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
---- a/sys/sys/endian.h	2015-11-07 11:59:26.298135827 +0000
-+++ b/sys/sys/endian.h	2015-11-07 11:59:27.379140876 +0000
+--- a/sys/sys/endian.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/sys/endian.h	2016-01-18 21:46:27.000000000 +0000
 @@ -91,7 +91,7 @@
  #endif
  
@@ -165,8 +240,8 @@ diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
   *  Traditional names for byteorder.  These are defined as the numeric
   *  sequences so that third party code can "#define XXX_ENDIAN" and not
 diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
---- a/sys/sys/featuretest.h	2015-11-07 11:59:25.987134375 +0000
-+++ b/sys/sys/featuretest.h	2015-11-07 11:59:27.001139110 +0000
+--- a/sys/sys/featuretest.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/sys/featuretest.h	2016-01-18 21:46:27.000000000 +0000
 @@ -66,8 +66,9 @@
  #endif
  
@@ -179,9 +254,23 @@ diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
  #endif
  
  #if ((_POSIX_C_SOURCE - 0) >= 199506L || (_XOPEN_SOURCE - 0) >= 500) && \
+diff -ru a/sys/sys/param.h b/sys/sys/param.h
+--- a/sys/sys/param.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/sys/param.h	2016-01-18 21:46:27.000000000 +0000
+@@ -158,8 +158,10 @@
+ #define	VNODE_COST	2048			/* assumed space in bytes */
+ #endif /* _KERNEL */
+ 
++#ifndef _DREX_SOURCE
+ /* Signals. */
+ #include <sys/signal.h>
++#endif
+ 
+ /* Machine type dependent parameters. */
+ #include <machine/param.h>
 diff -ru a/sys/sys/types.h b/sys/sys/types.h
---- a/sys/sys/types.h	2015-11-07 11:59:26.166135211 +0000
-+++ b/sys/sys/types.h	2015-11-07 11:59:27.239140222 +0000
+--- a/sys/sys/types.h	2016-01-18 21:46:27.000000000 +0000
++++ b/sys/sys/types.h	2016-01-18 21:46:27.000000000 +0000
 @@ -97,7 +97,7 @@
  
  #include <machine/endian.h>
@@ -191,7 +280,21 @@ diff -ru a/sys/sys/types.h b/sys/sys/types.h
  typedef	unsigned char	u_char;
  typedef	unsigned short	u_short;
  typedef	unsigned int	u_int;
-@@ -316,7 +316,7 @@
+@@ -139,6 +139,13 @@
+ #define fsfilcnt_t	__fsfilcnt_t
+ #endif
+ 
++#if defined(_DREX_SOURCE)
++#ifndef ioaddr_t
++typedef __ioaddr_t	ioaddr_t;	/* I/O exported address */
++#define ioaddr_t	__ioaddr_t
++#endif
++#endif
++
+ #if !defined(_KERNEL) && !defined(_STANDALONE)
+ /* We don't and shouldn't use caddr_t in the kernel anymore */
+ #ifndef	caddr_t
+@@ -316,7 +323,7 @@
  #undef	_BSD_USECONDS_T_
  #endif
  
@@ -201,8 +304,8 @@ diff -ru a/sys/sys/types.h b/sys/sys/types.h
  
  #define	NBBY			8
 diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
---- a/ukern/lib/queue.h	2015-11-07 11:59:26.960138919 +0000
-+++ b/ukern/lib/queue.h	2015-11-07 11:59:28.012143832 +0000
+--- a/ukern/lib/queue.h	2016-01-18 21:46:27.000000000 +0000
++++ b/ukern/lib/queue.h	2016-01-18 21:46:27.000000000 +0000
 @@ -80,6 +80,7 @@
   * For details on the use of these macros, see the queue(3) manual page.
   */
@@ -220,8 +323,8 @@ diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
  #if defined(QUEUEDEBUG)
  # if defined(_KERNEL)
 diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
---- a/ukern/lib/rb.c	2015-11-07 11:59:26.980139012 +0000
-+++ b/ukern/lib/rb.c	2015-11-07 11:59:28.028143906 +0000
+--- a/ukern/lib/rb.c	2016-01-18 21:46:27.000000000 +0000
++++ b/ukern/lib/rb.c	2016-01-18 21:46:27.000000000 +0000
 @@ -29,6 +29,17 @@
   * POSSIBILITY OF SUCH DAMAGE.
   */
@@ -265,8 +368,8 @@ diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
  static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
  static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
 diff -ru a/ukern/lib/rbtree.h b/ukern/lib/rbtree.h
---- a/ukern/lib/rbtree.h	2015-11-07 11:59:26.923138746 +0000
-+++ b/ukern/lib/rbtree.h	2015-11-07 11:59:28.003143790 +0000
+--- a/ukern/lib/rbtree.h	2016-01-18 21:46:27.000000000 +0000
++++ b/ukern/lib/rbtree.h	2016-01-18 21:46:27.000000000 +0000
 @@ -32,6 +32,16 @@
  #ifndef _SYS_RBTREE_H_
  #define	_SYS_RBTREE_H_
