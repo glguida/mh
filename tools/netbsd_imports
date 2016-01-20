@@ -48,3 +48,11 @@ include/stdlib.h include/stdlib.h
 include/string.h include/string.h
 common/lib/libc/string/memmove.c common/libc/string/memmove.c
 common/lib/libc/arch/i386/string/memmove.S common/libc/i386/string/memmove.S
+sys/sys/rbtree.h sys/sys/rbtree.h
+common/lib/libc/gen/rb.c common/libc/gen/rb.c
+include/stddef.h include/stddef.h
+include/stdbool.h include/stdbool.h
+include/inttypes.h include/inttypes.h
+common/lib/libc/string/ffs.c common/libc/string/ffs.c
+common/lib/libc/arch/i386/string/ffs.S common/libc/i386/string/ffs.S
+sys/sys/bitops.h sys/sys/bitops.h

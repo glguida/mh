@@ -1,7 +1,7 @@
 SRCROOT=..
 include $(SRCROOT)/mk/mk.conf
 
-INCS= assert.h stdlib.h string.h
+INCS= assert.h inttypes.h stdbool.h stddef.h stdlib.h string.h
 INCDIR=
 
 INCSUBDIRS= \
