@@ -4,7 +4,7 @@ include $(MKDIR)/mk.conf
 
 LIBNAME=drex
 LIBDIR=/lib
-SRCS+= dirtio.c vm.c
+SRCS+= dirtio.c vm.c vmap.c
 
 INCS= drex.h
 INCDIR= drex

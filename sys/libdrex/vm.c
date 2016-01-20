@@ -29,9 +29,11 @@
 
 #include <sys/types.h>
 #include <machine/vmparam.h>
+#include <machine/drexparam.h>
 #include <microkernel.h>
 #include <syslib.h>
 #include <drex/drex.h>
+#include "vmap.h"
 
 extern void _scode __asm("_scode");
 extern void _ecode __asm("_ecode");

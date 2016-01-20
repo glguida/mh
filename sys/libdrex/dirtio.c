@@ -5,6 +5,7 @@
 #include <microkernel.h>
 #include <sys/dirtio.h>
 #include <assert.h>
+#include "vmap.h"
 
 #define MEMCACHESIZE 16L
 
@@ -66,7 +67,7 @@ void dirtio_mem_put(void *addr)
 void dirtio_mem_init(void)
 {
 	int i;
-	vaddr_t start = VM_DEFAULT_ADDRESS_TOPDOWN(, MEMCACHESIZE * PAGE_SIZE);
+	vaddr_t start = vmap_alloc(MEMCACHESIZE * PAGE_SIZE, VFNT_IMPORT);
 
 	for (i = 0; i < MEMCACHESIZE; i++) {
 		memcache[i].id = -1;
