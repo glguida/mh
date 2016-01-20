@@ -140,6 +140,13 @@ typedef	__fsfilcnt_t	fsfilcnt_t;	/* fs file count */
 #define fsfilcnt_t	__fsfilcnt_t
 #endif
 
+#if defined(_DREX_SOURCE)
+#ifndef ioaddr_t
+typedef __ioaddr_t	ioaddr_t;	/* I/O exported address */
+#define ioaddr_t	__ioaddr_t
+#endif
+#endif
+
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 /* We don't and shouldn't use caddr_t in the kernel anymore */
 #ifndef	caddr_t

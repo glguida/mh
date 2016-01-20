@@ -48,6 +48,10 @@ typedef __uint32_t	__uid_t;	/* user id */
 typedef	__uint64_t	__fsblkcnt_t;	/* fs block count (statvfs) */
 typedef	__uint64_t	__fsfilcnt_t;	/* fs file count */
 
+#ifdef _DREX_SOURCE
+typedef __uint32_t	__ioaddr_t;	/* External I/O address */
+#endif
+
 struct __tag_wctrans_t;
 typedef struct __tag_wctrans_t *__wctrans_t;
 
