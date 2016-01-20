@@ -30,8 +30,10 @@
 #include <sys/inttypes.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
-#include <syslib.h>
 #include <drex/drex.h>
+#include <sys/dirtio.h>
+#include <syslib.h>
+#include <assert.h>
 
 static void framedump(struct intframe *f)
 {
@@ -60,7 +62,12 @@ int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
 
 }
 
-int *d = (void *) (50L * PAGE_SIZE);
+#define DEV_QUEUES 2
+unsigned qmax[DEV_QUEUES];
+unsigned qsize[DEV_QUEUES];
+unsigned qready[DEV_QUEUES];
+struct dirtio_dev dev;
+
 
 int main()
 {
@@ -73,15 +80,7 @@ int main()
 	printf("Hello!\n");
 
 	printf("brk: %x\n", drex_sbrk(50L * PAGE_SIZE));
-	printf("Reading, d = %d\n", *d);
 
-	printf("Writing.\n");
-	*d = 0;
-	printf("Done writing.\n");
-
-	printf("Unnmapping: %d", vmunmap(d));
-	printf("And accessing it again!\n");
-	printf("d is %d\n", *d);
 	cfg.nameid = 500;
 	cfg.vendorid = 0xf00ffa;
 	cfg.deviceid = 1;
@@ -91,6 +90,7 @@ int main()
 		int i;
 		int *d = (int *) (0x53 * PAGE_SIZE);
 
+		dirtio_dev_init(&dev, DEV_QUEUES, qmax, qsize, qready);
 		printf("Parent!\n");
 		while (1) {
 			int ret;
@@ -100,11 +100,8 @@ int main()
 			sys_wait();
 			sys_cli();
 			id = sys_poll(&ior);
-			ret = sys_import(id, 1, d);
-			printf("import: %d\n", ret);
-			printf("I/O at port %" PRIx64 " with val %" PRIx64
-			       "\n", ior.port, ior.val);
-			printf("d is %x (%p)\n", *d, d);
+			printf("I/O port %x,  val %x\n", ior.port, ior.val);
+			printf("Test: %d\n", dirtio_dev_io(&dev, id, ior.port, ior.val));
 			sys_eio(id);
 		}
 	} else {
@@ -116,17 +113,19 @@ int main()
 		*p = 0;
 		desc = sys_open(500);
 		sys_mapirq(desc, 0, 5);
-		printf("MAPPING %d\n", sys_export(0, p, 1));
+		printf("MAPPING %d\n", sys_export(desc, p, 0));
 		sys_readcfg(0, &cfg);
 		printf("cfg: %llx %lx %lx\n",
 		       cfg.nameid, cfg.vendorid, cfg.deviceid);
 
 		while (1) {
-			(*p) += 1;
-			printf("-> P is %lx\n", (unsigned long) *p);
-			sys_out(desc, 10, 255);
+			sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
 			sys_wait();
-			printf("IRQ received!\n");
+			printf("IRQ received! %x\n", *(uint32_t *)p);
+			sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
+			sys_wait();
+			printf("IRQ received! %x\n", *(uint32_t *)p);
+			while(1);
 		}
 	}
 

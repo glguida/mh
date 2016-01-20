@@ -98,8 +98,8 @@ int nmi_entry(uint32_t vect, struct usrframe *f)
 	 */
 	if (__predict_false(__crash_requested)) {
 		spinlock(&__crash_lock);
-		printf("Crash report of CPU #%d:\n", cpu_number());
-		framedump(f);
+		//		printf("Crash report of CPU #%d:\n", cpu_number());
+		//		framedump(f);
 		spinunlock(&__crash_lock);
 		asm volatile ("cli; hlt");
 		/* Not reached */
