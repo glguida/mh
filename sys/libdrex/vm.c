@@ -28,6 +28,8 @@
 
 
 #include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/errno.h>
 #include <machine/vmparam.h>
 #include <machine/drexparam.h>
 #include <microkernel.h>
@@ -55,6 +57,9 @@ static inline void *__getbrk(void)
 static vm_prot_t _resolve_va(vaddr_t va)
 {
 	unsigned pfn = va >> PAGE_SHIFT;
+	vaddr_t vastart;
+	size_t vasize;
+	uint8_t vatype;
 
 	if (!pfn)
 		return VM_PROT_NIL;
@@ -73,6 +78,21 @@ static vm_prot_t _resolve_va(vaddr_t va)
 	}
 
 	/* Search for mmap areas */
+	vmap_info(va, &vastart, &vasize, &vatype);
+	switch(vatype) {
+	case VFNT_RODATA:
+		return VM_PROT_RO;
+	case VFNT_RWDATA:
+		return VM_PROT_RW;
+	case VFNT_EXEC:
+		return VM_PROT_RX;
+	case VFNT_WREXEC:
+		return VM_PROT_WX;
+	case VFNT_IMPORT:
+		printf("<External Fault>");
+	default:
+		break;
+	}
 	return VM_PROT_NIL;
 }
 
@@ -94,6 +114,66 @@ void *drex_sbrk(int inc)
 		return (void *) -1;
 
 	return old;
+}
+
+void *drex_mmap(void *addr, size_t len, int prot,
+		int flags, int fd, off_t offset)
+{
+	vaddr_t va;
+	uint8_t type;
+
+	if (flags != MAP_ANON)
+		return MAP_FAILED;
+
+	if (!prot)
+		return MAP_FAILED;
+
+	switch (prot & (PROT_EXEC|PROT_WRITE)) {
+	case PROT_EXEC:
+		type = VFNT_EXEC;
+		break;
+	case PROT_EXEC|PROT_WRITE:
+		type = VFNT_WREXEC;
+		break;
+	case PROT_WRITE:
+		type = VFNT_RWDATA;
+		break;
+	case 0:
+		type = VFNT_RODATA;
+	}
+
+	va = vmap_alloc(len, type);
+	if (va == 0)
+		return MAP_FAILED;
+	else
+		return (void *)va;
+}
+
+int drex_munmap(void*addr, size_t len)
+{
+	size_t i;
+	vaddr_t start;
+	size_t size;
+	uint8_t type;
+
+	vmap_info((vaddr_t)addr, &start, &size, &type);
+
+	if ((type == VFNT_FREE) || (type == VFNT_INVALID))
+		return -EINVAL;
+
+	if ((vaddr_t)addr != start
+	    || (vaddr_t)len != size) {
+		printf("Trying to unmap (%p:%d) of VMA (%p:%d). Unsupported\n",
+		       addr, len, (void *)start, size);
+
+		return -ENOSYS;
+	}
+
+	for (i = 0; i < size; i += PAGE_SIZE)
+		vmunmap(start + i);
+
+	vmap_free(start, size);
+	return 0;
 }
 
 int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)

@@ -115,7 +115,7 @@ static int vmap_compare_nodes(void *ctx, const void *n1, const void *n2)
 
 	if (vmap1->addr < vmap2->addr)
 		return -1;
-	if (vmap1->size > vmap2->addr)
+	if (vmap1->addr > vmap2->addr)
 		return 1;
 	return 0;
 }
@@ -194,18 +194,24 @@ vaddr_t vmap_alloc(size_t size, uint8_t type)
 	}
 	pgsz = round_page(size);
 	va = vmapzone_alloc(&vmap_zone, pgsz);
-	assert(va != 0);
-
+	vmap_insert(va, pgsz, type);
 	return va;
 }
 
 void vmap_free(vaddr_t va, size_t size)
 {
+	struct vme *vme;
 
 	if (!initialized) {
 		vmap_init();
 		initialized++;
 	}
+	vme = vmap_find(va);
+	assert(vme != NULL);
+	assert(vme->addr == va);
+	assert(vme->size == size);
+	assert(vme->type != VFNT_FREE);
+	vmap_remove(vme);
 	vmapzone_free(&vmap_zone, va, size);
 }
 
@@ -217,8 +223,9 @@ vmap_info(vaddr_t va, vaddr_t * startp, size_t * sizep, uint8_t * typep)
 	size_t size;
 	uint8_t type;
 
-	if (initialized)
-		vme = vmap_find(va);		
+	if (initialized) {
+		vme = vmap_find(va);
+	}
 	if (vme == NULL) {
 		start = 0;
 		size = 0;

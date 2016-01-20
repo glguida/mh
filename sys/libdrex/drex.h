@@ -32,5 +32,7 @@
 
 int drex_brk(void *);
 void *drex_sbrk(int);
+void *drex_mmap(void *addr, size_t len, int prot,
+		int flags, int fd, off_t offset);
 
 #endif
