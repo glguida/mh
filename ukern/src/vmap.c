@@ -112,7 +112,7 @@ static int vmap_compare_nodes(void *ctx, const void *n1, const void *n2)
 
 	if (vmap1->addr < vmap2->addr)
 		return -1;
-	if (vmap1->size > vmap2->addr)
+	if (vmap1->addr > vmap2->addr)
 		return 1;
 	return 0;
 }
