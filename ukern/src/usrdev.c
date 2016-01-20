@@ -417,6 +417,13 @@ int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 
 void usrdev_destroy(struct usrdev *ud)
 {
+	struct usrioreq *ior, *tmp;
+
+	spinlock(&ud->lock);
+	TAILQ_FOREACH_SAFE(ior, &ud->ioreqs, queue, tmp) {
+		structs_free(ior);
+	}
+	spinunlock(&ud->lock);
 	dev_detach(&ud->dev);
 	heap_free(ud);
 }
