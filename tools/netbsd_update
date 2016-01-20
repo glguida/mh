@@ -8,7 +8,7 @@
 # tools/netbsd_update
 
 # copy original netbsd files
-awk '{ system("bash -c \" install -d `dirname "$2"`; install nbsd/"$1" "$2" \" "); }' tools/netbsd_imports
+awk '{ system("bash -c \" install -d `dirname "$2"`; install -m 0644 nbsd/"$1" "$2" \" "); }' tools/netbsd_imports
 
 # patch using diff
 patch -p1 < tools/netbsd.patch
