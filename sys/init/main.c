@@ -32,6 +32,7 @@
 #include <microkernel.h>
 #include <drex/drex.h>
 #include <sys/dirtio.h>
+#include <sys/mman.h>
 #include <syslib.h>
 #include <assert.h>
 
@@ -88,7 +89,6 @@ int main()
 
 	if (sys_fork()) {
 		int i;
-		int *d = (int *) (0x53 * PAGE_SIZE);
 
 		dirtio_dev_init(&dev, DEV_QUEUES, qmax, qsize, qready);
 		printf("Parent!\n");
@@ -107,7 +107,8 @@ int main()
 	} else {
 		int desc, ret;
 		struct sys_creat_cfg cfg;
-		int *p = (int *) (0x12 * PAGE_SIZE);
+		int *p = drex_mmap(NULL, sizeof(struct dirtio_hdr),
+				   PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
 
 		printf("child!\n");
 		*p = 0;
