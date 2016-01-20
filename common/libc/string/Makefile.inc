@@ -1,2 +1,2 @@
-SRCS+= memcpy.c
-VPATH+= $(COMMON_DIR)/string/libc
+SRCS+= memcpy.c memmove.c
+VPATH+= $(COMMON_DIR)/libc/string

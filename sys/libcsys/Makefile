@@ -5,7 +5,7 @@ include $(MKDIR)/mk.conf
 
 LIBNAME=csys
 LIBDIR=/lib
-SRCS+= printf.c subr_prf.c
+SRCS+= assert.c malloc.c printf.c subr_prf.c
 
 INCS=syslib.h
 INCDIR=

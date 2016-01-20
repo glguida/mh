@@ -1,6 +1,9 @@
 SRCROOT=..
 include $(SRCROOT)/mk/mk.conf
 
+INCS= assert.h stdlib.h string.h
+INCDIR=
+
 INCSUBDIRS= \
 	$(SRCROOT)/ukern/src \
 	$(SRCROOT)/ukern/$(MACHINE)/src \

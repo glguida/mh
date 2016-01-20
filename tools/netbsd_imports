@@ -35,3 +35,16 @@ common/lib/libc/arch/i386/string/memcpy.S common/libc/i386/string/memcpy.S
 sys/sys/inttypes.h sys/sys/inttypes.h
 sys/arch/i386/include/int_fmtio.h sys/i386/include/int_fmtio.h
 sys/sys/common_int_fmtio.h sys/sys/common_int_fmtio.h
+sys/sys/errno.h sys/sys/errno.h
+sys/sys/queue.h sys/sys/queue.h
+sys/sys/null.h sys/sys/null.h
+sys/sys/param.h sys/sys/param.h
+sys/sys/syslimits.h sys/sys/syslimits.h
+sys/arch/i386/include/param.h sys/i386/include/param.h
+sys/arch/i386/include/limits.h sys/i386/include/limits.h
+include/assert.h include/assert.h
+lib/libbsdmalloc/malloc.c sys/libcsys/malloc.c
+include/stdlib.h include/stdlib.h
+include/string.h include/string.h
+common/lib/libc/string/memmove.c common/libc/string/memmove.c
+common/lib/libc/arch/i386/string/memmove.S common/libc/i386/string/memmove.S
