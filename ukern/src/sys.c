@@ -130,6 +130,8 @@ static int sys_eio(unsigned id)
 
 static int sys_import(unsigned id, unsigned iopfn, u_long va)
 {
+	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
+		return -EINVAL;
 	return devimport(id, iopfn, va);
 }
 
@@ -145,6 +147,8 @@ static int sys_open(u_long id)
 
 static int sys_export(unsigned ddno, u_long va, unsigned iopfn)
 {
+	if (!__chkuaddr(va, PAGE_SIZE))
+		return -EINVAL;
 	return devexport(ddno, va, iopfn);
 }
 
