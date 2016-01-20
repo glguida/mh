@@ -417,10 +417,17 @@ int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 
 void usrdev_destroy(struct usrdev *ud)
 {
+	int sig;
+	unsigned id;
 	struct usrioreq *ior, *tmp;
 
 	spinlock(&ud->lock);
+	/* EOI all pending ioreqs */
 	TAILQ_FOREACH_SAFE(ior, &ud->ioreqs, queue, tmp) {
+		id = ior->id;
+		sig = ud->remths[id].irqmap[BUS_IRQEIO];
+		if (sig && ud->remths[id].use)
+		  thraise(ud->remths[id].th, sig);
 		structs_free(ior);
 	}
 	spinunlock(&ud->lock);
