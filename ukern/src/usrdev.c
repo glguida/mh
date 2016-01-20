@@ -77,10 +77,16 @@ struct remth {
   	struct apert apertbl[MAXUSRDEVAPERTS];
 };
 
+struct usrdev_cfg {
+	uint32_t vid;
+	uint32_t did;
+};
+
 struct usrdev {
 	lock_t lock;
 	struct dev dev;		/* Registered device */
 	struct thread *th;	/* Device thread */
+	struct usrdev_cfg cfg;  /* Device Configuration Space */
 	unsigned sig;		/* Request Signal */
 
 	struct remth remths[MAXUSRDEVREMS];
@@ -207,6 +213,20 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 	return 0;
 }
 
+static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
+{
+	struct usrdev *ud = (struct usrdev *) devopq;
+
+	/* Current thread: Process */
+	assert(id < MAXUSRDEVREMS);
+
+	spinlock(&ud->lock);
+	cfg->vendorid = ud->cfg.vid;
+	cfg->deviceid = ud->cfg.did;
+	spinunlock(&ud->lock);
+	return 0;
+}
+
 static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 			  unsigned sig)
 {
@@ -270,10 +290,11 @@ static struct devops usrdev_ops = {
 	.in = _usrdev_in,
 	.out = _usrdev_out,
 	.export = _usrdev_export,
+	.rdcfg = _usrdev_rdcfg,
 	.irqmap = _usrdev_irqmap,
 };
 
-struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode)
+struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode)
 {
 	struct usrdev *ud;
 	struct thread *th = current_thread();
@@ -282,10 +303,12 @@ struct usrdev *usrdev_creat(uint64_t id, unsigned sig, devmode_t mode)
 	ud->lock = 0;
 	ud->th = th;
 	ud->sig = sig;
+	ud->cfg.vid = cfg->vendorid;
+	ud->cfg.did = cfg->deviceid;
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	TAILQ_INIT(&ud->ioreqs);
 
-	dev_init(&ud->dev, id, (void *) ud, &usrdev_ops, th->euid, th->egid, mode);
+	dev_init(&ud->dev, cfg->nameid, (void *) ud, &usrdev_ops, th->euid, th->egid, mode);
 	if (dev_attach(&ud->dev)) {
 		heap_free(ud);
 		ud = NULL;

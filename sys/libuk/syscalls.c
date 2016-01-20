@@ -155,11 +155,19 @@ int sys_out(unsigned ddno, u_long port, u_long val)
 	return ret;
 }
 
-int sys_creat(u_long id, unsigned sig, devmode_t mode)
+int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg)
 {
 	int ret;
 
-	__syscall3(SYS_CREAT, (unsigned long) id, (unsigned long) sig,
+	__syscall2(SYS_RDCFG, (unsigned long) ddno, (unsigned long) cfg, ret);
+	return ret;
+}
+
+int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode)
+{
+	int ret;
+
+	__syscall3(SYS_CREAT, (unsigned long) cfg, (unsigned long) sig,
 		   (unsigned long) mode, ret);
 	return ret;
 }

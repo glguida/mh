@@ -39,4 +39,6 @@ void vprintf(const char *fmt, va_list ap);
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
 void printf(const char *fmt, ...);
 
+void *memcpy(void * __restrict dst, const void * __restrict src, size_t len);
+
 #endif 

@@ -525,7 +525,7 @@ int vmchprot(vaddr_t addr, pmap_prot_t prot)
 	return ret;
 }
 
-int devcreat(uint64_t id, unsigned sig, mode_t mode)
+int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 {
 	struct thread *th = current_thread();
 
@@ -535,7 +535,7 @@ int devcreat(uint64_t id, unsigned sig, mode_t mode)
 	if (th->usrdev)
 		return -EBUSY;
 
-	th->usrdev = usrdev_creat(id, sig, mode);
+	th->usrdev = usrdev_creat(cfg, sig, mode);
 	if (th->usrdev == NULL)
 		return -EEXIST;
 	return 0;
@@ -607,6 +607,13 @@ int devexport(unsigned dd, vaddr_t va, unsigned iopfn)
 	struct thread *th = current_thread();
 
 	return bus_export(&th->bus, dd, va, iopfn);
+}
+
+int devrdcfg(unsigned dd, struct sys_creat_cfg *cfg)
+{
+	struct thread *th = current_thread();
+
+	return bus_rdcfg(&th->bus, dd, cfg);
 }
 
 int devirqmap(unsigned dd, unsigned irq, unsigned sig)

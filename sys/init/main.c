@@ -65,6 +65,7 @@ int *d = (void *) (50L * PAGE_SIZE);
 int main()
 {
 	int i;
+	struct sys_creat_cfg cfg;
 
 	siginit();
 
@@ -81,7 +82,10 @@ int main()
 	printf("Unnmapping: %d", vmunmap(d));
 	printf("And accessing it again!\n");
 	printf("d is %d\n", *d);
-	printf("%d creat()", sys_creat(500, 9, 0111));
+	cfg.nameid = 500;
+	cfg.vendorid = 0xf00ffa;
+	cfg.deviceid = 1;
+	printf("%d creat()", sys_creat(&cfg, 9, 0111));
 
 	if (sys_fork()) {
 		int i;
@@ -106,6 +110,7 @@ int main()
 		}
 	} else {
 		int desc, ret;
+		struct sys_creat_cfg cfg;
 		int *p = (int *) (0x12 * PAGE_SIZE);
 
 		printf("child!\n");
@@ -113,6 +118,9 @@ int main()
 		desc = sys_open(500);
 		sys_mapirq(desc, 3, 5);
 		printf("MAPPING %d\n", sys_export(0, p, 1));
+		sys_readcfg(0, &cfg);
+		printf("cfg: %llx %lx %lx\n", cfg.nameid, cfg.vendorid, cfg.deviceid);
+		
 		while (1) {
 			(*p) += 1;
 			printf("-> P is %lx\n", (unsigned long) *p);

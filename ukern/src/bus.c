@@ -35,6 +35,7 @@
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
+#include <uk/sys.h>
 
 static lock_t sys_device_rbtree_lock = 0;
 static rb_tree_t sys_device_rbtree;
@@ -241,6 +242,35 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 	ret = d->ops->export(d->devopq, b->devs[desc].devid, va, iopfn);
 	spinunlock(&d->lock);
       out_io:
+	return ret;
+}
+
+int bus_rdcfg(struct bus *b, unsigned desc, struct sys_creat_cfg *cfg)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinunlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		printf("Uh? %d\n", desc);
+		ret = -ENOENT;
+		goto out_rdcfg;
+	}
+	assert(d != NULL);
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto out_rdcfg;
+	}
+	ret = d->ops->rdcfg(d->devopq, b->devs[desc].devid, cfg);
+	cfg->nameid = d->did;
+	spinunlock(&d->lock);
+      out_rdcfg:
 	return ret;
 }
 

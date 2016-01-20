@@ -67,9 +67,15 @@ typedef enum {
 #define SYS_IN     0x22
 #define SYS_OUT    0x23
 #define SYS_EXPORT 0x24
+#define SYS_RDCFG  0x25
 
-#define SYS_CREAT  0x30
 #ifndef _ASSEMBLER
+struct sys_creat_cfg {
+	uint64_t nameid;
+	uint32_t vendorid;
+	uint32_t deviceid;
+};
+
 enum sys_poll_ior_op {
 	SYS_POLL_OP_OUT,
 };
@@ -86,6 +92,7 @@ struct sys_poll_ior {
 	gid_t gid;
 };
 #endif
+#define SYS_CREAT  0x30
 #define SYS_POLL   0x31
 #define SYS_EIO    0x32
 #define SYS_IRQ    0x33

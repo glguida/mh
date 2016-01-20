@@ -96,9 +96,15 @@ static int sys_fork(void)
 	return ! !th;
 }
 
-static int sys_creat(u_long id, unsigned sig, devmode_t mode)
+static int sys_creat(uaddr_t ucfg, unsigned sig, devmode_t mode)
 {
-	return devcreat(id, sig, mode);
+	struct sys_creat_cfg cfg;
+
+	if (!__chkuaddr(ucfg, sizeof(cfg)))
+		return -EINVAL;
+	if (copy_from_user(&cfg, ucfg, sizeof(cfg)))
+		return -EFAULT;
+	return devcreat(&cfg, sig, mode);
 }
 
 static int sys_poll(uaddr_t uior)
@@ -140,6 +146,21 @@ static int sys_open(u_long id)
 static int sys_export(unsigned ddno, u_long va, unsigned iopfn)
 {
 	return devexport(ddno, va, iopfn);
+}
+
+static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)
+{
+	int ret;
+	struct sys_creat_cfg cfg;
+
+	if (!__chkuaddr(ucfg, sizeof(cfg)))
+		return -EINVAL;
+	ret = devrdcfg(ddno, &cfg);
+	if (ret)
+		return ret;
+	if (copy_to_user(ucfg, &cfg, sizeof(cfg)))
+		return -EFAULT;
+	return 0;
 }
 
 static int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
@@ -347,6 +368,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_open(a1);
 	case SYS_EXPORT:
 		return sys_export(a1, a2, a3);
+	case SYS_RDCFG:
+		return sys_rdcfg(a1, a2);
 	case SYS_MAPIRQ:
 		return sys_mapirq(a1, a2, a3);
 	case SYS_IN:

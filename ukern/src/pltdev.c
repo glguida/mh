@@ -119,6 +119,11 @@ static int _pltdev_export(void *devopq, unsigned id, vaddr_t va, unsigned iopfn)
 	return -ENODEV;
 }
 
+static int _pltdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
+{
+	return -ENODEV;
+}
+
 static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
 {
 	struct thread *th = current_thread();
@@ -154,6 +159,7 @@ static struct devops pltdev_ops = {
 	.in = _pltdev_in,
 	.out = _pltdev_out,
 	.export = _pltdev_export,
+	.rdcfg = _pltdev_rdcfg,
 	.irqmap = _pltdev_irqmap,
 };
 

@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
+#include <syslib.h>
 #include <drex/drex.h>
 
 extern void _scode __asm("_scode");

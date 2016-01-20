@@ -111,7 +111,7 @@ int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
-int devcreat(uint64_t id, unsigned sig, devmode_t mode);
+int devcreat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int devpoll(struct sys_poll_ior *ior);
 int deveio(unsigned id);
 int devirq(unsigned id, unsigned irq);
@@ -122,6 +122,7 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig);
 int devexport(unsigned dd, vaddr_t va, unsigned iopfn);
 int devin(unsigned dd, uint64_t port, uint64_t *valptr);
 int devout(unsigned dd, uint64_t port, uint64_t val);
+int devrdcfg(unsigned dd, struct sys_creat_cfg *cfg);
 void devclose(unsigned dd);
 
 void wake(struct thread *);
