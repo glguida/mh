@@ -74,6 +74,7 @@ extern void *lapic_base;
 void lapic_init(paddr_t base, unsigned no);
 void lapic_add(uint16_t physid, uint16_t plid);
 void lapic_enable(void);
+void lapic_configure(void);
 
 static inline void lapic_write(unsigned reg, uint32_t data)
 {

@@ -45,6 +45,7 @@ int _libuk_signal_handler(int vect, u_long va, u_long err,
 		__sys_pgfaulthandler(va, err, f);
 	else
 		__sys_inthandler(vect, va, err, f);
+	return 0;
 }
 
 int _libuk_signals_nointr(int vect, u_long va, u_long err,
@@ -56,7 +57,7 @@ int _libuk_signals_nointr(int vect, u_long va, u_long err,
 
 int _libuk_signals_nopgfault(u_long va, u_long err, struct intframe *f)
 {
-	printf("What!");
+
 	return -1;
 }
 

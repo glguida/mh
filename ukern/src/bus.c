@@ -279,7 +279,6 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	int ret;
 	struct dev *d;
 
-	printf("Buh!\n");
 	if (desc >= MAXBUSDEVS)
 		return -EBADF;
 

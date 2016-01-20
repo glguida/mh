@@ -36,7 +36,7 @@
 
 /* Syscalls */
 __dead void sys_die();
-int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack);
+int sys_inthdlr(void *entry, void *stack);
 void sys_cli(void);
 void sys_sti(void);
 void sys_wait(void);

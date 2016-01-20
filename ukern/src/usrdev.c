@@ -34,6 +34,7 @@
 #include <uk/usrdev.h>
 #include <machine/uk/cpu.h>
 #include <uk/pgalloc.h>
+#include <uk/heap.h>
 #include <lib/lib.h>
 
 #define MAXUSRDEVREMS 256
@@ -246,7 +247,6 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 static void _usrdev_close(void *devopq, unsigned id)
 {
 	int i, ret;
-	l1e_t l1e;
 	struct apert *apt;
 	vaddr_t procva, devva;
 	unsigned procid;
@@ -263,12 +263,12 @@ static void _usrdev_close(void *devopq, unsigned id)
 			continue;
 		if (devva) {
 			assert(procva);
-			printf("canceling dev %p\n", devva);
+			printf("canceling dev %lx\n", devva);
 			ret = pmap_uimport_cancel(ud->th->pmap, devva);
 			assert(!ret);
 		}
 		if (procva) {
-			printf("canceling prog %p\n", procva);
+			printf("canceling prog %lx\n", procva);
 			ret = pmap_uexport_cancel(ud->remths[id].th->pmap,
 						  procva);
 			assert(!ret);
@@ -418,5 +418,6 @@ void usrdev_destroy(struct usrdev *ud)
 
 void usrdevs_init(void)
 {
+
 	setup_structcache(&usrioreqs, usrioreq);
 }

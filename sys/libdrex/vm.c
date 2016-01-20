@@ -96,7 +96,6 @@ void *drex_sbrk(int inc)
 
 int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 {
-	int i, r;
 	vm_prot_t prot = _resolve_va(va);
 	unsigned reason = err & PG_ERR_REASON_MASK;
 

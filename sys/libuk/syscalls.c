@@ -46,12 +46,12 @@ int sys_putc(int ch)
 	return ret;
 }
 
-int sys_inthdlr(void (*func) (vaddr_t, vaddr_t), void *stack)
+int sys_inthdlr(void *entry, void *stack)
 {
 	int ret;
 
 	__syscall2(SYS_INTHDLR,
-		   (unsigned long) func, (unsigned long) stack, ret);
+		   (unsigned long) entry, (unsigned long) stack, ret);
 	return ret;
 }
 
