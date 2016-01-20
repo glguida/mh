@@ -57,3 +57,5 @@ common/lib/libc/string/ffs.c common/libc/string/ffs.c
 common/lib/libc/arch/i386/string/ffs.S common/libc/i386/string/ffs.S
 sys/sys/bitops.h sys/sys/bitops.h
 sys/sys/mman.h sys/sys/mman.h
+common/lib/libc/string/memset.c common/libc/string/memset.c
+common/lib/libc/arch/i386/string/memset.S common/libc/i386/string/memset.S
