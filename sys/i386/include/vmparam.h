@@ -50,6 +50,15 @@
 #include <sys/mutex.h>
 #endif
 
+#ifdef _DREX_SOURCE
+/*
+ * Round off or truncate to the nearest page.  These will work
+ * for either addresses or counts (i.e., 1 byte rounds to 1 page).
+ */
+#define	round_page(x)	(((x) + PAGE_MASK) & ~PAGE_MASK)
+#define	trunc_page(x)	((x) & ~PAGE_MASK)
+#endif
+
 /*
  * Machine dependent constants for 386.
  */
@@ -114,9 +123,8 @@
 
 /* user/kernel map constants */
 #define VM_MIN_ADDRESS		((vaddr_t)0)
-#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L2_SHIFT))
-#define	VM_MAX_ADDRESS		\
-	((vaddr_t)((PDIR_SLOT_PTE << L2_SHIFT) + (PDIR_SLOT_PTE << L1_SHIFT)))
+#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
+#define	VM_MAX_ADDRESS		((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
 #define	VM_MIN_KERNEL_ADDRESS	((vaddr_t)(PDIR_SLOT_KERN << L2_SHIFT))
 #ifndef _DREX_SOURCE
 #define	VM_MAX_KERNEL_ADDRESS	((vaddr_t)((PDIR_SLOT_KERN + NKL2_MAX_ENTRIES) << L2_SHIFT))
