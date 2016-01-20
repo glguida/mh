@@ -105,7 +105,6 @@ int main()
 			printf("I/O at port %" PRIx64 " with val %" PRIx64
 			       "\n", ior.port, ior.val);
 			printf("d is %x (%p)\n", *d, d);
-			sys_irq(id, 3);
 			sys_eio(id);
 		}
 	} else {
@@ -116,11 +115,12 @@ int main()
 		printf("child!\n");
 		*p = 0;
 		desc = sys_open(500);
-		sys_mapirq(desc, 3, 5);
+		sys_mapirq(desc, 0, 5);
 		printf("MAPPING %d\n", sys_export(0, p, 1));
 		sys_readcfg(0, &cfg);
-		printf("cfg: %llx %lx %lx\n", cfg.nameid, cfg.vendorid, cfg.deviceid);
-		
+		printf("cfg: %llx %lx %lx\n",
+		       cfg.nameid, cfg.vendorid, cfg.deviceid);
+
 		while (1) {
 			(*p) += 1;
 			printf("-> P is %lx\n", (unsigned long) *p);

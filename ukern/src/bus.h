@@ -79,6 +79,8 @@ struct dev {
 	struct rb_node rb_node;
 };
 
+#define BUS_IRQEIO 0 /* Raised at EIO. */
+
 int bus_plug(struct bus *b, uint64_t did);
 int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);

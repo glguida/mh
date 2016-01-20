@@ -251,8 +251,8 @@ static void _usrdev_close(void *devopq, unsigned id)
 	vaddr_t procva, devva;
 	unsigned procid;
 	struct usrdev *ud = (struct usrdev *) devopq;
-	/* Current thread: Process or Device */
 
+	/* Current thread: Process or Device */
 	spinlock(&ud->lock);
 	apt = ud->remths[id].apertbl;
 	for (i = 0; i < MAXUSRDEVAPERTS; i++) {
@@ -351,10 +351,15 @@ retry:
 
 int usrdev_eio(struct usrdev *ud, unsigned id)
 {
+	int sig;
+
 	if (id >= MAXUSRDEVREMS)
 		return -EINVAL;
-	spinlock(&ud->lock);
 	printf("set busy of %d to zero\n", id);
+	spinlock(&ud->lock);
+	sig = ud->remths[id].irqmap[BUS_IRQEIO];
+	if (sig && ud->remths[id].use)
+		thraise(ud->remths[id].th, sig);
 	ud->remths[id].bsy = 0;
 	spinunlock(&ud->lock);
 	return 0;
