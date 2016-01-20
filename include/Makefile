@@ -8,7 +8,8 @@ INCSUBDIRS= \
 	$(SRCROOT)/ukern/src \
 	$(SRCROOT)/ukern/$(MACHINE)/src \
 	$(SRCROOT)/sys/sys \
-	$(SRCROOT)/sys/$(MACHINE)/include
+	$(SRCROOT)/sys/$(MACHINE)/include \
+	$(SRCROOT)/sys/libcsys
 
 include $(MAKEDIR)/inc.mk
 include $(MAKEDIR)/def.mk
