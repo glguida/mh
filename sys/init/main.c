@@ -31,6 +31,7 @@
 #include <machine/vmparam.h>
 #include <microkernel.h>
 #include <drex/drex.h>
+#include <drex/lwt.h>
 #include <sys/dirtio.h>
 #include <sys/mman.h>
 #include <syslib.h>
@@ -68,6 +69,20 @@ unsigned qmax[DEV_QUEUES];
 unsigned qsize[DEV_QUEUES];
 unsigned qready[DEV_QUEUES];
 struct dirtio_dev dev;
+
+lwt_t lwt1, lwt2;
+
+void testlwt(void *arg)
+{
+	uintptr_t n = (uintptr_t)arg;
+	unsigned long x,y;
+
+	printf("LWT2: arg is %d\n", n);
+	asm volatile("mov %%esp, %0\n" : "=r"(x));
+	asm volatile("mov %%ebp, %0\n" : "=r"(y));
+	printf("sp is %lx, bp is %lx\n", x, y);
+	lwt_switch(&lwt1);
+}
 
 
 int main()
@@ -119,15 +134,19 @@ int main()
 		printf("cfg: %llx %lx %lx\n",
 		       cfg.nameid, cfg.vendorid, cfg.deviceid);
 
-		while (1) {
-			sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-			sys_wait();
-			printf("IRQ received! %x\n", *(uint32_t *)p);
-			sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-			sys_wait();
-			printf("IRQ received! %x\n", *(uint32_t *)p);
-			while(1);
-		}
+		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
+		sys_wait();
+		printf("IRQ received! %x\n", *(uint32_t *)p);
+		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
+		sys_wait();
+		printf("IRQ received! %x\n", *(uint32_t *)p);
+
+		lwt_init(&lwt1);
+		lwt_create(&lwt2, testlwt, (void *)1,
+			   NULL, malloc(1024), 1024);
+		printf("Switching soon from lwt1\n");
+		lwt_switch(&lwt2);
+		printf("Hello again from lwt1!\n");
 	}
 
 	printf("Goodbye!\n");
