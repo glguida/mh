@@ -2,6 +2,7 @@ SRCROOT=../..
 MKDIR=$(SRCROOT)/mk
 include $(SRCROOT)/common/libc/Makefile.inc
 include $(MKDIR)/mk.conf
+include $(MACHINE)/Makefile.inc
 
 LIBNAME=csys
 LIBDIR=/lib
