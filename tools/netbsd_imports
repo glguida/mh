@@ -26,8 +26,8 @@ sys/arch/i386/include/ansi.h sys/i386/include/ansi.h
 sys/arch/i386/include/bswap.h sys/i386/include/bswap.h
 sys/arch/i386/include/endian.h sys/i386/include/endian.h
 sys/arch/i386/include/endian_machdep.h sys/i386/include/endian_machdep.h
-sys/lib/libsa/printf.c sys/lib/libsys/printf.c
-sys/lib/libsa/subr_prf.c sys/lib/libsys/subr_prf.c
+sys/lib/libsa/printf.c sys/libcsys/printf.c
+sys/lib/libsa/subr_prf.c sys/libcsys/subr_prf.c
 sys/sys/rbtree.h ukern/lib/rbtree.h
 sys/sys/queue.h ukern/lib/queue.h
 common/lib/libc/gen/rb.c ukern/lib/rb.c
@@ -59,3 +59,6 @@ sys/sys/bitops.h sys/sys/bitops.h
 sys/sys/mman.h sys/sys/mman.h
 common/lib/libc/string/memset.c common/libc/string/memset.c
 common/lib/libc/arch/i386/string/memset.S common/libc/i386/string/memset.S
+include/setjmp.h include/setjmp.h
+sys/arch/i386/include/setjmp.h sys/i386/include/setjmp.h
+lib/libc/arch/i386/gen/_setjmp.S sys/libcsys/i386/_setjmp.S
