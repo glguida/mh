@@ -34,14 +34,14 @@ struct dirtio_hdr {
 };
 
 struct dirtio_dev {
-  unsigned queues;
-  unsigned *qmax;
-  unsigned *qsize;
-  unsigned *qready;
-  uint32_t isr; /* Interrupt Status Register */
-  uint32_t dsr; /* Device Status Register */
+	unsigned queues;
+	unsigned *qmax;
+	unsigned *qsize;
+	unsigned *qready;
+	uint32_t isr; /* Interrupt Status Register */
+	uint32_t dsr; /* Device Status Register */
 
-  int (*notify)(unsigned queue);
+	int (*notify)(unsigned queue);
 };
 
 struct dirtio_desc {
@@ -52,10 +52,20 @@ struct dirtio_desc {
 	uint64_t nameid;
 	uint64_t vendorid;
 	uint64_t deviceid;
+	unsigned eioirq;
 };
 
 void dirtio_dev_init(unsigned queues,
 		     unsigned *qmax, unsigned *qsize, unsigned *qready);
 int dirtio_dev_creat(struct sys_creat_cfg *cfg, devmode_t mode);
 
+
+int dirtio_open(struct dirtio_desc *dio, uint64_t nameid,
+		struct dirtio_hdr *hdr);
+int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port, uint8_t queue,
+		    uint64_t *val);
+int dirtio_mmio_out(struct dirtio_desc *dio, uint32_t port, uint8_t queue,
+		    uint64_t val);
+int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port, uint8_t queue,
+		     uint64_t val);
 #endif

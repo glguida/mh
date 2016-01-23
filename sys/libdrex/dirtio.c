@@ -37,13 +37,21 @@
 int dirtio_open(struct dirtio_desc *dio, uint64_t nameid,
 		struct dirtio_hdr *hdr)
 {
-	int id, ret;
+	int id, ret, eioirq;
 	struct sys_creat_cfg cfg;
 
 	id = sys_open(nameid);
 	if (id < 0)
 		return id;
 
+	eioirq = irqalloc();
+	ret = sys_mapirq(id, 0, eioirq);
+	printf("eioirq = %d\n", eioirq);
+	if (ret) {
+		irqfree(eioirq);
+		return ret;
+	}
+	
 	ret = sys_readcfg(id, &cfg);
 	if (ret)
 		return ret;
@@ -57,43 +65,42 @@ int dirtio_open(struct dirtio_desc *dio, uint64_t nameid,
 	dio->nameid = cfg.nameid;
 	dio->vendorid = cfg.vendorid;
 	dio->deviceid = cfg.deviceid;
+	dio->eioirq = eioirq;
+
 	return 0;
 }
 
-void dirtio_mmio_wait(struct dirtio_desc *dio)
-{
-	/* XXX: CHECK ACTUALLY WAITING FOR IT */
-	sys_wait();
-	preempt_restore();
-}
-
-int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port, uint32_t *val)
+int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port,
+		    uint8_t queue, uint64_t *val)
 {
 	int ret;
 
-	ret = sys_out(dio->id, PORT_DIRTIO_IN | port, 0);
+	ret = sys_out(dio->id, PORT_DIRTIO_IN | (port << 8) | queue, 0);
 	if (ret)
 		return ret;
-	dirtio_mmio_wait(dio);
+	printf("Waiting %d!\n", dio->eioirq);
+	irqwait(dio->eioirq);
 	*val = dio->hdr->ioval;
 	return 0;
 }
 
-int dirtio_mmio_out(struct dirtio_desc *dio, uint32_t port, uint32_t val)
+int dirtio_mmio_out(struct dirtio_desc *dio, uint32_t port,
+		    uint8_t queue, uint64_t val)
 {
 	int ret;
 
-	ret = sys_out(dio->id, port & ~PORT_DIRTIO_IN, val);
+	ret = sys_out(dio->id, ((port << 8) | queue)  & ~PORT_DIRTIO_IN, val);
 	return ret;
 }
 
-int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port, uint32_t val)
+int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port,
+		     uint8_t queue, uint64_t val)
 {
 	int ret;
 
-	ret = dirtio_mmio_out(dio, port, val);
+	ret = sys_out(dio->id, ((port << 8) | queue)  & ~PORT_DIRTIO_IN, val);
 	if (ret)
 		return ret;
-	dirtio_mmio_wait(dio);
+	irqwait(dio->eioirq);
 	return 0;
 }

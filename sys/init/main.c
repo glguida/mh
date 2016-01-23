@@ -102,7 +102,8 @@ int main()
 		lwt_sleep();
 		printf("Hah?\n");
 	} else {
-		int desc, ret;
+		uint64_t val;
+		int desc;
 		struct dirtio_desc dio;
 		struct dirtio_hdr *hdr;
 
@@ -113,19 +114,18 @@ int main()
 
 		desc = dirtio_open(&dio, 500, hdr);
 		printf("child! %d", desc);
-		sys_mapirq(desc, 0, 5);
-		printf("MAPPING %d\n", sys_export(desc, hdr, 0));
+
+		printf("MAPPING %d\n", sys_export(desc, (u_long)hdr, 0));
 		sys_readcfg(0, &cfg);
 		printf("cfg: %llx %lx %lx\n",
 		       cfg.nameid, cfg.vendorid, cfg.deviceid);
 
-		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-		irqwait(5);
-		printf("IRQ received! %x\n", hdr->ioval);
-		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-		irqwait(5);
-		printf("IRQ received! %x\n", hdr->ioval);
+		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
+		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
+		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
+		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
 
+#if 0
 		lwt2 = lwt_create(testlwt, (void *)1, 1024);
 		printf("Switching soon from lwt1\n");
 		lwt_wake(lwt2);
@@ -137,7 +137,7 @@ int main()
 		lwt_wake(lwt2);
 		printf("Going\n");
 		lwt_yield();
-
+#endif
 	}
 
 	printf("Goodbye!\n");
