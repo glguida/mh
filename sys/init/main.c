@@ -120,10 +120,10 @@ int main()
 		       cfg.nameid, cfg.vendorid, cfg.deviceid);
 
 		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-		sys_wait();
+		irqwait(5);
 		printf("IRQ received! %x\n", hdr->ioval);
 		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
-		sys_wait();
+		irqwait(5);
 		printf("IRQ received! %x\n", hdr->ioval);
 
 		lwt2 = lwt_create(testlwt, (void *)1, 1024);

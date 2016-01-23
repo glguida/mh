@@ -32,6 +32,7 @@
 
 unsigned irqalloc(void);
 void irqfree(unsigned);
+void irqwait(unsigned);
 int softirq_register(unsigned irq, void (*start)(void *), void *arg);
 
 #endif

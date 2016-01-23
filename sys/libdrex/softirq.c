@@ -76,6 +76,21 @@ softirq_register(unsigned irq, void (*start)(void *), void *arg)
 	return 0;
 }
 
+void
+irqwait(unsigned irq)
+{
+
+	assert(irq < 64);
+
+	preempt_disable();
+	assert(__softirq[irq] == NULL);
+	__softirq[irq] = lwt_getcurrent();
+	lwt_sleep();
+	__softirq[irq] = NULL;
+	preempt_enable();
+	
+}
+
 unsigned
 irqalloc(void)
 {
