@@ -239,7 +239,7 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 		return -EINVAL;
 
 	spinlock(&ud->lock);
-	ud->remths[id].irqmap[irq] = sig;
+	ud->remths[id].irqmap[irq] = sig + 1;
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -357,8 +357,9 @@ int usrdev_eio(struct usrdev *ud, unsigned id)
 		return -EINVAL;
 	printf("set busy of %d to zero\n", id);
 	spinlock(&ud->lock);
-	sig = ud->remths[id].irqmap[BUS_IRQEIO];
-	if (sig && ud->remths[id].use)
+	sig = ud->remths[id].irqmap[BUS_IRQEIO] - 1;
+	printf("sig = %d\n", sig);
+	if ((sig != -1) && ud->remths[id].use)
 		thraise(ud->remths[id].th, sig);
 	ud->remths[id].bsy = 0;
 	spinunlock(&ud->lock);
@@ -373,9 +374,9 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 	    || (irq >= IRQMAPSZ))
 		return -EINVAL;
 	spinlock(&ud->lock);
-	sig = ud->remths[id].irqmap[irq];
+	sig = ud->remths[id].irqmap[irq] - 1;
 	printf("-> %d, %d\n", ud->remths[id].use, sig);
-	if (ud->remths[id].use && sig) {
+	if ((sig != -1) && ud->remths[id].use) {
 		printf("raising");
 		thraise(ud->remths[id].th, sig);
 	}
@@ -425,8 +426,8 @@ void usrdev_destroy(struct usrdev *ud)
 	/* EOI all pending ioreqs */
 	TAILQ_FOREACH_SAFE(ior, &ud->ioreqs, queue, tmp) {
 		id = ior->id;
-		sig = ud->remths[id].irqmap[BUS_IRQEIO];
-		if (sig && ud->remths[id].use)
+		sig = ud->remths[id].irqmap[BUS_IRQEIO] - 1;
+		if ((sig != -1) && ud->remths[id].use)
 		  thraise(ud->remths[id].th, sig);
 		structs_free(ior);
 	}
