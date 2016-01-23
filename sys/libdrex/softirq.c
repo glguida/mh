@@ -105,6 +105,6 @@ irqalloc(void)
 void
 irqfree(unsigned irq)
 {
-	assert(irq <= 64);
+	assert(irq < 64);
 	free_irqs |= ((uint64_t)1 << irq);
 }
