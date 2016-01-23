@@ -1,6 +1,8 @@
 #ifndef _sys_dirtio_h
 #define _sys_dirtio_h
 
+#include <microkernel.h>
+
 #define DIRTIO_VID		0x00f00ffa
 
 #define PORT_DIRTIO_IN		0x10000

@@ -1,11 +1,41 @@
+/*
+ * Copyright (c) 2015, Gianluca Guida
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/errno.h>
 #include <setjmp.h>
 #include <stdlib.h>
 #include <drex/lwt.h>
+#include <drex/preempt.h>
 #include <syslib.h>
-#include <microkernel.h>
+
 
 static int lwt_initialized = 0;
 static lwt_t __lwt_main;
@@ -16,6 +46,7 @@ SIMPLEQ_HEAD(, lwt) __lwtq_active = SIMPLEQ_HEAD_INITIALIZER(__lwtq_active);
 static void
 lwt_init(void)
 {
+	/* Can be called in interrupt context */
 	assert(!lwt_initialized);
 	__lwt_main.priv = NULL;
 	lwt_current = &__lwt_main;
@@ -81,12 +112,12 @@ lwt_wake(lwt_t *lwt)
 		lwt_init();
 
 	assert(lwt != lwt_current);
-	sys_cli();
+	preempt_disable();
 	if (!lwt->active) {
 		SIMPLEQ_INSERT_TAIL(&__lwtq_active, lwt, list);
 		lwt->active = 1;
 	}
-	sys_sti();
+	preempt_enable();
 }
 
 void
@@ -98,13 +129,13 @@ lwt_yield(void)
 		lwt_init();
 	old = lwt_current;
 
-	sys_cli();
+	preempt_disable();
 	SIMPLEQ_INSERT_TAIL(&__lwtq_active, old, list);
 	old->active = 1;
 	new = SIMPLEQ_FIRST(&__lwtq_active);
 	SIMPLEQ_REMOVE_HEAD(&__lwtq_active, list);
 	new->active = 0;
-	sys_sti();
+	preempt_enable();
 	if (old != new)
 		_lwt_switch(new, 1);
 }
@@ -116,7 +147,7 @@ lwt_sleep(void)
 
 	if (!lwt_initialized)
 		lwt_init();
-	sys_cli();
+	preempt_disable();
 	lwt_current->active = 0;
 retry:
 	new = SIMPLEQ_FIRST(&__lwtq_active);
@@ -125,11 +156,11 @@ retry:
 		new->active = 0;
 	}
 	while (new == NULL) {
-		sys_wait(); /* Implicit sti() */
-		sys_cli();
+		sys_wait();
+		preempt_restore();
 		goto retry;
 	}
-	sys_sti();	
+	preempt_enable();
 	_lwt_switch(new, 1);
 }
 
@@ -145,7 +176,7 @@ lwt_exit(void)
 
 	old = lwt_current;
 
-	sys_cli();
+	preempt_disable();
 	old->active = 0;
 retry:
 	new = SIMPLEQ_FIRST(&__lwtq_active);
@@ -155,9 +186,10 @@ retry:
 	}
 	while (new == NULL) {
 		sys_wait();
+		preempt_restore();
 		goto retry;
 	}
-	sys_sti();
+	preempt_enable();
 
 	/* Reset LWT to starting point */
 	lwt_makebuf(old, old->start, old->arg, old->stack, old->stack_size);
