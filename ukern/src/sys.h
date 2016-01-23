@@ -123,6 +123,7 @@ struct sys_poll_ior {
 #define PG_ERR_INFO_WRITE 256
 
 #define INTR_EXT     64
+#define MAX_EXTINTRS 64
 
 
 #ifdef _UKERNEL

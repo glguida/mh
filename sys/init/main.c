@@ -26,7 +26,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/inttypes.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
@@ -34,6 +33,7 @@
 #include <drex/lwt.h>
 #include <sys/dirtio.h>
 #include <sys/mman.h>
+#include <string.h>
 #include <syslib.h>
 #include <assert.h>
 
@@ -49,28 +49,23 @@ static void framedump(struct intframe *f)
 	       f->ds, f->es, f->fs, f->gs);
 }
 
-int __sys_inthandler(int vect, u_long va, u_long err, struct intframe *f)
+int __sys_faulthandler(unsigned vect, u_long va,
+		       u_long err, struct intframe *f)
 {
-	static int i = 0;
 
-	if (vect == INTR_EXT) {
-		return;
-	}
 	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
 
 	framedump(f);
 	printf("\n");
-
-
+	return 0;
 }
 
 #define DEV_QUEUES 2
 unsigned qmax[DEV_QUEUES];
 unsigned qsize[DEV_QUEUES];
 unsigned qready[DEV_QUEUES];
-struct dirtio_dev dev;
 
-lwt_t lwt1, lwt2;
+lwt_t *lwt2;
 
 void testlwt(void *arg)
 {
@@ -81,13 +76,13 @@ void testlwt(void *arg)
 	asm volatile("mov %%esp, %0\n" : "=r"(x));
 	asm volatile("mov %%ebp, %0\n" : "=r"(y));
 	printf("sp is %lx, bp is %lx\n", x, y);
-	lwt_switch(&lwt1);
+	lwt_yield();
+	printf("LWT2: Were we saying?\n");
+	lwt_exit();
 }
-
 
 int main()
 {
-	int i;
 	struct sys_creat_cfg cfg;
 
 	siginit();
@@ -100,53 +95,49 @@ int main()
 	cfg.nameid = 500;
 	cfg.vendorid = 0xf00ffa;
 	cfg.deviceid = 1;
-	printf("%d creat()", sys_creat(&cfg, 9, 0111));
-
 	if (sys_fork()) {
-		int i;
-
-		dirtio_dev_init(&dev, DEV_QUEUES, qmax, qsize, qready);
 		printf("Parent!\n");
-		while (1) {
-			int ret;
-			unsigned id;
-			struct sys_poll_ior ior;
-
-			sys_wait();
-			sys_cli();
-			id = sys_poll(&ior);
-			printf("I/O port %x,  val %x\n", ior.port, ior.val);
-			printf("Test: %d\n", dirtio_dev_io(&dev, id, ior.port, ior.val));
-			sys_eio(id);
-		}
+		dirtio_dev_init(DEV_QUEUES, qmax, qsize, qready);
+		dirtio_dev_register(&cfg, 0111);
+		lwt_sleep();
+		printf("Hah?\n");
 	} else {
 		int desc, ret;
-		struct sys_creat_cfg cfg;
-		int *p = drex_mmap(NULL, sizeof(struct dirtio_hdr),
-				   PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
+		struct dirtio_desc dio;
+		struct dirtio_hdr *hdr;
 
-		printf("child!\n");
-		*p = 0;
-		desc = sys_open(500);
+
+		hdr = drex_mmap(NULL, sizeof(struct dirtio_hdr),
+				PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
+		memset(hdr, 0, sizeof(*hdr));
+
+		desc = dirtio_open(&dio, 500, hdr);
+		printf("child! %d", desc);
 		sys_mapirq(desc, 0, 5);
-		printf("MAPPING %d\n", sys_export(desc, p, 0));
+		printf("MAPPING %d\n", sys_export(desc, hdr, 0));
 		sys_readcfg(0, &cfg);
 		printf("cfg: %llx %lx %lx\n",
 		       cfg.nameid, cfg.vendorid, cfg.deviceid);
 
 		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
 		sys_wait();
-		printf("IRQ received! %x\n", *(uint32_t *)p);
+		printf("IRQ received! %x\n", hdr->ioval);
 		sys_out(desc, PORT_DIRTIO_IN | (PORT_DIRTIO_MAGIC << 8), 5);
 		sys_wait();
-		printf("IRQ received! %x\n", *(uint32_t *)p);
+		printf("IRQ received! %x\n", hdr->ioval);
 
-		lwt_init(&lwt1);
-		lwt_create(&lwt2, testlwt, (void *)1,
-			   NULL, malloc(1024), 1024);
+		lwt2 = lwt_create(testlwt, (void *)1, 1024);
 		printf("Switching soon from lwt1\n");
-		lwt_switch(&lwt2);
+		lwt_wake(lwt2);
+		lwt_yield();
 		printf("Hello again from lwt1!\n");
+		lwt_wake(lwt2);
+		lwt_yield();
+		printf("Hm!\n");
+		lwt_wake(lwt2);
+		printf("Going\n");
+		lwt_yield();
+
 	}
 
 	printf("Goodbye!\n");

@@ -229,6 +229,15 @@ void thintr(unsigned vect, vaddr_t va, unsigned long err)
 			err);
 }
 
+void thextintr(unsigned vect, uint64_t sigs)
+{
+	struct thread *th = current_thread();
+	uint32_t ofl = th->userfl;
+
+	th->userfl &= ~THFL_INTR;	/* Restored on IRET */
+	usrframe_extint(th->frame, th->sigip, th->sigsp, ofl, vect, sigs);
+}
+
 void thraise(struct thread *th, unsigned vect)
 {
 
@@ -287,7 +296,7 @@ void do_softirq(void)
 	if (th->userfl & THFL_INTR) {
 		si = __sync_fetch_and_and(&th->softintrs, 0);
 		if (si)
-			thintr(INTR_EXT, 0, si);
+			thextintr(INTR_EXT, si);
 	}
 
 	while (current_cpu()->softirq) {
@@ -438,6 +447,10 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 		}
 	}
 	pmap_commit(NULL);
+	/* Warning: accessing user space without checking (we are
+	   single threaded, area just mapped and still locked, it is
+	   fine, but future-fragile). */
+	memset(addr, 0, round_page(sz));
 	return ret;
 }
 
@@ -535,6 +548,7 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 		return -EBUSY;
 
 	th->usrdev = usrdev_creat(cfg, sig, mode);
+	printf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid, cfg->vendorid);
 	if (th->usrdev == NULL)
 		return -EEXIST;
 	return 0;

@@ -98,8 +98,8 @@ int nmi_entry(uint32_t vect, struct usrframe *f)
 	 */
 	if (__predict_false(__crash_requested)) {
 		spinlock(&__crash_lock);
-		//		printf("Crash report of CPU #%d:\n", cpu_number());
-		//		framedump(f);
+		printf("Crash report of CPU #%d:\n", cpu_number());
+		framedump(f);
 		spinunlock(&__crash_lock);
 		asm volatile ("cli; hlt");
 		/* Not reached */
@@ -289,6 +289,12 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 	/* Change the user entry on success. */
 	f->esp = usp;
 	f->eip = ip;
+}
+
+void usrframe_extint(struct usrframe *f, vaddr_t ip, vaddr_t sp,
+		     uint32_t fl, unsigned xcpt, uint64_t sigs)
+{
+	usrframe_signal(f, ip, sp, fl, xcpt, sigs >> 32, sigs & 0xffffffff);
 }
 
 void usrframe_setret(struct usrframe *f, unsigned long r)

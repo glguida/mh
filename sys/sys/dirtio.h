@@ -1,6 +1,8 @@
 #ifndef _sys_dirtio_h
 #define _sys_dirtio_h
 
+#define DIRTIO_VID		0x00f00ffa
+
 #define PORT_DIRTIO_IN		0x10000
 
 #define DIRTIO_MAGIC 		0x74726976
@@ -40,7 +42,18 @@ struct dirtio_dev {
   int (*notify)(unsigned queue);
 };
 
-void dirtio_dev_init(struct dirtio_dev *dev, unsigned queues,
+struct dirtio_desc {
+	int id;
+	int eiosig;
+	struct dirtio_hdr *hdr;
+
+	uint64_t nameid;
+	uint64_t vendorid;
+	uint64_t deviceid;
+};
+
+void dirtio_dev_init(unsigned queues,
 		     unsigned *qmax, unsigned *qsize, unsigned *qready);
+int dirtio_dev_creat(struct sys_creat_cfg *cfg, devmode_t mode);
 
 #endif

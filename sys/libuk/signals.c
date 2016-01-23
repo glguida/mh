@@ -41,25 +41,37 @@ int _libuk_signal_handler(int vect, u_long va, u_long err,
 			  struct intframe *f)
 {
 
-	if (vect == XCPT_PGFAULT)
-		__sys_pgfaulthandler(va, err, f);
+	if (vect == INTR_EXT) {
+		uint64_t si = ((uint64_t)va << 32) | (uint64_t)err;
+		return __sys_inthandler(0, si, f);
+	} else if (vect == XCPT_PGFAULT)
+		return __sys_pgfaulthandler(va, err, f);
 	else
-		__sys_inthandler(vect, va, err, f);
+		return __sys_faulthandler(vect, va, err, f);
 	return 0;
 }
 
-int _libuk_signals_nointr(int vect, u_long va, u_long err,
+int _libuk_signals_noextint(int vect, uint64_t si, struct intframe *f)
+{
+
+	return -1;
+}
+__weak_alias(__sys_inthandler, _libuk_signals_noextint)
+
+int _libuk_signals_noxcpt(int vect, u_long va, u_long err,
 			  struct intframe *f)
 {
 
 	return -1;
 }
+__weak_alias(__sys_faulthandler, _libuk_signals_noextint)
 
 int _libuk_signals_nopgfault(u_long va, u_long err, struct intframe *f)
 {
 
 	return -1;
 }
+__weak_alias(__sys_pgfaulthandler, _libuk_signals_nopgfault)
 
 void siginit(void)
 {
@@ -67,4 +79,5 @@ void siginit(void)
 	sys_inthdlr(__inthdlr, stkptr);
 }
 
-__weak_alias(__sys_inthandler, _libuk_signals_nointr)
+
+

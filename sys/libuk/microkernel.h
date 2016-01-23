@@ -48,7 +48,8 @@ int sys_move(vaddr_t dst, vaddr_t src);
 
 int sys_putc(int ch);
 
-extern int __sys_inthandler(int, u_long, u_long, struct intframe *);
+extern int __sys_inthandler(int, uint64_t, struct intframe *);
+extern int __sys_faulthandler(unsigned, u_long, u_long, struct intframe *);
 extern int __sys_pgfaulthandler(u_long, u_long, struct intframe *);
 
 
