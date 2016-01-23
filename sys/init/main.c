@@ -98,7 +98,7 @@ int main()
 	if (sys_fork()) {
 		printf("Parent!\n");
 		dirtio_dev_init(DEV_QUEUES, qmax, qsize, qready);
-		dirtio_dev_register(&cfg, 0111);
+		dirtio_dev_creat(&cfg, 0111);
 		lwt_sleep();
 		printf("Hah?\n");
 	} else {
