@@ -138,11 +138,13 @@ int main()
 			struct iovec iov[11];
 			dc = dirtio_pipe_open(500);
 			assert(dc);
-			len = dirtio_allocv(dc, iov, 11, 11 * 128 * 1024);
+			len = dirtio_allocv(dc, iov, 11, 11 * 128 * 1024 - 1);
 			printf("len = %d\n", len);
 			for (j = 0; j < 11; j++)
 				printf("\t%p -> %d\n", iov[j].iov_base, iov[j].iov_len);
 
+
+			dioqueue_addv(&dc->dqueues[0], 1, 10, iov);
 		}
 		
 		
