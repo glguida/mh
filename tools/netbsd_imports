@@ -62,3 +62,6 @@ common/lib/libc/arch/i386/string/memset.S common/libc/i386/string/memset.S
 include/setjmp.h include/setjmp.h
 sys/arch/i386/include/setjmp.h sys/i386/include/setjmp.h
 lib/libc/arch/i386/gen/_setjmp.S sys/libcsys/i386/_setjmp.S
+sys/sys/uio.h sys/sys/uio.h
+common/lib/libc/arch/i386/atomic/atomic.S common/libc/i386/atomic/atomic.S
+sys/sys/atomic.h sys/sys/atomic.h

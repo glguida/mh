@@ -4,6 +4,8 @@ include $(SRCROOT)/mk/mk.conf
 INCS= assert.h inttypes.h setjmp.h stdbool.h stddef.h stdlib.h string.h
 INCDIR=
 
+INCS+= $(SRCROOT)/sys/sys/stdint.h
+
 INCSUBDIRS= \
 	$(SRCROOT)/ukern/src \
 	$(SRCROOT)/ukern/$(MACHINE)/src \

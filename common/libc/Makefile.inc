@@ -15,3 +15,7 @@ ifneq ($(wildcard  $(COMMON_DIR)/$(MACHINE)/string),)
 	SUBDIRS_MKINC+= $(COMMON_DIR)/$(MACHINE)/string
 endif
 SUBDIRS_MKINC+= $(COMMON_DIR)/string
+
+ifneq ($(wildcard $(COMMON_DIR)/$(MACHINE)/atomic),)
+        SUBDIRS_MKINC+= $(COMMON_DIR)/$(MACHINE)/atomic
+endif
