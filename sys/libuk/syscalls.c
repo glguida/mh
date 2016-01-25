@@ -163,6 +163,14 @@ int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg)
 	return ret;
 }
 
+int sys_close(unsigned ddno)
+{
+	int ret;
+
+	__syscall1(SYS_CLOSE, (unsigned long) ddno, ret);
+	return ret;
+}
+
 int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode)
 {
 	int ret;

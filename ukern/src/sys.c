@@ -192,6 +192,13 @@ static int sys_out(unsigned ddno, uint64_t port, uint64_t val)
 	return devout(ddno, port, val);
 }
 
+static int sys_close(unsigned ddno)
+{
+
+	devclose(ddno);
+	return 0;
+}
+
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int np, ret;
@@ -380,6 +387,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_in(a1, a2, a3);
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
+	case SYS_CLOSE:
+		return sys_close(a1);
 	case SYS_GETUID:
 		return sys_getuid(a1);
 	case SYS_SETUID:

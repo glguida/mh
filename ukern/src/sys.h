@@ -69,6 +69,8 @@ typedef enum {
 #define SYS_EXPORT 0x24
 #define SYS_RDCFG  0x25
 
+#define SYS_CLOSE  0x26
+
 #ifndef _ASSEMBLER
 struct sys_creat_cfg {
 	uint64_t nameid;
