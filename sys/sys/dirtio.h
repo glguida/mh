@@ -111,7 +111,8 @@ void dirtio_desc_close(struct dirtio_desc *dio);
 #define DIRTIO_BUFBMAPSZ(_d) ((DIRTIO_BUFS(_d) + 63) / 64)
 #define DIRTIO_BUFBMAPMASK(_d) ~((1LL << (DIRTIO_BUFS(_d) % 64)) - 1)
 
-void dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr);
+void dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr,
+		   struct diodevice *dio);
 
 size_t dirtio_allocv(struct diodevice *dio, struct iovec *iovec, int num,
 		     size_t len);

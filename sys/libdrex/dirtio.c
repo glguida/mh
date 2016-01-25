@@ -132,11 +132,13 @@ void dirtio_desc_close(struct dirtio_desc *dio)
 	((uint8_t *)(_d)->buf + (_d)->hdrmax + (_d)->bufsz * (_i))
 
 void
-dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr)
+dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr,
+	      struct diodevice *dio)
 {
 	int i;
 
 	dq->idx = 0;
+	dq->dio = dio;
 	dq->freedescs = malloc(sizeof(unsigned) * num);
 	assert(dq->freedescs);
 	dring_init(&dq->dring, 64, ioptr, 0);
@@ -151,6 +153,7 @@ int
 dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	      struct iovec *iov)
 {
+	unsigned first = -1;
 	unsigned i, idx;
 	struct dring_desc *d;
 	struct dring_avail *da;
@@ -159,9 +162,14 @@ dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	if (rdnum + wrnum >= dq->idx)
 		return -ENOSPC;
 
+	if (rdnum + wrnum == 0)
+		return -EINVAL;
+
 	for (i = 0; i < rdnum; i++) {
 		/* Alloc descriptor */
 		idx = dq->freedescs[--dq->idx];
+		if (first == -1)
+			first = idx;
 		d = &dq->dring.desc[idx];
 		d->addr = (u_long)(iov->iov_base - dq->dio->buf);
 		d->len = iov->iov_len;
@@ -170,6 +178,8 @@ dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	for (i = 0; i < wrnum; i++) {
 		/* Alloc descriptor */
 		idx = dq->freedescs[--dq->idx];
+		if (first == -1)
+			first = idx;
 		d = &dq->dring.desc[idx];
 		d->addr = (u_long)(iov->iov_base - dq->dio->buf);
 		d->len = iov->iov_len;
@@ -179,7 +189,7 @@ dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 
 	/* Update avail */
 	da = dq->dring.avail;
-	da->ring[da->idx % dq->dring.num];
+	da->ring[da->idx % dq->dring.num] = first;
 	membar_producer();
 	da->idx++;
 	return 0;
