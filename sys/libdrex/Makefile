@@ -5,7 +5,8 @@ include $(MACHINE)/Makefile.inc
 
 LIBNAME=drex
 LIBDIR=/lib
-SRCS+= dirtio.c dirtio_dev.c vm.c vmap.c lwt.c softirq.c
+SRCS+= dirtio.c dirtio_dev.c dirtio_pipe.c
+SRCS+= vm.c vmap.c lwt.c softirq.c
 
 INCS= drex.h lwt.h softirq.h preempt.h
 INCDIR= drex

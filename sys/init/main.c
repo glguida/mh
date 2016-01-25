@@ -33,6 +33,7 @@
 #include <drex/lwt.h>
 #include <sys/dirtio.h>
 #include <sys/mman.h>
+#include <sys/uio.h>
 #include <string.h>
 #include <syslib.h>
 #include <assert.h>
@@ -87,9 +88,7 @@ int main()
 
 	siginit();
 
-
 	printf("Hello!\n");
-
 	printf("brk: %x\n", drex_sbrk(50L * PAGE_SIZE));
 
 	cfg.nameid = 500;
@@ -112,20 +111,14 @@ int main()
 				PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
 		memset(hdr, 0, sizeof(*hdr));
 
-		desc = dirtio_open(&dio, 500, hdr);
-		printf("child! %d", desc);
-
-		printf("MAPPING %d\n", sys_export(desc, (u_long)hdr, 0));
-		sys_readcfg(0, &cfg);
-		printf("cfg: %llx %lx %lx\n",
-		       cfg.nameid, cfg.vendorid, cfg.deviceid);
+		desc = dirtio_desc_open(500, (void *)hdr, &dio);
+		printf("child! %d: %"PRIx64":%"PRIx64"\n", desc, dio.vendorid, dio.deviceid);
 
 		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
 		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
 		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
 		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
 
-#if 0
 		lwt2 = lwt_create(testlwt, (void *)1, 1024);
 		printf("Switching soon from lwt1\n");
 		lwt_wake(lwt2);
@@ -137,7 +130,22 @@ int main()
 		lwt_wake(lwt2);
 		printf("Going\n");
 		lwt_yield();
-#endif
+
+		{
+			int j;
+			size_t len;
+			struct diodevice *dc;
+			struct iovec iov[11];
+			dc = dirtio_pipe_open(500);
+			assert(dc);
+			len = dirtio_allocv(dc, iov, 11, 11 * 128 * 1024);
+			printf("len = %d\n", len);
+			for (j = 0; j < 11; j++)
+				printf("\t%p -> %d\n", iov[j].iov_base, iov[j].iov_len);
+
+		}
+		
+		
 	}
 
 	printf("Goodbye!\n");
