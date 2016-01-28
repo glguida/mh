@@ -150,41 +150,6 @@ dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr,
 	dq->idx = i;
 }
 
-#if 0
-/*
- * I really need to separate _dev_ from normal. _dev_ is pretty much
- * what the hypervisor is in virtio.
- */
-
-int
-dioqueue_dev_getv(struct dioqueue_dev *dq, unsigned *rdnum, unsigned *wrnum,
-		  struct iovec **iov)
-{
-	int i;
-	uint16_t idx, ringidx, descidx;
-	struct dring_desc *d;
-	struct dring_avail *da;
-
-	idx = dq->last_seen_avail;
-	da = dq->dring.avail;
-	ringidx = da->idx;
-	__membar_consumer();
-
-	if (idx == ringidx)
-		return -ENOMSG; /* SYSV IPC error code, really? */
-
-	/* FOR EACH CHECK LENGTH FOR IOV. */
-	descidx = da->ring[da->idx % dq->dring.num];
-	if (descidx >= dq->dring.num)
-		bad_remote("Wrong index %d in queue\n", descidx);
-	// dq->dring.desc[descidx] = */
-
-	/* FOR EACH CREATE IOV */
-	
-	
-}
-#endif
-
 int
 dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	      struct iovec *iov)

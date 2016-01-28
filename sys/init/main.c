@@ -53,18 +53,20 @@ static void framedump(struct intframe *f)
 int __sys_faulthandler(unsigned vect, u_long va,
 		       u_long err, struct intframe *f)
 {
-
+	extern lwt_t *lwt_current;
 	printf("\nException %d, va = %p, err = %lx\n", vect, va, err);
 
+	if (lwt_current != NULL
+	    && (membar_consumer(), lwt_current->flags & LWTF_XCPT)) {
+	  framelongjmp(f, &lwt_current->xcptbuf);
+	  return 0;
+	}
+	
 	framedump(f);
 	printf("\n");
 	return 0;
 }
 
-#define DEV_QUEUES 2
-unsigned qmax[DEV_QUEUES];
-unsigned qsize[DEV_QUEUES];
-unsigned qready[DEV_QUEUES];
 
 lwt_t *lwt2;
 
@@ -82,72 +84,58 @@ void testlwt(void *arg)
 	lwt_exit();
 }
 
+static void
+cons_recvring(unsigned rdnum, unsigned wrnum, struct iovec *iov)
+{
+
+}
+
+static void
+cons_sendring(unsigned rdnum, unsigned wrnum, struct iovec *iov)
+{
+	
+}
+
 int main()
 {
-	struct sys_creat_cfg cfg;
-
 	siginit();
 
 	printf("Hello!\n");
-	printf("brk: %x\n", drex_sbrk(50L * PAGE_SIZE));
 
-	cfg.nameid = 500;
-	cfg.vendorid = 0xf00ffa;
-	cfg.deviceid = 1;
+	printf("!Ue!\n");
+	printf("brk: %d\n", drex_sbrk(5L * PAGE_SIZE));
 	if (sys_fork()) {
+		int ret;
+
 		printf("Parent!\n");
-		dirtio_dev_init(DEV_QUEUES, qmax, qsize, qready);
-		dirtio_dev_creat(&cfg, 0111);
+		ret = dirtio_dev_pipe_setup(500, DIRTIO_DID_CONSOLE, 0111);
+		//					    cons_recv, cons_send);
+		printf("ret = %d\n", ret);
 		lwt_sleep();
 		printf("Hah?\n");
 	} else {
+
+		int j;
+		size_t len;
+		struct diodevice *dc;
+		struct iovec iov[11];
 		uint64_t val;
-		int desc;
-		struct dirtio_desc dio;
-		struct dirtio_hdr *hdr;
 
-
-		hdr = drex_mmap(NULL, sizeof(struct dirtio_hdr),
-				PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
-		memset(hdr, 0, sizeof(*hdr));
-
-		desc = dirtio_desc_open(500, (void *)hdr, &dio);
-		printf("child! %d: %"PRIx64":%"PRIx64"\n", desc, dio.vendorid, dio.deviceid);
-
-		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
-		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
-		dirtio_mmio_inw(&dio, PORT_DIRTIO_MAGIC, 0, &val);
-		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
-
-		lwt2 = lwt_create(testlwt, (void *)1, 1024);
-		printf("Switching soon from lwt1\n");
-		lwt_wake(lwt2);
-		lwt_yield();
-		printf("Hello again from lwt1!\n");
-		lwt_wake(lwt2);
-		lwt_yield();
-		printf("Hm!\n");
-		lwt_wake(lwt2);
-		printf("Going\n");
-		lwt_yield();
-
-		{
-			int j;
-			size_t len;
-			struct diodevice *dc;
-			struct iovec iov[11];
+		do {
 			dc = dirtio_pipe_open(500);
-			assert(dc);
-			len = dirtio_allocv(dc, iov, 11, 11 * 128 * 1024 - 1);
-			printf("len = %d\n", len);
-			for (j = 0; j < 11; j++)
-				printf("\t%p -> %d\n", iov[j].iov_base, iov[j].iov_len);
+		} while(dc == NULL);
 
+		dirtio_mmio_inw(&dc->desc, PORT_DIRTIO_MAGIC, 0, &val);
+		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
+		dirtio_mmio_inw(&dc->desc, PORT_DIRTIO_MAGIC, 0, &val);
+		printf("PORT_DIRTIO_MAGIC is %"PRIx64"\n", val);
 
-			dioqueue_addv(&dc->dqueues[0], 1, 10, iov);
-		}
-		
-		
+		len = dirtio_allocv(dc, iov, 11, 11 * 128 * 1024 - 1);
+
+		for (j = 0; j < 11; j++)
+			printf("\t%p -> %d\n",
+			       iov[j].iov_base, iov[j].iov_len);
+		dioqueue_addv(&dc->dqueues[0], 1, 10, iov);
 	}
 
 	printf("Goodbye!\n");
