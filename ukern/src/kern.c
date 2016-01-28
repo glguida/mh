@@ -357,6 +357,7 @@ void wake(struct thread *th)
 		TAILQ_REMOVE(&stopped_threads, th, sched_list);
 		th->status = THST_RUNNABLE;
 		TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
+		once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
 		break;
 	}
 	spinunlock(&sched_lock);
