@@ -2,6 +2,7 @@
 #include <sys/errno.h>
 #include <sys/dirtio.h>
 #include <assert.h>
+#include <stdlib.h>
 #include <drex/lwt.h>
 
 #include "dirtio_pipe.h"
@@ -12,7 +13,7 @@ unsigned qmax[PIPE_RINGS];
 unsigned qsize[PIPE_RINGS];
 unsigned qready[PIPE_RINGS];
 
-static __notify_id = 0;
+static int __notify_id = 0;
 
 int
 __dirtio_dev_pipe_notify(unsigned id, unsigned queue)
@@ -20,6 +21,7 @@ __dirtio_dev_pipe_notify(unsigned id, unsigned queue)
 	if (queue >= PIPE_RINGS)
 		return -EINVAL;
 
+	/* Really... */
 	__notify_id = id;
 	
 	if (queue == PIPE_RING_RECV)
@@ -33,11 +35,12 @@ void
 pipedev_recv(void *arg)
 {
   	unsigned num;
-	struct iovec *iov;
+	struct dirtio_dev_iovec *diov;
 
 	printf("Recv!\n");
-	printf("%d: ", dioqueue_dev_getv(__notify_id, PIPE_RING_RECV, &num, &iov));
-	printf("GOT %d (%p)\n", num, iov);
+	printf("%d: ", dioqueue_dev_getv(__notify_id, PIPE_RING_RECV,
+					 &diov, &num));
+	printf("GOT %d (%p)\n", num, diov);
 	lwt_exit();
 }
 
@@ -45,10 +48,11 @@ void
 pipedev_send(void *arg)
 {
 	unsigned num;
-	struct iovec *iov;
+	struct dirtio_dev_iovec *diov;
 	printf("Send!\n");
-	printf("%d: ", dioqueue_dev_getv(__notify_id, PIPE_RING_SEND, &num, &iov));
-	printf("GOT %d (%p)\n", num, iov);
+	printf("%d: ", dioqueue_dev_getv(__notify_id, PIPE_RING_SEND,
+					 &diov, &num));
+	printf("GOT %d (%p)\n", num, diov);
 	lwt_exit();
 }
 
