@@ -1,14 +1,13 @@
 SRCROOT=../..
 MKDIR=$(SRCROOT)/mk
 include $(MKDIR)/mk.conf
-include $(MACHINE)/Makefile.inc
 
-LIBNAME=drex
+LIBNAME=dirtio
 LIBDIR=/lib
-SRCS+= vm.c vmap.c lwt.c softirq.c
+SRCS+= dirtio.c dirtio_dev.c dirtio_pipe.c dirtio_dev_pipe.c
 
-INCS= drex.h lwt.h softirq.h preempt.h vmap.h
-INCDIR= drex
+INCS= dirtio.h dirtio_ring.h dirtio_config.h dirtio_types.h
+INCDIR= sys
 
 include $(MKDIR)/inc.mk
 include $(MKDIR)/obj.mk

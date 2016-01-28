@@ -6,7 +6,7 @@ PROGNAME= init
 PROGDIR=sys
 NOINST=yes
 
-LDADD+= -ldrex -lcsys -ldrex -luk
+LDADD+= -ldirtio -ldrex -lcsys -luk
 
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/sysprog.mk

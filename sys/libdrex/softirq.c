@@ -37,10 +37,13 @@
 #include <drex/preempt.h>
 #include <microkernel.h>
 
+unsigned __preemption_level = 0;
+
 static uint64_t free_irqs = -1;
 static lwt_t *__softirq[MAX_EXTINTRS] = {0, };
+static int __dirtio_dev_irq = -1;
 
-unsigned __preemption_level = 0;
+void __dirtio_dev_process(void);
 
 int __sys_inthandler(int prio, uint64_t si, struct intframe *f)
 {
@@ -55,8 +58,16 @@ int __sys_inthandler(int prio, uint64_t si, struct intframe *f)
 			printf("okay!\n");
 			__lwt_wake(__softirq[irq]);
 		}
+		if ((__dirtio_dev_irq != -1) && (__dirtio_dev_irq == irq))
+			__dirtio_dev_process();
 	}
 	return 0;
+}
+
+void
+irq_set_dirtio(unsigned irq)
+{
+	__dirtio_dev_irq = irq;
 }
 
 int
@@ -66,7 +77,7 @@ softirq_register(unsigned irq, void (*start)(void *), void *arg)
 	
 	if (irq >= MAX_EXTINTRS)
 		return -EINVAL;
-	nlwt = lwt_create(start, arg, 1024);
+	nlwt = lwt_create(start, arg, 65536);
 	assert(nlwt != NULL);
 	preempt_disable();
 	olwt = __softirq[irq];

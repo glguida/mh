@@ -37,6 +37,7 @@
 #include <drex/softirq.h>
 #include <microkernel.h>
 #include <stdlib.h>
+#include <syslib.h>
 
 int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 {
@@ -141,7 +142,7 @@ dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr,
 	dq->dio = dio;
 	dq->freedescs = malloc(sizeof(unsigned) * num);
 	assert(dq->freedescs);
-	dring_init(&dq->dring, 64, ioptr, 0);
+	dring_init(&dq->dring, 64, ioptr, 1);
 
 	/* Mark all descriptors free */
 	for (i = 0; i < num; i++)
@@ -149,15 +150,50 @@ dioqueue_init(struct dioqueue *dq, unsigned num, void *ioptr,
 	dq->idx = i;
 }
 
+#if 0
+/*
+ * I really need to separate _dev_ from normal. _dev_ is pretty much
+ * what the hypervisor is in virtio.
+ */
+
+int
+dioqueue_dev_getv(struct dioqueue_dev *dq, unsigned *rdnum, unsigned *wrnum,
+		  struct iovec **iov)
+{
+	int i;
+	uint16_t idx, ringidx, descidx;
+	struct dring_desc *d;
+	struct dring_avail *da;
+
+	idx = dq->last_seen_avail;
+	da = dq->dring.avail;
+	ringidx = da->idx;
+	__membar_consumer();
+
+	if (idx == ringidx)
+		return -ENOMSG; /* SYSV IPC error code, really? */
+
+	/* FOR EACH CHECK LENGTH FOR IOV. */
+	descidx = da->ring[da->idx % dq->dring.num];
+	if (descidx >= dq->dring.num)
+		bad_remote("Wrong index %d in queue\n", descidx);
+	// dq->dring.desc[descidx] = */
+
+	/* FOR EACH CREATE IOV */
+	
+	
+}
+#endif
+
 int
 dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	      struct iovec *iov)
 {
 	unsigned first = -1;
 	unsigned i, idx;
-	struct dring_desc *d;
+	struct dring_desc *d, *prevd;
 	struct dring_avail *da;
-
+	
 	/* dq->idx is also number of free elements */
 	if (rdnum + wrnum >= dq->idx)
 		return -ENOSPC;
@@ -165,25 +201,36 @@ dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	if (rdnum + wrnum == 0)
 		return -EINVAL;
 
-	for (i = 0; i < rdnum; i++) {
+	prevd = NULL;
+	for (i = 0; i < rdnum; i++, iov++) {
 		/* Alloc descriptor */
 		idx = dq->freedescs[--dq->idx];
 		if (first == -1)
 			first = idx;
+		printf("Adding rd at desc %d\n", idx);
 		d = &dq->dring.desc[idx];
+		printf("d = %p\n", d);
 		d->addr = (u_long)(iov->iov_base - dq->dio->buf);
+		printf("addr = %lx\n", d->addr);
 		d->len = iov->iov_len;
 		d->flags |= DRING_DESC_F_NEXT;
+		if (prevd != NULL)
+			prevd->next = idx;
+		prevd = d;
 	}
-	for (i = 0; i < wrnum; i++) {
+	for (i = 0; i < wrnum; i++, iov++) {
 		/* Alloc descriptor */
 		idx = dq->freedescs[--dq->idx];
 		if (first == -1)
 			first = idx;
+		printf("Adding wr at desc %d\n", idx);
 		d = &dq->dring.desc[idx];
 		d->addr = (u_long)(iov->iov_base - dq->dio->buf);
 		d->len = iov->iov_len;
 		d->flags |= DRING_DESC_F_WRITE | DRING_DESC_F_NEXT;
+		if (prevd != NULL)
+			prevd->next = idx;
+		prevd = d;
 	}
 	d->flags &= ~DRING_DESC_F_NEXT;
 
@@ -192,13 +239,11 @@ dioqueue_addv(struct dioqueue *dq, unsigned rdnum, unsigned wrnum,
 	da->ring[da->idx % dq->dring.num] = first;
 	membar_producer();
 	da->idx++;
+	printf("da idx is now %d (%p)\n", da->idx, dq->dring.desc);
+
+	dirtio_mmio_outw(&dq->dio->desc, PORT_DIRTIO_NOTIFY, 0/*q*/, 0);
 	return 0;
 }
-
-#if 0
-	dirtio_mmio_outw(dq->dio->desc, PORT_DIRTIO_NOTIFY, q, 0);
-#endif
-
 
 size_t
 dirtio_allocv(struct diodevice *dio, struct iovec *iovec, int num,

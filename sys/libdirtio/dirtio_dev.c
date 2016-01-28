@@ -32,11 +32,17 @@
 #include <sys/queue.h>
 #include <machine/vmparam.h>
 #include <microkernel.h>
-#include <sys/dirtio.h>
-#include <assert.h>
 #include <drex/lwt.h>
 #include <drex/softirq.h>
-#include "vmap.h"
+#include <drex/vmap.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslib.h>
+#include <sys/atomic.h>
+#include <sys/dirtio.h>
+
+struct dirtio_dev __dev;
 
 #define MEMCACHESIZE 16L
 
@@ -54,13 +60,15 @@ static TAILQ_HEAD(mchead ,memcache) memcache_lruq =
 void *dirtio_mem_get(unsigned id, ioaddr_t ioaddr)
 {
 	int ret;
+	int pgoff = ioaddr & PAGE_MASK;
 	struct memcache *mc;
 
+	ioaddr = trunc_page(ioaddr);
 	/* Search by the LRU */
 	TAILQ_FOREACH_REVERSE(mc, &memcache_lruq, mchead, list) {
 		if (mc->id == id && mc->ioaddr == ioaddr) {
 			mc->ref++;
-			return mc->vaddr;
+			return mc->vaddr + pgoff;
 		}
 	}
 
@@ -78,12 +86,14 @@ void *dirtio_mem_get(unsigned id, ioaddr_t ioaddr)
 	mc->ref++;
 	mc->id = id;
 	mc->ioaddr = ioaddr;
-	return mc->vaddr;
+	return mc->vaddr + pgoff;
 }
 
 void dirtio_mem_put(void *addr)
 {
 	struct memcache *mc;
+
+	addr = (void *)trunc_page((uintptr_t)addr);
 
 	/* XXX: faster way: use addr - start to get memcache entry */
 	TAILQ_FOREACH_REVERSE(mc, &memcache_lruq, mchead, list)
@@ -110,18 +120,148 @@ void dirtio_mem_init(void)
 	}
 }
 
-struct dirtio_dev __dev;
+int
+dioqueue_dev_getv(unsigned id, unsigned queue,
+		  struct dirtio_dev_iovec **diovecp,
+		  unsigned *num)
+{
+	int len = 0;
+  	struct dirtio_dev_iovec *diov = NULL;
+	int i;
+	uint16_t lidx, idx;
+	struct iovec *iov;
+	struct dring_dev *dr;
+	struct dring_desc *d;
+	struct dring_avail *da;
+
+	if (queue >= __dev.queues)
+		return -EINVAL;
+
+	dr = &__dev.dioqueues[queue].dring;
+	da = dirtio_mem_get(id, dr->avail);
+	if (da == NULL)
+		return -EFAULT;
+	printf("dr->desc = %lx\n", dr->desc);
+	d = dirtio_mem_get(id, dr->desc);
+	if (d == NULL) {
+		dirtio_mem_put(da);
+		return -EFAULT;
+	}
+
+	lwt_exception({
+       		if (diov != NULL) {
+			for (i = 0; i < len; i++)
+				if (diov->iov[i].iov_base != NULL)
+					dirtio_mem_put(diov->iov[i].iov_base);
+			free(diov);
+		}
+		dirtio_mem_put(da);
+		dirtio_mem_put(d);
+		return -EIO;
+	});
+
+	lidx = __dev.dioqueues[queue].last_seen_avail;
+	idx = da->idx;
+	membar_consumer();
+
+	if (lidx == idx) {
+		dirtio_mem_put(da);
+		dirtio_mem_put(d);
+		lwt_exception_clear();
+		return 0; /* No messages */
+	}
+
+	idx = da->ring[lidx % dr->num];
+	for (i = 0; i < dr->num; i++) {
+		if (idx >= dr->num) {
+			printf("IDX IS %d\n", idx);
+			dirtio_mem_put(da);
+			dirtio_mem_put(d);
+			lwt_exception_clear();			
+			return -EFAULT;
+		}
+		if (!(d[idx].flags & DRING_DESC_F_NEXT))
+			break;
+		idx = d[idx].next;
+	}
+	/* Check invalid length (or loop) */
+	if (i == dr->num) {
+		dirtio_mem_put(da);
+		dirtio_mem_put(d);
+		lwt_exception_clear();
+		return -EFAULT;
+	}
+
+	len = i + 1;
+	diov = malloc(sizeof(*diov) + sizeof(struct iovec) * len);
+	iov = diov->iov;
+	memset(diov->iov, 0, sizeof(struct iovec) * len);
+	/* Re-check basics. Driver might have changed things. */
+	idx = da->ring[lidx % dr->num];
+	diov->idx = idx;
+	for (i = 0; i < dr->num; i++) {
+		if (idx >= dr->num) {
+			printf("Wrong descidx (%d) in ring (2) [%d]\n",
+			       idx, id);
+			goto out_bad;
+		}
+
+		iov[i].iov_base = dirtio_mem_get(id, d[idx].addr);
+		if(iov[i].iov_base == NULL) {
+			printf("Cannot map base %lx\n", d[idx].addr);
+			goto out_bad;
+		}
+		iov[i].iov_len = d[idx].len;
+
+		if (!(d[idx].flags & DRING_DESC_F_NEXT))
+			break;
+		/* If we're here after len passes, then the driver has
+		   corrupted the structure while we scan it. Bad, bad
+		   driver. */
+		if (i == len - 1) {
+			printf("Reached end of iov, desc changed! [%d]\n", id);
+			goto out_bad;
+		}
+		idx = d[idx].next;
+	}
+	dirtio_mem_put(da);
+	dirtio_mem_put(d);
+	*diovecp = diov;
+	*num = len;
+	lwt_exception_clear();
+	return 1;
+
+out_bad:
+	dirtio_mem_put(da);
+	dirtio_mem_put(d);
+	for (i = 0; i < len; i++)
+		if (iov[i].iov_base != NULL)
+			dirtio_mem_put(iov[i].iov_base);
+	free(diov);
+	lwt_exception_clear();
+	return -EFAULT;;
+}
+
+int dirtio_dev_putv(unsigned id, unsigned queue, struct iovec *iovec,
+		       unsigned num)
+{
+	
+}
 
 int dirtio_dev_return(unsigned id, uint32_t val)
 {
 	struct dirtio_hdr *hdr;
 
-	/* XXX: Do a usercpy-like function. We might fault if remote
-	 * doesn't export memory! */
 	hdr = (struct dirtio_hdr *)dirtio_mem_get(id, 0);
 	if (hdr == NULL)
 		return -ENOENT;
+
+	lwt_exception({
+			dirtio_mem_put(hdr);
+			return -EIO;
+		});
 	hdr->ioval = val;
+	lwt_exception_clear();
 	dirtio_mem_put(hdr);
 	return 0;
 }
@@ -162,9 +302,6 @@ int dirtio_dev_io(unsigned id, uint64_t port, uint64_t val)
 				goto read_err;
 			val = __dev.qready[queue];
 			break;
-		case PORT_DIRTIO_ISR:
-			val = __dev.isr;
-			break;
 		case PORT_DIRTIO_DSR:
 			val = __dev.dsr;
 			break;
@@ -188,9 +325,10 @@ int dirtio_dev_io(unsigned id, uint64_t port, uint64_t val)
 			break;
 		case PORT_DIRTIO_NOTIFY:
 			if (queue < __dev.queues)
-				ret = __dev.notify(queue);
+				ret = __dev.notify(id, queue);
 			break;
 		default:
+			/* Writing to DSR: DEVICE RESET */
 			break;
 		}
 	}
@@ -198,48 +336,31 @@ int dirtio_dev_io(unsigned id, uint64_t port, uint64_t val)
     
 }
 
-#if 0
-int
-dirtio_dev_wait(struct dirtio_dev *dev, struct sys_poll_ior *ior)
-{
-	int id;
-
-	preempt_disable();
-	id = sys_poll(&ior);
-	while (id < 0) {
-		sys_wait();
-		preempt_restore();
-		id = sys_poll(ior);
-	}
-	preempt_enable();
-
-}
-#endif
-
 void
-dirtio_dev_init(unsigned queues,
-		unsigned *qmax, unsigned *qsize, unsigned *qready)
+dirtio_dev_init(unsigned queues, int (*notify)(unsigned, unsigned),
+		unsigned *qmax, unsigned *qsize, unsigned *qready,
+		struct dioqueue_dev *dqs)
 {
 	dirtio_mem_init();
 	__dev.queues = queues;
 	__dev.qmax = qmax;
 	__dev.qsize = qsize;
 	__dev.qready = qready;
-	__dev.isr = 0;
 	__dev.dsr = 0;
+	__dev.dioqueues = dqs;
+	__dev.notify = notify;
 }
 
-static void
-__dirtio_dev_process(void *arg)
+void
+__dirtio_dev_process(void)
 {
 	unsigned id;
 	struct sys_poll_ior ior;
 
-	printf("Process!\n");
+	printf("Process! Wohoo!\n");
 	id = sys_poll(&ior);
 	dirtio_dev_io(id, ior.port, ior.val);
 	sys_eio(id);
-	lwt_exit();
 }
 
 int
@@ -253,6 +374,6 @@ dirtio_dev_creat(struct sys_creat_cfg *cfg, devmode_t mode)
 		irqfree(irq);
 		return ret;
 	}
-	softirq_register(irq, __dirtio_dev_process, NULL);
+	irq_set_dirtio(irq);
 	return 0;
 }

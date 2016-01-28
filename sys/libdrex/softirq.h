@@ -33,6 +33,7 @@
 unsigned irqalloc(void);
 void irqfree(unsigned);
 void irqwait(unsigned);
+void irq_set_dirtio(unsigned irq);
 int softirq_register(unsigned irq, void (*start)(void *), void *arg);
 
 #endif

@@ -39,7 +39,7 @@
 
 static int lwt_initialized = 0;
 static lwt_t __lwt_main;
-static lwt_t *lwt_current = NULL;
+lwt_t *lwt_current = NULL;
 
 SIMPLEQ_HEAD(, lwt) __lwtq_active = SIMPLEQ_HEAD_INITIALIZER(__lwtq_active);
 
@@ -50,8 +50,15 @@ lwt_init(void)
 	assert(!lwt_initialized);
 	__lwt_main.priv = NULL;
 	lwt_current = &__lwt_main;
-	lwt_current->active = 0;
+	lwt_current->flags = 0;
 	lwt_initialized++;
+}
+
+void
+lwt_exception_clear(void)
+{
+	lwt_t *lwt = lwt_getcurrent();
+	lwt->flags &= ~LWTF_XCPT;
 }
 
 void *
@@ -99,9 +106,9 @@ __lwt_wake(lwt_t *lwt)
 	if (!lwt_initialized)
 		lwt_init();
 
-  	if (!lwt->active) {
+  	if (!(lwt->flags & LWTF_ACTIVE)) {
 		SIMPLEQ_INSERT_TAIL(&__lwtq_active, lwt, list);
-		lwt->active = 1;
+		lwt->flags |= LWTF_ACTIVE;
 	}
 }
 
@@ -113,9 +120,9 @@ lwt_wake(lwt_t *lwt)
 
 	assert(lwt != lwt_current);
 	preempt_disable();
-	if (!lwt->active) {
+	if (!(lwt->flags & LWTF_ACTIVE)) {
 		SIMPLEQ_INSERT_TAIL(&__lwtq_active, lwt, list);
-		lwt->active = 1;
+		lwt->flags |= LWTF_ACTIVE;
 	}
 	preempt_enable();
 }
@@ -131,10 +138,10 @@ lwt_yield(void)
 
 	preempt_disable();
 	SIMPLEQ_INSERT_TAIL(&__lwtq_active, old, list);
-	old->active = 1;
+	old->flags |= LWTF_ACTIVE;
 	new = SIMPLEQ_FIRST(&__lwtq_active);
 	SIMPLEQ_REMOVE_HEAD(&__lwtq_active, list);
-	new->active = 0;
+	new->flags &= ~LWTF_ACTIVE;
 	preempt_enable();
 	if (old != new)
 		_lwt_switch(new, 1);
@@ -148,12 +155,12 @@ lwt_sleep(void)
 	if (!lwt_initialized)
 		lwt_init();
 	preempt_disable();
-	lwt_current->active = 0;
+	lwt_current->flags &= ~LWTF_ACTIVE;
 retry:
 	new = SIMPLEQ_FIRST(&__lwtq_active);
 	if (new != NULL) {
 		SIMPLEQ_REMOVE_HEAD(&__lwtq_active, list);
-		new->active = 0;
+		new->flags &= ~LWTF_ACTIVE;
 	}
 	while (new == NULL) {
 		sys_wait();
@@ -177,12 +184,12 @@ lwt_exit(void)
 	old = lwt_current;
 
 	preempt_disable();
-	old->active = 0;
+	old->flags &= ~LWTF_ACTIVE;
 retry:
 	new = SIMPLEQ_FIRST(&__lwtq_active);
 	if (new != NULL) {
 		SIMPLEQ_REMOVE_HEAD(&__lwtq_active, list);
-		new->active = 0;
+		new->flags &= ~LWTF_ACTIVE;
 	}
 	while (new == NULL) {
 		sys_wait();
@@ -206,7 +213,7 @@ lwt_create(void (*start)(void *), void *arg, size_t stack_size)
 	if (lwt == NULL)
 		return NULL;
 
-	lwt->active = 0;
+	lwt->flags = 0;
 	lwt->stack = (void *)(lwt + 1);
 	lwt->stack_size = stack_size;
 	lwt->start = start;

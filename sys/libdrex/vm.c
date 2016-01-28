@@ -30,19 +30,26 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/atomic.h>
 #include <machine/vmparam.h>
 #include <machine/drexparam.h>
 #include <microkernel.h>
 #include <syslib.h>
 #include <drex/drex.h>
+#include <drex/lwt.h>
 #include "vmap.h"
+
+extern lwt_t *lwt_current;
+extern void framedump(struct intframe *f);
+void framelongjmp(struct intframe *f, jmp_buf *jb);
 
 extern void _scode __asm("_scode");
 extern void _ecode __asm("_ecode");
 extern void _sdata __asm("_sdata");
 extern void _end __asm("_end");
 
-#define VACOW (1L*1024*1024*1024)
+#define VACOW (1L*1024*1024*1024) /* XXX: MUST BE ALLOCATED! */
+#define VM_PROT_PASSTHROUGH -1
 
 static const void *maxbrk = (void *) (1LL * 1024 * 1024 * 1024);
 static void *brkaddr = (void *) -1;
@@ -90,6 +97,7 @@ static vm_prot_t _resolve_va(vaddr_t va)
 		return VM_PROT_WX;
 	case VFNT_IMPORT:
 		printf("<External Fault>");
+		return VM_PROT_PASSTHROUGH;
 	default:
 		break;
 	}
@@ -184,9 +192,18 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	printf("Exception handler, pagefault at addr %lx (%lx)!\n", va,
 	       err);
 	printf("Should be %d\n", prot);
+	framedump(f);
 
+	if (prot == VM_PROT_PASSTHROUGH
+	    && lwt_current != NULL
+	    && (membar_consumer(), lwt_current->flags & LWTF_XCPT)) {
+		framelongjmp(f, &lwt_current->xcptbuf);
+		return 0;
+	}
+	
 	if (prot == VM_PROT_NIL) {
 		printf("Segmentation fault, should be handled\n");
+		framedump(f);
 		sys_die();
 	}
 

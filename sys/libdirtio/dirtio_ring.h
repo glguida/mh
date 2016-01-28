@@ -116,13 +116,13 @@ struct dring_desc {
 	__dirtio16 flags;
 	/* We chain unused descriptors via this, too */
 	__dirtio16 next;
-};
+} __packed;
 
 struct dring_avail {
 	__dirtio16 flags;
 	__dirtio16 idx;
 	__dirtio16 ring[];
-};
+} __packed;
 
 /* u32 is used here for ids for padding reasons. */
 struct dring_used_elem {
@@ -130,13 +130,13 @@ struct dring_used_elem {
 	__dirtio32 id;
 	/* Total length of the descriptor chain which was used (written to) */
 	__dirtio32 len;
-};
+} __packed;
 
 struct dring_used {
 	__dirtio16 flags;
 	__dirtio16 idx;
 	struct dring_used_elem ring[];
-};
+} __packed;
 
 struct dring {
 	unsigned int num;
@@ -146,6 +146,16 @@ struct dring {
 	struct dring_avail *avail;
 
 	struct dring_used *used;
+};
+
+struct dring_dev {
+	unsigned int num;
+
+	ioaddr_t desc;
+
+	ioaddr_t avail;
+
+	ioaddr_t used;
 };
 
 /* Alignment requirements for dring elements.
@@ -199,6 +209,18 @@ static inline unsigned dring_size(unsigned int num, unsigned long align)
 	return ((sizeof(struct dring_desc) * num + sizeof(__dirtio16) * (3 + num)
 		 + align - 1) & ~(align - 1))
 		+ sizeof(__dirtio16) * 3 + sizeof(struct dring_used_elem) * num;
+}
+
+static inline void dring_dev_init(struct dring_dev *vr, unsigned int num,
+				  ioaddr_t ioaddr, unsigned long align)
+{
+	vr->num = num;
+	vr->desc = ioaddr;
+	vr->avail = ioaddr + num*sizeof(struct dring_desc);
+	vr->used = (((vr->avail
+		      + sizeof(__dirtio16) * (num  + 2) /* avail.ring[num] */
+		      + sizeof(__dirtio16))
+		     + align-1) & ~(align - 1));
 }
 
 /* The following is used with USED_EVENT_IDX and AVAIL_EVENT_IDX */

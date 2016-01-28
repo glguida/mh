@@ -46,8 +46,9 @@ struct intframe {
 	uint32_t eflags;
 	uint32_t ebp;
 
+  	uint32_t err;
+  	uint32_t va;
 	uint32_t xcpt;
-	uint32_t info;
 	uint32_t eip;
 	uint32_t esp;
 	uint32_t thflags;

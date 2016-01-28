@@ -35,7 +35,12 @@
 #include <setjmp.h>
 
 struct lwt {
+#define LWTF_ACTIVE   1
+#define LWTF_XCPT     2
+	int flags;
+
 	jmp_buf buf;
+	jmp_buf xcptbuf;
 	void *priv;
 
 	void (*start)(void *);
@@ -43,7 +48,6 @@ struct lwt {
 	void *stack;
 	size_t stack_size;
 
-	int active;
 	SIMPLEQ_ENTRY(lwt) list;
 };
 typedef struct lwt lwt_t;
@@ -55,6 +59,8 @@ lwt_t *lwt_create(void (*start)(void *), void *arg, size_t stack_size);
 
 void __lwt_wake(lwt_t *lwt);
 
+void lwt_exception_clear(void);
+
 void lwt_wake(lwt_t *lwt);
 void lwt_yield(void);
 void lwt_sleep(void);
@@ -64,5 +70,12 @@ void lwt_exit(void);
 lwt_t *lwt_getcurrent(void);
 void *lwt_getprivate(void);
 void lwt_setprivate(void *ptr);
+
+#define lwt_exception(__block)					\
+	do {							\
+		if (_setjmp(lwt_getcurrent()->xcptbuf)) {	\
+			lwt_getcurrent()->flags &= ~LWTF_XCPT;	\
+		} else { __block }				\
+	} while(0)
 
 #endif
