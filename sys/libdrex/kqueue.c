@@ -173,3 +173,26 @@ drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, int poll)
 		lwt_sleep();
 	}
 }
+
+int _drex_kqueue_events(struct drex_events *evs, unsigned fil, int data)
+{
+	unsigned cnt = 0;
+	struct drex_event *e;
+
+	assert(fil < EVFILT_NUMFILTERS);
+
+	LIST_FOREACH(e, evs, event_list) {
+		if ((filters[fil]->event != NULL)
+		    && !filters[fil]->event(e, fil, data))
+			continue;
+
+		/* No *event() or true */
+		if (e->queue->lwt != NULL) {
+			__lwt_wake(e->queue->lwt);
+			e->queue->lwt = NULL;
+		}
+		e->active = 1;
+		cnt++;
+	}
+	return cnt;
+}

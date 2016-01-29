@@ -50,7 +50,7 @@
 unsigned __preemption_level = 0;
 static uint64_t free_irqs = -1;
 static int __dirtio_dev_irq = -1;
-static LIST_HEAD(,drex_event) irq_events[MAX_EXTINTRS] = { {0, }, };
+static struct drex_events irq_events[MAX_EXTINTRS] = { {0, }, };
 
 
 void __dirtio_dev_process(void);
@@ -80,19 +80,7 @@ int __sys_inthandler(int prio, uint64_t si, struct intframe *f)
 static int __irq_queue_event(int irq)
 {
 	/* Interrupt context */
-	int cnt = 0;
-	struct drex_event *e;
-
-	assert(irq <= MAX_EXTINTRS);
-	LIST_FOREACH(e, &irq_events[irq], event_list) {
-		if (e->queue->lwt != NULL) {
-			__lwt_wake(e->queue->lwt);
-			e->queue->lwt = NULL;
-		}
-		e->active = 1;
-		cnt++;
-	}
-	return cnt;
+	return _drex_kqueue_events(&irq_events[irq], EVFILT_DREX_IRQ, 0);
 }
 
 static int irq_queue_attach(struct drex_event *e, uintptr_t irq)
@@ -120,6 +108,7 @@ static int irq_queue_detach(struct drex_event *e, uintptr_t irq)
 struct evfilter _irq_evfilter = {
 	.attach = irq_queue_attach,
 	.detach = irq_queue_detach,
+	.event = NULL,
 };
 
 /*

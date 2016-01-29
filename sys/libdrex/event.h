@@ -38,12 +38,15 @@ struct drex_queue;
 struct drex_event {
 	unsigned filter;
 	uintptr_t ident;
+	int data;
 
 	int active;
 	struct drex_queue *queue;
 	LIST_ENTRY(drex_event) event_list;
 	LIST_ENTRY(drex_event) queue_list;
 };
+
+LIST_HEAD(drex_events, drex_event);
 
 struct drex_queue {
 #define DREX_QUEUE_LWTWAIT 1
@@ -59,7 +62,11 @@ struct drex_queue {
 struct evfilter {
 	int (*attach)(struct drex_event *e, uintptr_t ident);
 	int (*detach)(struct drex_event *e, uintptr_t ident);
+
+	int (*event)(struct drex_event *e, unsigned evfilt, int data);
 };
+
+int _drex_kqueue_events(struct drex_events *evs, uintptr_t ident, int data);
 
 int drex_kqueue_setup(unsigned fil, struct evfilter *evf);
 
