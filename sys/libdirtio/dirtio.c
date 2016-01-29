@@ -36,12 +36,13 @@
 #include <drex/preempt.h>
 #include <drex/softirq.h>
 #include <microkernel.h>
+#include <drex/event.h>
 #include <stdlib.h>
 #include <syslib.h>
 
 int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 {
-	int id, ret, eioirq;
+	int id, ret, eioirq, kq;
 	struct sys_creat_cfg cfg;
 	struct dirtio_hdr *hdr = (struct dirtio_hdr *)map;
 
@@ -49,23 +50,32 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 	if (id < 0)
 		return id;
 
+	kq = drex_kqueue();
+	if (kq < 0)
+		return kq;
+
 	eioirq = irqalloc();
+	drex_kqueue_add_irq(kq, eioirq);
+
 	ret = sys_mapirq(id, 0, eioirq);
 	if (ret) {
-		irqfree(eioirq);
 		sys_close(id);
+		drex_kqueue_del_irq(kq, eioirq);
+		irqfree(eioirq);
 		return ret;
 	}
 	
 	ret = sys_readcfg(id, &cfg);
 	if (ret) {
 		sys_close(id);
+		drex_kqueue_del_irq(kq, eioirq);
 		irqfree(eioirq);
 		return ret;
 	}
 
 	if (cfg.vendorid != DIRTIO_VID) {
 		sys_close(id);
+		drex_kqueue_del_irq(kq, eioirq);
 		irqfree(eioirq);
 		return -EINVAL;
 	}
@@ -73,6 +83,7 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 	ret = sys_export(id, (u_long)map, 0);
 	if (ret) {
 		sys_close(id);
+		drex_kqueue_del_irq(kq, eioirq);
 		irqfree(eioirq);
 		return ret;
 	}
@@ -84,6 +95,7 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 	dio->vendorid = cfg.vendorid;
 	dio->deviceid = cfg.deviceid;
 	dio->eioirq = eioirq;
+	dio->kq = kq;
 
 	return 0;
 }
@@ -96,7 +108,7 @@ int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port,
 	ret = sys_out(dio->id, PORT_DIRTIO_IN | (port << 8) | queue, 0);
 	if (ret)
 		return ret;
-	irqwait(dio->eioirq);
+	drex_kqueue_wait(dio->kq);
 	*val = dio->hdr->ioval;
 	return 0;
 }
@@ -118,7 +130,7 @@ int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port,
 	ret = sys_out(dio->id, ((port << 8) | queue)  & ~PORT_DIRTIO_IN, val);
 	if (ret)
 		return ret;
-	irqwait(dio->eioirq);
+	drex_kqueue_wait(dio->kq);
 	return 0;
 }
 

@@ -58,6 +58,7 @@ struct dirtio_desc {
 	uint64_t vendorid;
 	uint64_t deviceid;
 	unsigned eioirq;
+	int kq;
 };
 
 struct dioqueue {
