@@ -27,6 +27,7 @@
  */
 
 
+#include <sys/null.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
