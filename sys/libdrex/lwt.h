@@ -76,6 +76,8 @@ void lwt_setprivate(void *ptr);
 		if (_setjmp(lwt_getcurrent()->xcptbuf)) {	\
 			lwt_getcurrent()->flags &= ~LWTF_XCPT;	\
 			{ __block }				\
+		} else {					\
+			lwt_getcurrent()->flags |= LWTF_XCPT;	\
 		}						\
 	} while(0)
 
