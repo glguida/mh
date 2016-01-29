@@ -33,12 +33,15 @@
 #include <sys/dirtio.h>
 #include <sys/bitops.h>
 #include <sys/atomic.h>
-#include <drex/preempt.h>
-#include <drex/softirq.h>
-#include <microkernel.h>
-#include <drex/event.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <syslib.h>
+
+#include <microkernel.h>
+#include <drex/preempt.h>
+#include <drex/softirq.h>
+#include <drex/event.h>
+
 
 int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 {
@@ -55,12 +58,12 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 		return kq;
 
 	eioirq = irqalloc();
-	drex_kqueue_add_irq(kq, eioirq);
+	drex_kqueue_add(kq, EVFILT_DREX_IRQ, eioirq);
 
 	ret = sys_mapirq(id, 0, eioirq);
 	if (ret) {
 		sys_close(id);
-		drex_kqueue_del_irq(kq, eioirq);
+		drex_kqueue_del(kq, EVFILT_DREX_IRQ, eioirq);
 		irqfree(eioirq);
 		return ret;
 	}
@@ -68,14 +71,14 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 	ret = sys_readcfg(id, &cfg);
 	if (ret) {
 		sys_close(id);
-		drex_kqueue_del_irq(kq, eioirq);
+		drex_kqueue_del(kq, EVFILT_DREX_IRQ, eioirq);
 		irqfree(eioirq);
 		return ret;
 	}
 
 	if (cfg.vendorid != DIRTIO_VID) {
 		sys_close(id);
-		drex_kqueue_del_irq(kq, eioirq);
+		drex_kqueue_del(kq, EVFILT_DREX_IRQ, eioirq);
 		irqfree(eioirq);
 		return -EINVAL;
 	}
@@ -83,7 +86,7 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 	ret = sys_export(id, (u_long)map, 0);
 	if (ret) {
 		sys_close(id);
-		drex_kqueue_del_irq(kq, eioirq);
+		drex_kqueue_del(kq, EVFILT_DREX_IRQ, eioirq);
 		irqfree(eioirq);
 		return ret;
 	}
@@ -104,11 +107,13 @@ int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port,
 		    uint8_t queue, uint64_t *val)
 {
 	int ret;
+	unsigned fil;
+	uintptr_t irq;
 
 	ret = sys_out(dio->id, PORT_DIRTIO_IN | (port << 8) | queue, 0);
 	if (ret)
 		return ret;
-	drex_kqueue_wait(dio->kq);
+	drex_kqueue_wait(dio->kq, &fil, &irq, 0);
 	*val = dio->hdr->ioval;
 	return 0;
 }
@@ -126,11 +131,13 @@ int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port,
 		     uint8_t queue, uint64_t val)
 {
 	int ret;
+	unsigned fil;
+	uintptr_t irq;
 
 	ret = sys_out(dio->id, ((port << 8) | queue)  & ~PORT_DIRTIO_IN, val);
 	if (ret)
 		return ret;
-	drex_kqueue_wait(dio->kq);
+	drex_kqueue_wait(dio->kq, &fil, &irq, 0);
 	return 0;
 }
 

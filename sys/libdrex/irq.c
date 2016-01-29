@@ -40,26 +40,8 @@
 
 #include <drex/preempt.h>
 #include <drex/lwt.h>
+#include <drex/event.h>
 
-
-#define DREX_QUEUES_MAX 16
-
-struct drex_queue {
-#define DREX_QUEUE_LWTWAIT 1
-	unsigned flags;
-	lwt_t *lwt;
-	LIST_HEAD(, drex_event) events;
-};
-
-struct drex_event {
-	unsigned irq;
-	int active;
-
-	struct drex_queue *queue;
-	LIST_ENTRY(drex_event) irq_list;
-	LIST_ENTRY(drex_event) queue_list;
-};
-static struct drex_queue *queues[DREX_QUEUES_MAX] = { 0, };
 
 /*
  * IRQ queues and interrupts.
@@ -102,7 +84,7 @@ static int __irq_queue_event(int irq)
 	struct drex_event *e;
 
 	assert(irq <= MAX_EXTINTRS);
-	LIST_FOREACH(e, &irq_events[irq], irq_list) {
+	LIST_FOREACH(e, &irq_events[irq], event_list) {
 		if (e->queue->lwt != NULL) {
 			__lwt_wake(e->queue->lwt);
 			e->queue->lwt = NULL;
@@ -113,14 +95,32 @@ static int __irq_queue_event(int irq)
 	return cnt;
 }
 
-static void irq_queue_register(int irq, struct drex_event *e)
+static int irq_queue_attach(struct drex_event *e, uintptr_t irq)
 {
-	assert(irq <= MAX_EXTINTRS);
+	if (irq >= MAX_EXTINTRS)
+		return -EINVAL;
 
 	preempt_disable();
-	LIST_INSERT_HEAD(&irq_events[irq], e, irq_list);
+	LIST_INSERT_HEAD(&irq_events[irq], e, event_list);
 	preempt_enable();
+	return 0;
 }
+
+static int irq_queue_detach(struct drex_event *e, uintptr_t irq)
+{
+	if (irq >= MAX_EXTINTRS)
+		return -EINVAL;
+
+	preempt_disable();
+	LIST_REMOVE(e, event_list);
+	preempt_enable();
+	return 0;
+}
+
+struct evfilter _irq_evfilter = {
+	.attach = irq_queue_attach,
+	.detach = irq_queue_detach,
+};
 
 /*
  * A random act of IRQ allocator.
@@ -151,100 +151,3 @@ irqfree(unsigned irq)
 }
 
 
-/*
- * IRQ Queues.
- */
-
-
-int
-drex_kqueue(void)
-{
-	int i;
-	struct drex_queue *ptr;
-
-	for (i = 0; i < DREX_QUEUES_MAX; i++)
-		if (queues[i] == NULL)
-			break;
-
-	if (i >= DREX_QUEUES_MAX)
-		return -EBUSY;
-
-	ptr = malloc(sizeof(struct drex_queue));
-	if (ptr == NULL)
-		return -ENOMEM;
-
-	ptr->flags = 0;
-	ptr->lwt = NULL;
-	LIST_INIT(&ptr->events);
-
-	queues[i] = ptr;
-	return i;
-}
-
-int
-drex_kqueue_add_irq(int qn, unsigned irq)
-{
-	struct drex_queue *q;
-	struct drex_event *e;
-
-	if (qn >= DREX_QUEUES_MAX)
-		return -EINVAL;
-
-	q = queues[qn];
-	if (q == NULL)
-		return -ENOENT;
-
-	if (irq >= MAX_EXTINTRS)
-		return -EINVAL;
-
-	/* Check event already registered */
-	LIST_FOREACH(e, &q->events, queue_list)
-		if (e->irq == irq)
-			return 0;
-
-	e = malloc(sizeof(*e));
-	if (e == NULL)
-		return -ENOMEM;
-
-	e->irq = irq;
-	e->active = 0;
-	e->queue = q;
-	irq_queue_register(irq, e);
-	LIST_INSERT_HEAD(&q->events, e, queue_list);
-	return 0;
-}
-
-int
-drex_kqueue_del_irq(int qn, unsigned irq)
-{
-	return -ENOSYS;
-}
-
-int
-drex_kqueue_wait(int qn)
-{
-	struct drex_queue *q;
-	struct drex_event *e;
-
-	if (qn >= DREX_QUEUES_MAX)
-		return -EINVAL;
-
-	q = queues[qn];
-	if (q == NULL)
-		return -ENOENT;
-
-	assert(!q->flags & DREX_QUEUE_LWTWAIT);
-	preempt_disable();
-	while (1) {
-		LIST_FOREACH(e, &q->events, queue_list) {
-			if (e->active) {
-				e->active = 0;
-				preempt_enable();
-				return e->irq;
-			}
-		}
-		/* No events. Wait */
-		q->lwt = lwt_getcurrent();
-		lwt_sleep();
-	}
-}

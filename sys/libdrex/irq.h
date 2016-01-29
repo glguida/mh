@@ -27,45 +27,13 @@
  */
 
 
-#ifndef __drex_event_h_
-#define __drex_event_h_
+#ifndef __drex_irq_h_
+#define __drex_irq_h_
 
-#include <sys/queue.h>
-#include <drex/lwt.h>
+void __dirtio_dev_process(void);
+void irq_set_dirtio(unsigned irq);
 
-struct drex_queue;
-
-struct drex_event {
-	unsigned filter;
-	uintptr_t ident;
-
-	int active;
-	struct drex_queue *queue;
-	LIST_ENTRY(drex_event) event_list;
-	LIST_ENTRY(drex_event) queue_list;
-};
-
-struct drex_queue {
-#define DREX_QUEUE_LWTWAIT 1
-	unsigned flags;
-	lwt_t *lwt;
-	LIST_HEAD(, drex_event) events;
-};
-
-#define EVFILT_DREX_IRQ 0
-#define EVFILT_DIRTIO_PIPE 1
-#define EVFILT_NUMFILTERS 2
-
-struct evfilter {
-	int (*attach)(struct drex_event *e, uintptr_t ident);
-	int (*detach)(struct drex_event *e, uintptr_t ident);
-};
-
-int drex_kqueue_setup(unsigned fil, struct evfilter *evf);
-
-int drex_kqueue(void);
-int drex_kqueue_add(int qn, unsigned fil, uintptr_t ident);
-int drex_kqueue_del(int qn, unsigned fil, uintptr_t ident);
-int drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, int poll);
+unsigned irqalloc(void);
+void irqfree(unsigned irq);
 
 #endif
