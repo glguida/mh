@@ -33,7 +33,6 @@
 #include <machine/vmparam.h>
 #include <microkernel.h>
 #include <drex/lwt.h>
-#include <drex/softirq.h>
 #include <drex/vmap.h>
 #include <assert.h>
 #include <stdlib.h>

@@ -39,7 +39,6 @@
 
 #include <microkernel.h>
 #include <drex/preempt.h>
-#include <drex/softirq.h>
 #include <drex/event.h>
 
 
