@@ -115,6 +115,23 @@ int __getperm(struct thread *th,uid_t uid, gid_t gid, mode_t mode)
 	return perm;
 }
 
+static pid_t
+getnewpid(void)
+{
+	static pid_t ret, pid = 0;
+
+	ret = pid++;
+
+	/* XXX: Okay, this is not serious. This is a hack. A bad one. */
+	assert (pid != 0);
+	return ret;
+}
+
+static void
+releasepid(pid_t pid)
+{
+}
+
 static struct thread *thnew(void (*__start) (void))
 {
 	struct thread *th;
@@ -125,6 +142,8 @@ static struct thread *thnew(void (*__start) (void))
 	memset(th->stack_4k, 0, 4096);
 	th->userfl = 0;
 	th->softintrs = 0;
+
+	th->pid = getnewpid();
 
 	th->setuid = 0;
 	th->ruid = 0;
@@ -168,6 +187,8 @@ struct thread *thfork(void)
 
 	nth->userfl = cth->userfl;
 	nth->softintrs = cth->softintrs;
+
+	nth->pid = getnewpid();
 
 	nth->setuid = cth->setuid;
 	nth->ruid = cth->ruid;
@@ -251,6 +272,7 @@ static void thfree(struct thread *th)
 	/* thread must not be active, on any cpu */
 	pmap_free(th->pmap);
 	free4k(th->stack_4k);
+	releasepid(th->pid);
 	structs_free(th);
 }
 
@@ -753,6 +775,8 @@ void kern_boot(void)
 	th->userfl = 0;
 	th->softintrs = 0;
 
+	th->pid = getnewpid();
+
 	th->setuid = 0;
 	th->ruid = 0;
 	th->euid = 0;
@@ -786,6 +810,8 @@ void kern_bootap(void)
 	th->stack_4k = NULL;
 	th->userfl = 0;
 	th->softintrs = 0;
+
+	th->pid = getnewpid();
 
 	th->setuid = 0;
 	th->ruid = 0;

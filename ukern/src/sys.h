@@ -90,6 +90,7 @@ struct sys_poll_ior {
 			uint64_t val;
 		};
 	};
+	pid_t pid;
 	uid_t uid;
 	gid_t gid;
 };

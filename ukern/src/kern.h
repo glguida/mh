@@ -62,6 +62,8 @@ struct thread {
 	struct usrdev *usrdev;
 	struct bus bus;
 
+	pid_t pid;
+
 	int setuid;
 	uid_t ruid;
 	uid_t euid;

@@ -319,13 +319,16 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 int usrdev_poll(struct usrdev *ud, struct sys_poll_ior *poll)
 {
 	int id;
+	pid_t pid;
 	struct usrioreq *ior;
 
 retry:
 	spinlock(&ud->lock);
 	ior = TAILQ_FIRST(&ud->ioreqs);
-	if (ior != NULL)
+	if (ior != NULL) {
 		TAILQ_REMOVE(&ud->ioreqs, ior, queue);
+		pid = ud->remths[ior->id].th->pid;
+	}
 	spinunlock(&ud->lock);
 
 	if (ior == NULL)
@@ -341,6 +344,7 @@ retry:
 		panic("Invalid IOR entry type %d!\n", ior->op);
 		goto retry;
 	}
+	poll->pid = pid;
 	poll->gid = ior->gid;
 	poll->uid = ior->uid;
 	id = ior->id;
