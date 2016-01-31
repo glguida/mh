@@ -84,6 +84,10 @@ multiboot_entry:
 	add  $8, %edi
 	loop 1b
 
+	/* Set segments in a known state */
+	call _C_LABEL(_setup_boot_gdt)
+	lgdt UKERN_BGDTREG
+
 	/* Enable paging */
 	mov %cr4, %eax
 	or  $0x30, %eax
@@ -94,11 +98,6 @@ multiboot_entry:
 	or   $((1<<31)|(1<<16)), %eax
 	mov  %eax, %cr0
 	ljmp $0x08, $1f
-1:
-	/* Set segments in a known state */
-	call _C_LABEL(_setup_boot_gdt)
-	lgdt UKERN_BGDTREG
-	ljmp $0x8, $1f
 1:	mov $0x10, %eax
 	mov %ax, %ds
 	mov %ax, %es
