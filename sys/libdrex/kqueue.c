@@ -92,7 +92,7 @@ int drex_kqueue_set_filter(unsigned fil, struct evfilter *evf)
 }
 
 int
-drex_kqueue_add(int qn, unsigned fil, uintptr_t ident)
+drex_kqueue_add(int qn, unsigned fil, uintptr_t ident, uintptr_t udata)
 {
 	int ret;
 	struct drex_queue *q;
@@ -123,6 +123,7 @@ drex_kqueue_add(int qn, unsigned fil, uintptr_t ident)
 
 	e->filter = fil;
 	e->ident = ident;
+	e->udata = udata;
 	e->active = 0;
 	e->queue = q;
 
@@ -142,7 +143,8 @@ drex_kqueue_del(int qn, unsigned filter, uintptr_t ident)
 }
 
 int
-drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, int poll)
+drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, uintptr_t *udata,
+		 int poll)
 {
 	struct drex_queue *q;
 	struct drex_event *e;
@@ -163,6 +165,7 @@ drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, int poll)
 				preempt_enable();
 				*filter = e->filter;
 				*ident = e->ident;
+				*udata = e->udata;
 				return 1;
 			}
 		}

@@ -57,7 +57,7 @@ int dirtio_desc_open(uint64_t nameid, void *map, struct dirtio_desc *dio)
 		return kq;
 
 	eioirq = irqalloc();
-	drex_kqueue_add(kq, EVFILT_DREX_IRQ, eioirq);
+	drex_kqueue_add(kq, EVFILT_DREX_IRQ, eioirq, 0);
 
 	ret = sys_mapirq(id, 0, eioirq);
 	if (ret) {
@@ -108,11 +108,12 @@ int dirtio_mmio_inw(struct dirtio_desc *dio, uint32_t port,
 	int ret;
 	unsigned fil;
 	uintptr_t irq;
+	uintptr_t udata;
 
 	ret = sys_out(dio->id, PORT_DIRTIO_IN | (port << 8) | queue, 0);
 	if (ret)
 		return ret;
-	drex_kqueue_wait(dio->kq, &fil, &irq, 0);
+	drex_kqueue_wait(dio->kq, &fil, &irq, &udata, 0);
 	*val = dio->hdr->ioval;
 	return 0;
 }
@@ -132,11 +133,12 @@ int dirtio_mmio_outw(struct dirtio_desc *dio, uint32_t port,
 	int ret;
 	unsigned fil;
 	uintptr_t irq;
+	uintptr_t udata;
 
 	ret = sys_out(dio->id, ((port << 8) | queue)  & ~PORT_DIRTIO_IN, val);
 	if (ret)
 		return ret;
-	drex_kqueue_wait(dio->kq, &fil, &irq, 0);
+	drex_kqueue_wait(dio->kq, &fil, &irq, &udata, 0);
 	return 0;
 }
 

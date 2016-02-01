@@ -38,6 +38,7 @@ struct drex_queue;
 struct drex_event {
 	unsigned filter;
 	uintptr_t ident;
+	uintptr_t udata;
 	int data;
 
 	int active;
@@ -56,7 +57,7 @@ struct drex_queue {
 };
 
 #define EVFILT_DREX_IRQ 0
-#define EVFILT_DIRTIO_PIPE 1
+#define EVFILT_DIRTIO_DEV 1
 #define EVFILT_NUMFILTERS 2
 
 struct evfilter {
@@ -69,10 +70,12 @@ struct evfilter {
 int _drex_kqueue_events(struct drex_events *evs, uintptr_t ident, int data);
 
 int drex_kqueue_setup(unsigned fil, struct evfilter *evf);
+int drex_kqueue_set_filter(unsigned fil, struct evfilter *evf);
 
 int drex_kqueue(void);
-int drex_kqueue_add(int qn, unsigned fil, uintptr_t ident);
+int drex_kqueue_add(int qn, unsigned fil, uintptr_t ident, uintptr_t udata);
 int drex_kqueue_del(int qn, unsigned fil, uintptr_t ident);
-int drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident, int poll);
+int drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident,
+		     uintptr_t *udata,int poll);
 
 #endif
