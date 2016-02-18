@@ -132,7 +132,7 @@ int bus_unplug(struct bus *b, unsigned desc)
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg) {
-		return -ENOENT;
+		ret = -ENOENT;
 		goto no_unplug;
 	}
 	assert(d != NULL);
