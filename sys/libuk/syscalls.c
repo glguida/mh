@@ -83,6 +83,14 @@ void sys_yield(void)
 	__syscall0(SYS_YIELD, dummy);
 }
 
+int sys_childstat(struct sys_childstat *cs)
+{
+	int ret;
+
+	__syscall1(SYS_CHILDSTAT, (unsigned long) cs, ret);
+	return ret;
+}
+
 int sys_fork(void)
 {
 	int ret;

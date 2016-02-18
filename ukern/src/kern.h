@@ -46,7 +46,7 @@
 #define THST_RUNNING 0
 #define THST_RUNNABLE 1
 #define THST_STOPPED 2
-#define THST_DELETED 3
+#define THST_ZOMBIE 3
 
 #define thread_is_idle(_th) (_th == current_cpu()->idle_thread)
 #define thread_has_interrupts(_th) (((_th)->userfl & THFL_INTR)	\
@@ -61,6 +61,13 @@ struct thread {
 
 	struct usrdev *usrdev;
 	struct bus bus;
+
+	struct thread *parent;
+	lock_t children_lock;
+	LIST_HEAD(, thread) active_children;
+	LIST_HEAD(, thread) zombie_children;
+	LIST_ENTRY(thread) child_list;
+	int exit_status;
 
 	pid_t pid;
 

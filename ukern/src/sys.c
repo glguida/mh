@@ -255,6 +255,18 @@ static int sys_yield(void)
 	return 0;
 }
 
+static int sys_childstat(uaddr_t ucs)
+{
+	int pid, ret;
+	struct sys_childstat cs;
+
+	pid = childstat(&cs);
+	ret = copy_to_user(ucs, &cs, sizeof(struct sys_childstat));
+	if (ret)
+		return ret;
+	return pid;
+}
+
 static int sys_die(void)
 {
 	die();
@@ -357,6 +369,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_wait();
 	case SYS_YIELD:
 		return sys_yield();
+	case SYS_CHILDSTAT:
+		return sys_childstat(a1);
 	case SYS_MAP:
 		return sys_map(a1, a2);
 	case SYS_MOVE:

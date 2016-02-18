@@ -50,6 +50,8 @@
 static struct slab threads;
 static cpumask_t cpu_idlemap = 0;
 
+static struct thread *__kern_init = NULL;
+
 static lock_t sched_lock = 0;
 static TAILQ_HEAD(thread_list, thread) running_threads =
 TAILQ_HEAD_INITIALIZER(running_threads);
@@ -190,6 +192,10 @@ struct thread *thfork(void)
 
 	nth->pid = getnewpid();
 
+	nth->children_lock = 0;
+	LIST_INIT(&nth->active_children);
+	LIST_INIT(&nth->zombie_children);
+
 	nth->setuid = cth->setuid;
 	nth->ruid = cth->ruid;
 	nth->euid = cth->euid;
@@ -231,6 +237,11 @@ struct thread *thfork(void)
 	}
 	/* Finished handling the pmaps. */
 	pmap_commit(NULL);
+
+	nth->parent = cth;
+	spinlock(&cth->children_lock);
+	LIST_INSERT_HEAD(&cth->active_children, nth, child_list);
+	spinunlock(&cth->children_lock);
 
 	/* No need to flash nth->pmap, not used yet */
 	nth->status = THST_RUNNABLE;
@@ -357,8 +368,13 @@ static void do_resched(void)
 					  sched_list);
 			spinunlock(&sched_lock);
 			break;
-		case THST_DELETED:
-			thfree(th);
+		case THST_ZOMBIE:
+			spinlock(&th->parent->children_lock);
+			LIST_REMOVE(th, child_list);
+			LIST_INSERT_HEAD(&th->parent->zombie_children, th,
+					 child_list);
+			spinunlock(&th->parent->children_lock);
+			thraise(th->parent, INTR_CHILD);
 			break;
 		}
 	}
@@ -368,8 +384,8 @@ void wake(struct thread *th)
 {
 	spinlock(&sched_lock);
 	switch (th->status) {
-	case THST_DELETED:
-		printf("Waking deleted thread?");
+	case THST_ZOMBIE:
+		printf("Waking zombie thread?");
 	case THST_RUNNABLE:
 		break;
 	case THST_RUNNING:
@@ -412,7 +428,7 @@ void schedule(int newst)
 	case THST_STOPPED:
 		TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
 		break;
-	case THST_DELETED:
+	case THST_ZOMBIE:
 		TAILQ_INSERT_TAIL(&current_cpu()->resched, oldth,
 				  sched_list);
 		cpu_softirq_raise(SOFTIRQ_RESCHED);
@@ -435,16 +451,69 @@ void schedule(int newst)
 	thswitch(th);
 }
 
-__dead void die(void)
+int childstat(struct sys_childstat *cs)
+{
+	pid_t pid;
+	struct thread *child, *th = current_thread();
+
+	spinlock(&th->children_lock);
+	child = LIST_FIRST(&th->zombie_children);
+	if (child != NULL)
+		LIST_REMOVE(child, child_list);
+	spinunlock(&th->children_lock);
+
+	if (child == NULL)
+		return -ESRCH;
+
+	cs->exit_status = child->exit_status;
+	pid = child->pid;
+	thfree(child);
+	return pid;
+}
+
+__dead void __exit(int status)
 {
 	struct thread *th = current_thread();
+	struct thread *child, *tmp;
+
+	if (th->parent == NULL) {
+		panic("Killed System Process %d\nAye!\n",
+		      th->pid);
+	}
 
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
 	bus_remove(&th->bus);
 	devremove();
 	vmclear(USERBASE, USEREND - USERBASE);
-	schedule(THST_DELETED);
+	/* Let INIT inherit children of dead process */
+	spinlock(&th->children_lock);
+	LIST_FOREACH_SAFE(child, &th->active_children, child_list, tmp) {
+		LIST_REMOVE(child, child_list);
+		/* Safe. We shouldn't ever be called with th == __kern_init */
+		spinlock(&__kern_init->children_lock);
+		LIST_INSERT_HEAD(&__kern_init->active_children,
+				 child, child_list);
+		spinunlock(&__kern_init->children_lock);
+	}
+	LIST_FOREACH_SAFE(child, &th->zombie_children, child_list, tmp) {
+		LIST_REMOVE(child, child_list);
+		/* Safe. We shouldn't ever be called with th == __kern_init */
+		spinlock(&__kern_init->children_lock);
+		LIST_INSERT_HEAD(&__kern_init->zombie_children,
+				 child, child_list);
+		spinunlock(&__kern_init->children_lock);
+	}
+	spinunlock(&th->children_lock);
+	thraise(__kern_init, INTR_CHILD);
+	
+	th->exit_status = status;
+	schedule(THST_ZOMBIE);
+}
+
+__dead void die(void)
+{
+	__exit(-2);
 }
 
 static void idle(void)
@@ -776,6 +845,10 @@ void kern_boot(void)
 	th->softintrs = 0;
 
 	th->pid = getnewpid();
+	th->parent = NULL;
+	th->children_lock = 0;
+	LIST_INIT(&th->active_children);
+	LIST_INIT(&th->zombie_children);
 
 	th->setuid = 0;
 	th->ruid = 0;
@@ -793,10 +866,14 @@ void kern_boot(void)
 
 	/* Create init */
 	th = thnew(__initstart);
+	th->parent = NULL;
+	th->children_lock = 0;
+	LIST_INIT(&th->active_children);
+	LIST_INIT(&th->zombie_children);
 	spinlock(&sched_lock);
 	TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
 	spinunlock(&sched_lock);
-
+	__kern_init = th;
 	idle();
 }
 
@@ -812,6 +889,10 @@ void kern_bootap(void)
 	th->softintrs = 0;
 
 	th->pid = getnewpid();
+	th->parent = NULL;
+	th->children_lock = 0;
+	LIST_INIT(&th->active_children);
+	LIST_INIT(&th->zombie_children);
 
 	th->setuid = 0;
 	th->ruid = 0;

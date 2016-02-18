@@ -43,6 +43,12 @@
 #define SYS_YIELD 7
 
 #ifndef _ASSEMBLER
+struct sys_childstat {
+	int exit_status;
+};
+#endif
+#define SYS_CHILDSTAT 8
+#ifndef _ASSEMBLER
 typedef enum {
 	MAP_NEW = 0x100,
 	MAP_NONE = 0,
@@ -126,6 +132,7 @@ struct sys_poll_ior {
 #define PG_ERR_INFO_WRITE 256
 
 #define INTR_EXT     64
+#define INTR_CHILD   0
 #define MAX_EXTINTRS 64
 
 
