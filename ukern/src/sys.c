@@ -267,10 +267,9 @@ static int sys_childstat(uaddr_t ucs)
 	return pid;
 }
 
-static int sys_die(void)
+static __dead void sys_die(int status)
 {
-	die();
-	return 0;
+	__exit(status);
 }
 
 static uid_t sys_getuid(int sel)
@@ -378,7 +377,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 	case SYS_FORK:
 		return sys_fork();
 	case SYS_DIE:
-		return sys_die();
+		sys_die(a1);
+		return 0;
 	case SYS_CREAT:
 		return sys_creat(a1, a2, a3);
 	case SYS_POLL:
