@@ -173,4 +173,4 @@ lib/csu/arch/i386/crtn.S lib/csu/arch/i386/crtn.S
 lib/csu/common/compident.S lib/csu/common/compident.S
 lib/csu/common/crtbegin.c lib/csu/common/crtbegin.c
 lib/csu/common/sysident.S lib/csu/common/sysident.S
-lib/csu/common/crt0-common.c lib/csu/crt0-common.c
+lib/csu/common/crt0-common.c lib/csu/common/crt0-common.c
