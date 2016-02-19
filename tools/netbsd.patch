@@ -1,6 +1,6 @@
-diff -ru a/common/libc/i386/atomic/atomic.S b/common/libc/i386/atomic/atomic.S
---- a/common/libc/i386/atomic/atomic.S	2016-01-25 01:09:41.000000000 +0000
-+++ b/common/libc/i386/atomic/atomic.S	2016-01-25 01:09:41.000000000 +0000
+diff -ru a/common/lib/libc/arch/i386/atomic/atomic.S b/common/lib/libc/arch/i386/atomic/atomic.S
+--- a/common/lib/libc/arch/i386/atomic/atomic.S	2016-02-19 11:28:11.201457228 +0000
++++ b/common/lib/libc/arch/i386/atomic/atomic.S	2016-02-19 11:28:17.239115041 +0000
 @@ -175,22 +175,34 @@
  END(_atomic_cas_32_ni)
  
@@ -37,8 +37,8 @@ diff -ru a/common/libc/i386/atomic/atomic.S b/common/libc/i386/atomic/atomic.S
  END(_membar_sync)
  ENDLABEL(membar_sync_end)
 diff -ru a/include/setjmp.h b/include/setjmp.h
---- a/include/setjmp.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/include/setjmp.h	2016-01-25 01:09:41.000000000 +0000
+--- a/include/setjmp.h	2016-02-19 11:28:11.090445059 +0000
++++ b/include/setjmp.h	2016-02-19 11:28:17.140104332 +0000
 @@ -72,7 +72,7 @@
  #endif /* not ANSI */
  #endif /* __LIBC12_SOURCE__ */
@@ -48,9 +48,520 @@ diff -ru a/include/setjmp.h b/include/setjmp.h
  int	_setjmp(jmp_buf) __returns_twice;
  void	_longjmp(jmp_buf, int) __dead;
  #endif
+diff -ru a/lib/csu/arch/i386/crt0.S b/lib/csu/arch/i386/crt0.S
+--- a/lib/csu/arch/i386/crt0.S	2016-02-19 11:28:14.769847076 +0000
++++ b/lib/csu/arch/i386/crt0.S	2016-02-19 11:28:21.470570819 +0000
+@@ -37,13 +37,43 @@
+ 
+ #include <machine/asm.h>
+ 
++#ifdef _DREX_SOURCE
++	.data
++	.comm .Linit_stack, 256
++	.text
++#endif
++
+ RCSID("$NetBSD: crt0.S,v 1.3 2011/07/01 02:59:05 joerg Exp $")
+ 
+ 	.hidden ___start
+ 
++#ifdef _DREX_SOURCE
++#include <machine/asm.h>
++#include <machine/uk/ukparam.h>
++#include <machine/vmparam.h>	
++#include <uk/sys.h>
++#endif	
++	
++	
+ STRONG_ALIAS(_start,__start)
+ _ENTRY(__start)
++#ifdef _DREX_SOURCE
++	/* Enable paging and switch stack */
++	mov $(.Linit_stack + 256), %esp
++	call siginit
++	pushl $0
++	pushl $(USRSTACK - 4)
++	pushl $2f
++	pushl $0
++	mov $SYS_IRET, %eax
++	int $VECT_SYSC	
++2:	
++#endif	
+ 	pushl	%ebx
+ 	pushl	%ecx
+ 	pushl	%edx
+ 	call	___start
++#ifdef _DREX_SOURCE	
++	mov $SYS_DIE, %eax
++	int $VECT_SYSC
++#endif
+diff -ru a/lib/csu/arch/i386/crti.S b/lib/csu/arch/i386/crti.S
+--- a/lib/csu/arch/i386/crti.S	2016-02-19 11:28:14.860856985 +0000
++++ b/lib/csu/arch/i386/crti.S	2016-02-19 11:28:21.590583685 +0000
+@@ -37,7 +37,9 @@
+ 
+ RCSID("$NetBSD: crti.S,v 1.1 2010/08/07 18:01:33 joerg Exp $")
+ 
++#ifndef _DREX_SOURCE
+ #include "sysident.S"
++#endif
+ 
+ 	.section ".init", "ax", @progbits
+ 	.align 16
+diff -ru a/lib/csu/common/crt0-common.c b/lib/csu/common/crt0-common.c
+--- a/lib/csu/common/crt0-common.c	2016-02-19 11:28:14.997871904 +0000
++++ b/lib/csu/common/crt0-common.c	2016-02-19 11:28:21.793605449 +0000
+@@ -40,12 +40,21 @@
+ 
+ #include <sys/types.h>
+ #include <sys/exec.h>
++#ifndef _DREX_SOURCE
+ #include <sys/syscall.h>
++#endif
+ #include <machine/profile.h>
+ #include <stdlib.h>
++#ifndef _DREX_SOURCE
+ #include <unistd.h>
++#endif
+ 
++#ifndef _DREX_SOURCE
+ #include "rtld.h"
++#else
++#define Obj_Entry void
++typedef void (*fptr_t)(void);
++#endif
+ 
+ extern int main(int, char **, char **);
+ 
+@@ -79,7 +88,11 @@
+ __dead __dso_hidden void ___start(void (*)(void), const Obj_Entry *,
+ 			 struct ps_strings *);
+ 
++#ifdef _DREX_SOURCE
++#define write(fd, s, n) printf((s));
++#else
+ #define	write(fd, s, n)	__syscall(SYS_write, (fd), (s), (n))
++#endif
+ 
+ #define	_FATAL(str)				\
+ do {						\
+@@ -111,7 +124,8 @@
+ static inline void
+ _preinit(void)
+ {
+-	for (const fptr_t *f = preinit_array_start; f < preinit_array_end; f++) {
++	const fptr_t *f;
++	for (f = preinit_array_start; f < preinit_array_end; f++) {
+ 		(*f)();
+ 	}
+ }
+@@ -119,7 +133,8 @@
+ static inline void
+ _init(void)
+ {
+-	for (const fptr_t *f = init_array_start; f < init_array_end; f++) {
++	const fptr_t *f;
++	for (f = init_array_start; f < init_array_end; f++) {
+ 		(*f)();
+ 	}
+ }
+@@ -127,12 +142,23 @@
+ static void
+ _fini(void)
+ {
+-	for (const fptr_t *f = fini_array_start; f < fini_array_end; f++) {
++	const fptr_t *f;
++	for (f = fini_array_start; f < fini_array_end; f++) {
+ 		(*f)();
+ 	}
+ }
+ #endif /* HAVE_INITFINI_ARRAY */
+ 
++#ifdef _DREX_SOURCE
++static char *_empty_ps_argvstr[1] = { "_no_info", };
++
++static struct ps_strings _empty_ps_strings = {
++	.ps_envstr = NULL,
++	.ps_argvstr = _empty_ps_argvstr,
++	.ps_nargvstr = 1,
++};
++#endif
++
+ void
+ ___start(void (*cleanup)(void),			/* from shared loader */
+     const Obj_Entry *obj,			/* from shared loader */
+@@ -140,7 +166,11 @@
+ {
+ 
+ 	if (ps_strings == NULL)
++#ifdef _DREX_SOURCE		
++		ps_strings = &_empty_ps_strings;
++#else
+ 		_FATAL("ps_strings missing\n");
++#endif
+ 	__ps_strings = ps_strings;
+ 
+ 	environ = ps_strings->ps_envstr;
+@@ -157,12 +187,14 @@
+ 	}
+ 
+ 	if (&rtld_DYNAMIC != NULL) {
++#ifndef _DREX_SOURCE
+ 		if (obj == NULL)
+ 			_FATAL("NULL Obj_Entry pointer in GOT\n");
+ 		if (obj->magic != RTLD_MAGIC)
+ 			_FATAL("Corrupt Obj_Entry pointer in GOT\n");
+ 		if (obj->version != RTLD_VERSION)
+ 			_FATAL("Dynamic linker version mismatch\n");
++#endif
+ 		atexit(cleanup);
+ 	}
+ 
+diff -ru a/lib/libc/gen/assert.c b/lib/libc/gen/assert.c
+--- a/lib/libc/gen/assert.c	2016-02-19 11:28:14.250790559 +0000
++++ b/lib/libc/gen/assert.c	2016-02-19 11:28:21.017522253 +0000
+@@ -51,7 +51,11 @@
+     const char *failedexpr)
+ {
+ 
++#ifdef _DREX_SOURCE
++	(void)printf(
++#else		
+ 	(void)fprintf(stderr,
++#endif
+ 	    "assertion \"%s\" failed: file \"%s\", line %d%s%s%s\n",
+ 	    failedexpr, file, line,
+ 	    function ? ", function \"" : "",
+@@ -119,10 +123,14 @@
+ 	    function ? ", function \"" : "",
+ 	    function ? function : "",
+ 	    function ? "\"" : "");
++#ifdef _DREX_SOURCE
++	(void)printf("%s: %s\n", getprogname(), buf);
++#else			
+ 	if (diagassert_flags & DIAGASSERT_STDERR)
+ 		(void)fprintf(stderr, "%s: %s\n", getprogname(), buf);
+ 	if (diagassert_flags & DIAGASSERT_SYSLOG)
+ 		syslog(LOG_DEBUG | LOG_USER, "%s", buf);
++#endif
+ 	if (diagassert_flags & DIAGASSERT_ABORT)
+ 		abort();
+ }
+diff -ru a/lib/libc/include/env.h b/lib/libc/include/env.h
+--- a/lib/libc/include/env.h	2016-02-19 11:28:11.740516315 +0000
++++ b/lib/libc/include/env.h	2016-02-19 11:28:17.857181890 +0000
+@@ -56,7 +56,7 @@
+ }
+ 
+ static __inline bool
+-__unlocklockenv(void)
++__unlockenv(void)
+ {
+ 	return true;
+ }
+diff -ru a/lib/libc/include/reentrant.h b/lib/libc/include/reentrant.h
+--- a/lib/libc/include/reentrant.h	2016-02-19 11:28:11.335471917 +0000
++++ b/lib/libc/include/reentrant.h	2016-02-19 11:28:17.381130401 +0000
+@@ -1,5 +1,8 @@
+ /*	$NetBSD: reentrant.h,v 1.17 2013/04/12 18:12:58 joerg Exp $	*/
+ 
++#ifndef __REENTRANT_H_
++#define __REENTRANT_H_
++
+ /*-
+  * Copyright (c) 1997, 1998, 2003 The NetBSD Foundation, Inc.
+  * All rights reserved.
+@@ -91,9 +94,46 @@
+  * is.
+  */
+ 
++#ifdef _DREX_SOURCE
++
++#include <sys/types.h>
++
++typedef int pthread_mutex_t;
++#define PTHREAD_MUTEX_INITIALIZER 0
++
++typedef int pthread_mutexattr_t;
++#define PTHREAD_MUTEX_NORMAL 0
++#define PTHREAD_MUTEX_ERRORCHECK 1
++#define PTHREAD_MUTEX_RECURSIVE 2
++
++typedef int pthread_cond_t;
++#define PTHREAD_COND_INITIALIZER 0
++
++typedef int pthread_condattr_t;
++
++typedef int pthread_rwlock_t;
++#define PTHREAD_RWLOCK_INITIALIZER 0
++
++typedef int pthread_rwlockattr_t;
++
++typedef int pthread_key_t;
++typedef int pthread_t;
++typedef int pthread_attr_t;
++#ifndef _DREX_PTHREAD_ONCE_DEFINED
++typedef struct {
++	int pto_done;
++} pthread_once_t;
++#define _DREX_PTHREAD_ONCE_DEFINED 1
++#endif /* _DREX_PTHREAD_ONCE_DEFINED */
++#define PTHREAD_ONCE_INIT { .pto_done = 0; }
++
++#else
++
+ #include <pthread.h>
+ #include <signal.h>
+ 
++#endif
++
+ #define	mutex_t			pthread_mutex_t
+ #define	MUTEX_INITIALIZER	PTHREAD_MUTEX_INITIALIZER
+ 
+@@ -284,6 +324,12 @@
+ #define	mutex_unlock(m)
+ #define	mutex_destroy(m)
+ 
++#ifdef _DREX_SOURCE
++#define mutexattr_init(ma)
++#define mutexattr_settype(ma, t)
++#define mutexattr_destroy(ma)
++#endif
++
+ #define	cond_init(c, t, a)
+ #define	cond_signal(c)
+ #define	cond_broadcast(c)
+@@ -322,3 +368,5 @@
+ #define	FUNLOCKFILE(fp)		
+ 
+ #endif /* _REENTRANT */
++
++#endif /* __REENTRANT_H_ */
+diff -ru a/lib/libc/misc/initfini.c b/lib/libc/misc/initfini.c
+--- a/lib/libc/misc/initfini.c	2016-02-19 11:28:11.486488470 +0000
++++ b/lib/libc/misc/initfini.c	2016-02-19 11:28:17.541147708 +0000
+@@ -44,7 +44,9 @@
+ void	_libc_init(void) __attribute__((__constructor__, __used__));
+ 
+ void	__guard_setup(void);
++#ifdef _REENTRANT
+ void	__libc_thr_init(void);
++#endif
+ void	__libc_atomic_init(void);
+ void	__libc_atexit_init(void);
+ void	__libc_env_init(void);
+@@ -104,8 +106,10 @@
+ 	__libc_static_tls_setup();
+ #endif
+ 
++#ifdef _REENTRANT
+ 	/* Threads */
+ 	__libc_thr_init();
++#endif
+ 
+ 	/* Initialize the atexit mutexes */
+ 	__libc_atexit_init();
+diff -ru a/lib/libc/misc/stack_protector.c b/lib/libc/misc/stack_protector.c
+--- a/lib/libc/misc/stack_protector.c	2016-02-19 11:28:11.598500748 +0000
++++ b/lib/libc/misc/stack_protector.c	2016-02-19 11:28:17.659160472 +0000
+@@ -34,14 +34,22 @@
+ #include "namespace.h"
+ #endif
+ #include <sys/param.h>
++#ifndef _DREX_SOURCE
+ #include <sys/sysctl.h>
++#endif
+ #include <ssp/ssp.h>
++#ifndef _DREX_SOURCE
+ #include <signal.h>
++#endif
+ #include <string.h>
++#ifndef _DREX_SOURCE
+ #include <unistd.h>
++#endif
+ #ifdef _LIBC
++#ifndef _DREX_SOURCE
+ #include <syslog.h>
+ #include "extern.h"
++#endif
+ #else
+ #define __sysctl sysctl
+ void xprintf(const char *fmt, ...);
+@@ -56,27 +64,34 @@
+ void __section(".text.startup")
+ __guard_setup(void)
+ {
++#ifndef _DREX_SOURCE  
+ 	static const int mib[2] = { CTL_KERN, KERN_ARND };
++#endif
+ 	size_t len;
+ 
+ 	if (__stack_chk_guard[0] != 0)
+ 		return;
+ 
+ 	len = sizeof(__stack_chk_guard);
++#ifndef _DREX_SOURCE	
+ 	if (__sysctl(mib, (u_int)__arraycount(mib), __stack_chk_guard, &len,
+ 	    NULL, 0) == -1 || len != sizeof(__stack_chk_guard)) {
++#endif
+ 		/* If sysctl was unsuccessful, use the "terminator canary". */
+ 		((unsigned char *)(void *)__stack_chk_guard)[0] = 0;
+ 		((unsigned char *)(void *)__stack_chk_guard)[1] = 0;
+ 		((unsigned char *)(void *)__stack_chk_guard)[2] = '\n';
+ 		((unsigned char *)(void *)__stack_chk_guard)[3] = 255;
++#ifndef _DREX_SOURCE		
+ 	}
++#endif
+ }
+ 
+ /*ARGSUSED*/
+ static void
+ __fail(const char *msg)
+ {
++#ifndef _DREX_SOURCE  
+ #ifdef _LIBC
+ 	struct syslog_data sdata = SYSLOG_DATA_INIT;
+ #endif
+@@ -101,6 +116,7 @@
+ 	sa.sa_handler = SIG_DFL;
+ 	(void)sigaction(SIGABRT, &sa, NULL);
+ 	(void)raise(SIGABRT);
++#endif /* _DREX_SOURCE */
+ 	_exit(127);
+ }
+ 
+diff -ru a/lib/libc/stdlib/simple_malloc.c b/lib/libc/stdlib/simple_malloc.c
+--- a/lib/libc/stdlib/simple_malloc.c	2016-02-19 11:28:10.536384214 +0000
++++ b/lib/libc/stdlib/simple_malloc.c	2016-02-19 11:28:16.603046148 +0000
+@@ -1,3 +1,13 @@
++#ifdef _DREX_SOURCE
++#include <machine/vmparam.h>
++
++#define fprintf(_x, ...) printf(__VA_ARGS__)
++#define brk drex_brk
++#define sbrk drex_sbrk
++#define getpagesize() PAGE_SIZE
++
++#endif
++
+ /*	$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $	*/
+ 
+ /*
+@@ -58,8 +68,14 @@
+ #endif
+ #include <stdlib.h>
+ #include <string.h>
++#ifndef _DREX_SOURCE
+ #include <unistd.h>
+ #include "reentrant.h"
++#else
++#include <drex/drex.h>
++#define mutex_lock(_x)
++#define mutex_unlock(_x)
++#endif
+ 
+ 
+ /*
+diff -ru a/lib/libsa/printf.c b/lib/libsa/printf.c
+--- a/lib/libsa/printf.c	2016-02-19 11:28:14.392806023 +0000
++++ b/lib/libsa/printf.c	2016-02-19 11:28:21.107531902 +0000
+@@ -35,14 +35,20 @@
+ #include <sys/types.h>
+ #include <sys/stdarg.h>
+ 
++#if defined(_LIBC) && defined(_DREX_SOURCE)
++#include "namespace.h"
++#include <stdio.h>
++#else
+ #include "stand.h"
++#endif
+ 
+-void
+-printf(const char *fmt, ...)
++int
++printf(const char * __restrict fmt, ...)
+ {
+ 	va_list ap;
+ 
+ 	va_start(ap, fmt);
+ 	vprintf(fmt, ap);
+ 	va_end(ap);
++	return 0;
+ }
+diff -ru a/lib/libsa/snprintf.c b/lib/libsa/snprintf.c
+--- a/lib/libsa/snprintf.c	2016-02-19 11:28:14.450812339 +0000
++++ b/lib/libsa/snprintf.c	2016-02-19 11:28:21.146536083 +0000
+@@ -35,7 +35,22 @@
+ #include <sys/types.h>
+ #include <sys/stdarg.h>
+ 
++#if defined(_LIBC) && defined(_DREX_SOURCE)
++#include <stdio.h>
++
++#include "namespace.h"
++
++#ifdef __weak_alias
++__weak_alias(vsnprintf,_vsnprintf)
++__weak_alias(vsnprintf_l,_vsnprintf_l)
++__weak_alias(snprintf,_snprintf)
++__weak_alias(snprintf_l,_snprintf_l)
++#endif
++
++#else
+ #include "stand.h"
++#endif
++
+ 
+ int
+ snprintf(char *buf, size_t size, const char *fmt, ...)
+diff -ru a/lib/libsa/subr_prf.c b/lib/libsa/subr_prf.c
+--- a/lib/libsa/subr_prf.c	2016-02-19 11:28:14.415808527 +0000
++++ b/lib/libsa/subr_prf.c	2016-02-19 11:28:21.120533295 +0000
+@@ -38,8 +38,22 @@
+ #include <sys/cdefs.h>
+ #include <sys/types.h>
+ #include <sys/stdint.h>		/* XXX: for intptr_t */
++#if defined(_DREX_SOURCE)
++#include <microkernel.h>
+ 
++void zputchar(int ch)
++{
++	sys_putc(ch);
++}
++#endif /* _DREX_SOURCE */
++
++#if defined(_LIBC) && defined(_DREX_SOURCE)
++#include "namespace.h"
++#include <stdio.h>
++#include <sys/stdarg.h>
++#else /* _LIBC && _DREX_SOURCE */
+ #include "stand.h"
++#endif /* _LIBC && _DREX_SOURCE */
+ 
+ #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
+ #define INTMAX_T	longlong_t
+@@ -134,11 +148,16 @@
+ 		*sbuf++ = c;
+ }
+ 
+-void
+-vprintf(const char *fmt, va_list ap)
++int
++vprintf(const char * __restrict fmt, __va_list ap)
+ {
+ 
++#if defined(_DREX_SOURCE)
++	kdoprnt(zputchar, fmt, ap);
++#else
+ 	kdoprnt(putchar, fmt, ap);
++#endif
++	return 0;
+ }
+ 
+ int
 diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
---- a/sys/i386/include/asm.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/i386/include/asm.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/i386/include/asm.h	2016-02-19 11:28:09.617283152 +0000
++++ b/sys/i386/include/asm.h	2016-02-19 11:28:15.629940574 +0000
 @@ -37,9 +37,11 @@
  #ifndef _I386_ASM_H_
  #define _I386_ASM_H_
@@ -64,8 +575,8 @@ diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
  #ifdef __PIC__
  #define PIC_PROLOGUE	\
 diff -ru a/sys/i386/include/param.h b/sys/i386/include/param.h
---- a/sys/i386/include/param.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/i386/include/param.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/i386/include/param.h	2016-02-19 11:28:10.424371909 +0000
++++ b/sys/i386/include/param.h	2016-02-19 11:28:16.490033898 +0000
 @@ -60,7 +60,11 @@
  
  #define ALIGNED_POINTER(p,t)	1
@@ -79,8 +590,8 @@ diff -ru a/sys/i386/include/param.h b/sys/i386/include/param.h
  #define	PGOFSET		(NBPG-1)	/* byte offset into page */
  #define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
 diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
---- a/sys/i386/include/types.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/i386/include/types.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/i386/include/types.h	2016-02-19 11:28:09.773300330 +0000
++++ b/sys/i386/include/types.h	2016-02-19 11:28:15.872966976 +0000
 @@ -34,9 +34,12 @@
  #ifndef	_I386_MACHTYPES_H_
  #define	_I386_MACHTYPES_H_
@@ -112,9 +623,21 @@ diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
  
  typedef int		pmc_evid_t;
  typedef __uint64_t	pmc_ctr_t;
+@@ -122,9 +125,11 @@
+ #define	__HAVE_CPU_LWP_SETPRIVATE
+ #define	__HAVE_INTR_CONTROL
+ #define	__HAVE_MM_MD_OPEN
++#ifndef _DREX_SOURCE
+ #define	__HAVE___LWP_GETPRIVATE_FAST
+ #define	__HAVE_TLS_VARIANT_II
+ #define	__HAVE_COMMON___TLS_GET_ADDR
++#endif
+ 
+ #if defined(_KERNEL)
+ #define	__HAVE_RAS
 diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
---- a/sys/i386/include/vmparam.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/i386/include/vmparam.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/i386/include/vmparam.h	2016-02-19 11:28:09.652287006 +0000
++++ b/sys/i386/include/vmparam.h	2016-02-19 11:28:15.714949809 +0000
 @@ -37,8 +37,26 @@
  #ifndef _I386_VMPARAM_H_
  #define _I386_VMPARAM_H_
@@ -153,14 +676,18 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
  #define	PAGE_SIZE	(1 << PAGE_SHIFT)
  #define	PAGE_MASK	(PAGE_SIZE - 1)
  
-@@ -101,25 +122,31 @@
+@@ -101,25 +122,35 @@
  
  /* user/kernel map constants */
  #define VM_MIN_ADDRESS		((vaddr_t)0)
 -#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L2_SHIFT))
 -#define	VM_MAX_ADDRESS		\
 -	((vaddr_t)((PDIR_SLOT_PTE << L2_SHIFT) + (PDIR_SLOT_PTE << L1_SHIFT)))
++#if defined(_DREX_SOURCE) && defined(_ASSEMBLER)
++#define VM_MAXUSER_ADDRESS (PDIR_SLOT_PTE << L1_SHIFT)
++#else
 +#define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
++#endif
 +#define	VM_MAX_ADDRESS		((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
  #define	VM_MIN_KERNEL_ADDRESS	((vaddr_t)(PDIR_SLOT_KERN << L2_SHIFT))
 +#ifndef _DREX_SOURCE
@@ -188,84 +715,16 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
  /* XXX max. amount of KVM to be used by buffers. */
  #ifndef VM_MAX_KERNEL_BUF
  #define VM_MAX_KERNEL_BUF	(384 * 1024 * 1024)
-@@ -142,4 +169,6 @@
+@@ -142,4 +173,6 @@
  #endif /* XEN */
  #define	VM_FREELIST_DEFAULT	0
  
 +#endif /* _DREX_SOURCE */
 +
  #endif /* _I386_VMPARAM_H_ */
-diff -ru a/sys/libcsys/malloc.c b/sys/libcsys/malloc.c
---- a/sys/libcsys/malloc.c	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/libcsys/malloc.c	2016-01-25 01:09:41.000000000 +0000
-@@ -1,3 +1,13 @@
-+#ifdef _DREX_SOURCE
-+#include <machine/vmparam.h>
-+
-+#define fprintf(_x, ...) printf(__VA_ARGS__)
-+#define brk drex_brk
-+#define sbrk drex_sbrk
-+#define getpagesize() PAGE_SIZE
-+
-+#endif
-+
- /*	$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $	*/
- 
- /*
-@@ -58,8 +68,13 @@
- #endif
- #include <stdlib.h>
- #include <string.h>
-+#ifndef _DREX_SOURCE
- #include <unistd.h>
- #include "reentrant.h"
-+#else
-+#define mutex_lock(_x)
-+#define mutex_unlock(_x)
-+#endif
- 
- 
- /*
-diff -ru a/sys/libcsys/printf.c b/sys/libcsys/printf.c
---- a/sys/libcsys/printf.c	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/libcsys/printf.c	2016-01-25 01:09:41.000000000 +0000
-@@ -35,7 +35,11 @@
- #include <sys/types.h>
- #include <sys/stdarg.h>
- 
-+#ifndef _DREX_SOURCE
- #include "stand.h"
-+#else
-+#include "syslib.h"
-+#endif
- 
- void
- printf(const char *fmt, ...)
-diff -ru a/sys/libcsys/subr_prf.c b/sys/libcsys/subr_prf.c
---- a/sys/libcsys/subr_prf.c	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/libcsys/subr_prf.c	2016-01-25 01:09:41.000000000 +0000
-@@ -38,8 +38,17 @@
- #include <sys/cdefs.h>
- #include <sys/types.h>
- #include <sys/stdint.h>		/* XXX: for intptr_t */
--
-+#ifndef _DREX_SOURCE
- #include "stand.h"
-+#else /* _DREX_SOURCE */
-+#include <microkernel.h>
-+#include "syslib.h"
-+
-+void putchar(int ch)
-+{
-+	sys_putc(ch);
-+}
-+#endif /* _DREX_SOURCE */
- 
- #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
- #define INTMAX_T	longlong_t
 diff -ru a/sys/sys/ansi.h b/sys/sys/ansi.h
---- a/sys/sys/ansi.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/sys/ansi.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/sys/ansi.h	2016-02-19 11:28:09.395258707 +0000
++++ b/sys/sys/ansi.h	2016-02-19 11:28:15.392914823 +0000
 @@ -47,6 +47,10 @@
  typedef	__uint64_t	__fsblkcnt_t;	/* fs block count (statvfs) */
  typedef	__uint64_t	__fsfilcnt_t;	/* fs file count */
@@ -278,8 +737,8 @@ diff -ru a/sys/sys/ansi.h b/sys/sys/ansi.h
  typedef struct __tag_wctrans_t *__wctrans_t;
  
 diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
---- a/sys/sys/endian.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/sys/endian.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/sys/endian.h	2016-02-19 11:28:09.466266525 +0000
++++ b/sys/sys/endian.h	2016-02-19 11:28:15.470923298 +0000
 @@ -91,7 +91,7 @@
  #endif
  
@@ -290,8 +749,8 @@ diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
   *  Traditional names for byteorder.  These are defined as the numeric
   *  sequences so that third party code can "#define XXX_ENDIAN" and not
 diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
---- a/sys/sys/featuretest.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/sys/featuretest.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/sys/featuretest.h	2016-02-19 11:28:09.085224567 +0000
++++ b/sys/sys/featuretest.h	2016-02-19 11:28:15.048877446 +0000
 @@ -66,8 +66,9 @@
  #endif
  
@@ -305,8 +764,8 @@ diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
  
  #if ((_POSIX_C_SOURCE - 0) >= 199506L || (_XOPEN_SOURCE - 0) >= 500) && \
 diff -ru a/sys/sys/param.h b/sys/sys/param.h
---- a/sys/sys/param.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/sys/param.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/sys/param.h	2016-02-19 11:28:10.354364218 +0000
++++ b/sys/sys/param.h	2016-02-19 11:28:16.424026743 +0000
 @@ -158,8 +158,10 @@
  #define	VNODE_COST	2048			/* assumed space in bytes */
  #endif /* _KERNEL */
@@ -319,8 +778,8 @@ diff -ru a/sys/sys/param.h b/sys/sys/param.h
  /* Machine type dependent parameters. */
  #include <machine/param.h>
 diff -ru a/sys/sys/types.h b/sys/sys/types.h
---- a/sys/sys/types.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/sys/sys/types.h	2016-01-25 01:09:41.000000000 +0000
+--- a/sys/sys/types.h	2016-02-19 11:28:09.340252651 +0000
++++ b/sys/sys/types.h	2016-02-19 11:28:15.317906674 +0000
 @@ -97,7 +97,7 @@
  
  #include <machine/endian.h>
@@ -353,9 +812,21 @@ diff -ru a/sys/sys/types.h b/sys/sys/types.h
  #include <sys/fd_set.h>
  
  #define	NBBY			8
+diff -ru a/sys/sys/wait.h b/sys/sys/wait.h
+--- a/sys/sys/wait.h	2016-02-19 11:28:14.361802647 +0000
++++ b/sys/sys/wait.h	2016-02-19 11:28:21.094530508 +0000
+@@ -59,7 +59,7 @@
+ #define WTERMSIG(x)	(_WSTATUS(x))
+ #define WIFEXITED(x)	(_WSTATUS(x) == 0)
+ #define WEXITSTATUS(x)	((int)(((unsigned int)_W_INT(x)) >> 8) & 0xff)
+-#if defined(_XOPEN_SOURCE) || defined(_NETBSD_SOURCE) || defined(_KERNEL)
++#if defined(_XOPEN_SOURCE) || defined(_NETBSD_SOURCE) || defined(_KERNEL) || defined(_DREX_SOURCE)
+ #define	WCOREFLAG	0200
+ #define WCOREDUMP(x)	(_W_INT(x) & WCOREFLAG)
+ 
 diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
---- a/ukern/lib/queue.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/ukern/lib/queue.h	2016-01-25 01:09:41.000000000 +0000
+--- a/ukern/lib/queue.h	2016-02-19 11:28:10.035329171 +0000
++++ b/ukern/lib/queue.h	2016-02-19 11:28:16.056986955 +0000
 @@ -80,6 +80,7 @@
   * For details on the use of these macros, see the queue(3) manual page.
   */
@@ -373,8 +844,8 @@ diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
  #if defined(QUEUEDEBUG)
  # if defined(_KERNEL)
 diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
---- a/ukern/lib/rb.c	2016-01-25 01:09:41.000000000 +0000
-+++ b/ukern/lib/rb.c	2016-01-25 01:09:41.000000000 +0000
+--- a/ukern/lib/rb.c	2016-02-19 11:28:10.072333236 +0000
++++ b/ukern/lib/rb.c	2016-02-19 11:28:16.101991834 +0000
 @@ -29,6 +29,17 @@
   * POSSIBILITY OF SUCH DAMAGE.
   */
@@ -418,8 +889,8 @@ diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
  static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
  static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
 diff -ru a/ukern/lib/rbtree.h b/ukern/lib/rbtree.h
---- a/ukern/lib/rbtree.h	2016-01-25 01:09:41.000000000 +0000
-+++ b/ukern/lib/rbtree.h	2016-01-25 01:09:41.000000000 +0000
+--- a/ukern/lib/rbtree.h	2016-02-19 11:28:09.998325105 +0000
++++ b/ukern/lib/rbtree.h	2016-02-19 11:28:16.012982185 +0000
 @@ -32,6 +32,16 @@
  #ifndef _SYS_RBTREE_H_
  #define	_SYS_RBTREE_H_
