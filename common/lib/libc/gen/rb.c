@@ -30,6 +30,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if defined(_DREX_SOURCE) && defined(_UKERNEL)
+#include <uk/types.h>
+#include <uk/assert.h>
+#include <uk/stdbool.h>
+#include <lib/lib.h>
+#ifdef RBDEBUG
+#define KASSERT(s) assert(s)
+#else
+#define KASSERT(s) do { } while (0)
+#endif
+#else
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <sys/types.h>
 #include <stddef.h>
@@ -45,6 +56,7 @@ __RCSID("$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
 #include <lib/libkern/libkern.h>
 __KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
 #endif
+#endif /* _DREX_SOURCE && _UKERNEL */
 
 #ifdef _LIBC
 __weak_alias(rb_tree_init, _rb_tree_init)
@@ -62,10 +74,14 @@ __weak_alias(rb_tree_depths, _rb_tree_depths)
 #include "namespace.h"
 #endif
 
+#if defined(_DREX_SOURCE) && defined(_UKERNEL)
+#include <uk/rbtree.h>
+#else
 #ifdef RBTEST
 #include "rbtree.h"
 #else
 #include <sys/rbtree.h>
+#endif
 #endif
 
 static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);

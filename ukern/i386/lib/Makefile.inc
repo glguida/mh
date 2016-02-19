@@ -1,4 +1,4 @@
-SRCS+= memcpy.S memset.S fls.S
+SRCS+= fls.S
 VPATH+= i386/lib
 
 # compiler_rt 

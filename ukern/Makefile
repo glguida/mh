@@ -1,5 +1,11 @@
 SRCROOT= ..
-include $(SRCROOT)/mk/mk.conf
+
+MKDIR= $(SRCROOT)/mk
+MK_CONF_NO_RULES_MK_INCLUDE=1
+include $(MKDIR)/mk.conf
+include $(SRCROOT)/common/lib/libc/Makefile.inc
+#include $(MKDIR)/rules.mk
+
 OBJDIR=$(SRCROOT)/ukern/.objs
 OBJCOPY?=objcopy
 
