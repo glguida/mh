@@ -495,6 +495,7 @@ __dead void __exit(int status)
 		LIST_INSERT_HEAD(&__kern_init->active_children,
 				 child, child_list);
 		spinunlock(&__kern_init->children_lock);
+		child->parent = __kern_init;
 	}
 	LIST_FOREACH_SAFE(child, &th->zombie_children, child_list, tmp) {
 		LIST_REMOVE(child, child_list);
@@ -503,6 +504,7 @@ __dead void __exit(int status)
 		LIST_INSERT_HEAD(&__kern_init->zombie_children,
 				 child, child_list);
 		spinunlock(&__kern_init->children_lock);
+		child->parent = __kern_init;
 	}
 	spinunlock(&th->children_lock);
 	thraise(__kern_init, INTR_CHILD);

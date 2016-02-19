@@ -93,7 +93,7 @@ static int sys_fork(void)
 	struct thread *th;
 
 	th = thfork();
-	return ! !th;
+	return th == NULL ? 0 : th->pid;
 }
 
 static int sys_creat(uaddr_t ucfg, unsigned sig, devmode_t mode)
