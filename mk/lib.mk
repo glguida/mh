@@ -3,15 +3,20 @@ ALL_TARGET+= install_lib$(LIBNAME)
 CLEAN_TARGET+= clean_lib$(LIBNAME)
 
 lib$(LIBNAME).a: $(OBJS)
+ifneq ($(OBJS)z,z)
 	$(AR) r $@ $(OBJS)
+endif
 
-install_lib$(LIBNAME): lib$(LIBNAME).a
+install_lib$(LIBNAME): lib$(LIBNAME).a $(EXTOBJS)
 ifeq ($(NOINST)z, z)
+ifneq ($(OBJS)z,z)
 	install -d $(INSTALLDIR)/$(LIBDIR)
 	install -m 0644 lib$(LIBNAME).a  $(INSTALLDIR)/$(LIBDIR)/lib$(LIBNAME).a
 endif
-
-
+ifneq ($(EXTOBJS)z,z)
+	install -m 0644 $(EXTOBJS) $(INSTALLDIR)$(LIBDIR)/
+endif
+endif
 
 clean_lib$(LIBNAME):
-	-rm $(OBJS) lib$(LIBNAME).a
+	-rm $(OBJS) $(EXTOBJS) lib$(LIBNAME).a

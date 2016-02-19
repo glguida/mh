@@ -30,11 +30,11 @@
 #include <microkernel.h>
 #include "__sys.h"
 
-__dead void sys_die(void)
+__dead void sys_die(int status)
 {
 	int dummy;
 
-	__syscall0(SYS_DIE, dummy);
+	__syscall1(SYS_DIE, status, dummy);
 	/* Not reached */
 }
 

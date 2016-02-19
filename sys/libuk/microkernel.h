@@ -35,7 +35,7 @@
 #include <uk/sys.h>
 
 /* Syscalls */
-__dead void sys_die();
+__dead void sys_die(int status);
 int sys_inthdlr(void *entry, void *stack);
 void sys_cli(void);
 void sys_sti(void);

@@ -78,6 +78,3 @@ void siginit(void)
 	void *stkptr = (void *) (_sigstack + 2048);
 	sys_inthdlr(__inthdlr, stkptr);
 }
-
-
-

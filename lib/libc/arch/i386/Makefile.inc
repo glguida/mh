@@ -1,0 +1,1 @@
+include arch/$(MACHINE)/gen/Makefile.inc

@@ -1,0 +1,2 @@
+VPATH+= common
+ASFLAGS+= -Icommon

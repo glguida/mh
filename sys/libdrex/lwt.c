@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <drex/lwt.h>
 #include <drex/preempt.h>
-#include <syslib.h>
 
 
 static int lwt_initialized = 0;
@@ -178,7 +177,7 @@ lwt_exit(void)
 
 	if (!lwt_initialized) {
 		printf("die: lwt_exit() on single LWT system\n");
-		sys_die();
+		sys_die(1);
 	}
 
 	old = lwt_current;

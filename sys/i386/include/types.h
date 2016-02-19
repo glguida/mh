@@ -126,9 +126,11 @@ typedef	volatile unsigned char		__cpu_simple_lock_t;
 #define	__HAVE_CPU_LWP_SETPRIVATE
 #define	__HAVE_INTR_CONTROL
 #define	__HAVE_MM_MD_OPEN
+#ifndef _DREX_SOURCE
 #define	__HAVE___LWP_GETPRIVATE_FAST
 #define	__HAVE_TLS_VARIANT_II
 #define	__HAVE_COMMON___TLS_GET_ADDR
+#endif
 
 #if defined(_KERNEL)
 #define	__HAVE_RAS

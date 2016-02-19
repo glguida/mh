@@ -31,11 +31,9 @@
 #include <microkernel.h>
 #include <drex/drex.h>
 #include <drex/lwt.h>
-#include <sys/dirtio.h>
 #include <sys/mman.h>
 #include <sys/uio.h>
 #include <string.h>
-#include <syslib.h>
 #include <assert.h>
 
 static void framedump(struct intframe *f)
@@ -67,59 +65,47 @@ int __sys_faulthandler(unsigned vect, u_long va,
 	return 0;
 }
 
-
-lwt_t *lwt2;
-
-void testlwt(void *arg)
+int do_child()
 {
-	uintptr_t n = (uintptr_t)arg;
-	unsigned long x,y;
+	pid_t pid;
+	struct sys_childstat cs;
 
-	printf("LWT2: arg is %d\n", n);
-	asm volatile("mov %%esp, %0\n" : "=r"(x));
-	asm volatile("mov %%ebp, %0\n" : "=r"(y));
-	printf("sp is %lx, bp is %lx\n", x, y);
-	lwt_yield();
-	printf("LWT2: Were we saying?\n");
-	lwt_exit();
-}
-
-static void
-cons_recvring(unsigned rdnum, unsigned wrnum, struct iovec *iov)
-{
-
-}
-
-static void
-cons_sendring(unsigned rdnum, unsigned wrnum, struct iovec *iov)
-{
-	
+	do {
+		pid = sys_childstat(&cs);
+		printf("-> %d: %d\n", pid, cs.exit_status);
+	} while (pid > 0);
 }
 
 int main()
 {
-	siginit();
+	pid_t pid;
 
 	printf("Hello!\n");
-
+	sys_cli();
 	printf("!Ue!\n");
-	printf("brk: %d\n", drex_sbrk(5L * PAGE_SIZE));
-	if (sys_fork()) {
-		int ret;
 
-		printf("Parent!\n");
-		ret = dirtio_dev_pipe_setup(500, DIRTIO_DID_CONSOLE, 0111);
-		//					    cons_recv, cons_send);
-		printf("ret = %d\n", ret);
-		lwt_sleep();
-		printf("Hah?\n");
-	} else {
-
-		int j;
-		size_t len;
-		struct diodevice *dc;
-		struct iovec iov[11];
-		uint64_t val;
+	if (sys_fork() == 0)
+		goto child1;
+	if (sys_fork() == 0)
+		goto child;
+	if (sys_fork() == 0)
+		goto child;
+	inthandler(INTR_CHILD, do_child);
+	lwt_sleep();
+ child1:
+	if (sys_fork())
+		sys_die(21);
+	/* Child */
+ child:
+	printf("Goodbye!\n");
+	sys_die(5);
+#if 0
+	int j;
+	size_t len;
+	struct diodevice *dc;
+	struct iovec iov[11];
+	uint64_t val;
+	
 
 		do {
 			dc = dirtio_pipe_open(500);
@@ -136,8 +122,6 @@ int main()
 			printf("\t%p -> %d\n",
 			       iov[j].iov_base, iov[j].iov_len);
 		dioqueue_addv(&dc->dqueues[0], 1, 10, iov);
-	}
+#endif
 
-	printf("Goodbye!\n");
-	sys_die();
 }

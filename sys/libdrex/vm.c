@@ -85,6 +85,11 @@ static vm_prot_t _resolve_va(vaddr_t va)
 		return VM_PROT_NIL;
 	}
 
+	if (va >= (USRSTACK-MAXSSIZ) && va <= USRSTACK) {
+		/* Stack */
+		return VM_PROT_RW;
+	}
+
 	/* Search for mmap areas */
 	vmap_info(va, &vastart, &vasize, &vatype);
 	switch(vatype) {
@@ -205,7 +210,7 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	if (prot == VM_PROT_NIL) {
 		printf("Segmentation fault, should be handled\n");
 		framedump(f);
-		sys_die();
+		sys_die(-3);
 	}
 
 	switch (reason) {
@@ -235,5 +240,10 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 		}
 		break;
 	}
-	sys_die();
+	sys_die(-3);
+}
+
+static void __attribute__((constructor))
+_vm_init(void)
+{
 }

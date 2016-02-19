@@ -36,4 +36,8 @@ void *drex_mmap(void *addr, size_t len, int prot,
 		int flags, int fd, off_t offset);
 int drex_munmap(void*addr, size_t len);
 
+unsigned intalloc(void);
+void intfree(unsigned);
+void inthandler(unsigned, void (*)(int));
+
 #endif

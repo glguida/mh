@@ -5,9 +5,9 @@ include $(MACHINE)/Makefile.inc
 
 LIBNAME=drex
 LIBDIR=/lib
-SRCS+= vm.c vmap.c lwt.c irq.c kqueue.c
+SRCS+= vm.c vmap.c lwt.c int.c
 
-INCS= drex.h event.h irq.h lwt.h preempt.h vmap.h
+INCS= drex.h preempt.h lwt.h vmap.h
 INCDIR= drex
 
 include $(MKDIR)/inc.mk

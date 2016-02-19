@@ -123,7 +123,11 @@
 
 /* user/kernel map constants */
 #define VM_MIN_ADDRESS		((vaddr_t)0)
+#if defined(_DREX_SOURCE) && defined(_ASSEMBLER)
+#define VM_MAXUSER_ADDRESS (PDIR_SLOT_PTE << L1_SHIFT)
+#else
 #define	VM_MAXUSER_ADDRESS	((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
+#endif
 #define	VM_MAX_ADDRESS		((vaddr_t)(PDIR_SLOT_PTE << L1_SHIFT))
 #define	VM_MIN_KERNEL_ADDRESS	((vaddr_t)(PDIR_SLOT_KERN << L2_SHIFT))
 #ifndef _DREX_SOURCE
