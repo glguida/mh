@@ -35,7 +35,6 @@
 #include <machine/vmparam.h>
 #include <machine/drexparam.h>
 #include <microkernel.h>
-#include <syslib.h>
 #include <drex/drex.h>
 #include <drex/lwt.h>
 #include "vmap.h"
