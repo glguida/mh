@@ -1,6 +1,6 @@
 SRCROOT=..
 MKDIR=$(SRCROOT)/mk
-SUBDIRS+= libacpi libc libcrt csu
+SUBDIRS+= libc libcrt csu
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk
