@@ -68,6 +68,8 @@ void pfndb_clear(unsigned);
 void pfndb_add(unsigned, uint8_t);
 void pfndb_subst(uint8_t, uint8_t);
 
+int pfndb_valid(unsigned);
+
 void pfndb_settype(unsigned, uint8_t);
 uint8_t pfndb_type(unsigned);
 void pfndb_printstats(void);
@@ -79,6 +81,9 @@ uint64_t pfndb_incref(unsigned pfn);
 uint64_t pfndb_decref(unsigned pfn);
 uint64_t pfndb_getref(unsigned pfn);
 uint64_t pfndb_clrref(unsigned pfn);
+
+#define pfn_is_valid(_pfn) (pfndb_valid((_pfn)))
+#define pfn_is_mmio(_pfn) (pfndb_type((_pfn)) == PFNT_MMIO)
 
 /* Reference count of user pages uses in user mappings.  The kernel,
  * should never map user pages if mapped and used by a process which

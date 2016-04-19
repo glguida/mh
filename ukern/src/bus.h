@@ -56,9 +56,13 @@ struct devops {
 		   uint64_t * val);
 	int (*out) (void *devopq, unsigned id, uint64_t port,
 		    uint64_t val);
+	int (*iomap) (void *devopq, unsigned id, vaddr_t va,
+		      pfn_t mmiopfn, pmap_prot_t prot);
+	int (*iounmap) (void *devopq, unsigned id, vaddr_t va);
 	int (*export) (void *devopq, unsigned id, vaddr_t va,
 		       unsigned iopfn);
-	int (*rdcfg) (void *devopq, unsigned id, struct sys_creat_cfg *cfg);
+	int (*rdcfg) (void *devopq, unsigned id,
+		      struct sys_creat_cfg * cfg);
 	int (*irqmap) (void *devopq, unsigned id, unsigned intr,
 		       unsigned sig);
 	void (*close) (void *devopq, unsigned id);
@@ -79,18 +83,21 @@ struct dev {
 	struct rb_node rb_node;
 };
 
-#define BUS_IRQEIO 0 /* Raised at EIO. */
+#define BUS_IRQEIO 0		/* Raised at EIO. */
 
 int bus_plug(struct bus *b, uint64_t did);
 int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn);
+int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
+	      pfn_t mmiopfn, pmap_prot_t prot);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
 int bus_rdcfg(struct bus *b, unsigned desc, struct sys_creat_cfg *cfg);
 void bus_remove(struct bus *b);
 
-void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops, uid_t uid, gid_t gid, devmode_t mode);
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops,
+	      uid_t uid, gid_t gid, devmode_t mode);
 int dev_attach(struct dev *d);
 void dev_detach(struct dev *d);
 void dev_free(struct dev *d);

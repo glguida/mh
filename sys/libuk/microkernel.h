@@ -71,10 +71,12 @@ int vmunmap(vaddr_t addr);
 int vmchprot(vaddr_t addr, vm_prot_t prot);
 
 int sys_open(u_long id);
+int sys_iomap(unsigned ddno, u_long va, unsigned mmiopfn);
+int sys_iounmap(unsigned ddno, u_long va);
 int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg);
 int sys_export(unsigned ddno, u_long va, unsigned iopfn);
 int sys_mapirq(unsigned ddno, unsigned id, unsigned sig);
-int sys_in(unsigned ddno, u_long port, uint64_t *val);
+int sys_in(unsigned ddno, u_long port, uint64_t * val);
 int sys_out(unsigned ddno, u_long port, u_long val);
 int sys_close(unsigned ddno);
 

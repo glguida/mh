@@ -65,19 +65,50 @@ struct tss {
 
 /* Platform */
 
+/* I/O ports of interest */
 #define SERIAL_PORT 0x3f8
+#define PCI_CFG_ADDR 0xcf8
+#define PCI_CFG_DATA 0xcfc
 
 static inline int inb(int port)
 {
 	int ret;
 
-	asm volatile ("inb %%dx, %%al":"=a" (ret):"d"(port));
+	asm volatile ("xor %%eax, %%eax; inb %%dx, %%al":"=a" (ret):"d"
+		      (port));
+	return ret;
+}
+
+static inline int inw(unsigned port)
+{
+	int ret;
+
+	asm volatile ("xor %%eax, %%eax; inw %%dx, %%ax":"=a" (ret):"d"
+		      (port));
+	return ret;
+}
+
+static inline int inl(unsigned port)
+{
+	int ret;
+
+	asm volatile ("inl %%dx, %%eax":"=a" (ret):"d"(port));
 	return ret;
 }
 
 static inline void outb(int port, int val)
 {
 	asm volatile ("outb %%al, %%dx"::"d" (port), "a"(val));
+}
+
+static inline void outw(unsigned port, int val)
+{
+	asm volatile ("outw %%ax, %%dx"::"d" (port), "a"(val));
+}
+
+static inline void outl(unsigned port, int val)
+{
+	asm volatile ("outl %%eax, %%dx"::"d" (port), "a"(val));
 }
 
 static inline void _delay(void)
@@ -135,5 +166,7 @@ struct usrframe {
 
 int xcpt_entry(uint32_t vect, struct usrframe *f);
 int intr_entry(uint32_t vect, struct usrframe *f);
+
+int pci_cfg_intsts(uint8_t bus, uint8_t dev, uint8_t fn);
 
 #endif

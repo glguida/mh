@@ -229,7 +229,7 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 		break;
 	default:
 		printf("perm = %x\n", perm);
-		return -1;
+		return -EINVAL;
 	}
 
 	if (np)
@@ -243,9 +243,31 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 
 static int sys_move(vaddr_t dst, vaddr_t src)
 {
+	/* _probably_ should not kill it and just return an error,
+	 * like a nice, respectful OS */
 	procassert(__chkuaddr(trunc_page(dst), PAGE_SIZE));
 	procassert(__chkuaddr(trunc_page(src), PAGE_SIZE));
 	return vmmove(dst, src);
+}
+
+static int sys_iomap(unsigned ddno, vaddr_t va, uint64_t mmiopfn)
+{
+	int ret;
+	pmap_prot_t prot = PROT_USER_WR;
+
+	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
+		return -EINVAL;
+	printf("using prot %d ", prot);
+	return deviomap(ddno, va, mmiopfn, prot);
+}
+
+static int sys_iounmap(unsigned ddno, vaddr_t va)
+{
+	int ret;
+
+	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
+		return -EINVAL;
+	return deviounmap(ddno, va);
 }
 
 static int sys_yield(void)
@@ -401,6 +423,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_in(a1, a2, a3);
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
+	case SYS_IOMAP:
+		return sys_iomap(a1, a2, a3);
 	case SYS_CLOSE:
 		return sys_close(a1);
 	case SYS_GETUID:

@@ -30,9 +30,10 @@
 #include <uk/types.h>
 #include <uk/bus.h>
 #include <uk/sys.h>
+#include <uk/pfndb.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/platform.h>
-#include <uk/structs.h>
+#include <uk/heap.h>
 #include <uk/kern.h>
 #include <lib/lib.h>
 
@@ -40,15 +41,20 @@
 
 struct pltsig {
 	struct irqsig irqsig;
-	LIST_ENTRY(pltsig) list;
+	 LIST_ENTRY(pltsig) list;
+};
+
+struct pltmap {
+	vaddr_t va;
+	 LIST_ENTRY(pltmap) list;
 };
 
 struct pltrems {
-	unsigned in_use :1;
-	LIST_HEAD(, pltsig) pltsigs;
+	unsigned in_use:1;
+	 LIST_HEAD(, pltsig) pltsigs;
+	 LIST_HEAD(, pltmap) pltmaps;
 };
 
-static struct slab platsigs;
 static lock_t platform_lock = 0;
 static struct dev platform_dev;
 static struct pltrems platform_rems[MAXPLTSIGS];
@@ -68,12 +74,13 @@ int _pltdev_open(void *devopq, uint64_t did)
 	LIST_INIT(&platform_rems[i].pltsigs);
 	platform_rems[i].in_use = 1;
 	ret = 0;
-out:
+      out:
 	spinunlock(&platform_lock);
 	return ret;
 }
 
-static int _pltdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
+static int _pltdev_in(void *devopq, unsigned id, uint64_t port,
+		      uint64_t * val)
 {
 
 	switch (port & PLTPORT_SIZEMASK) {
@@ -96,7 +103,8 @@ static int _pltdev_in(void *devopq, unsigned id, uint64_t port, uint64_t *val)
 	return 0;
 }
 
-static int _pltdev_out(void *devopq, unsigned id, uint64_t port, uint64_t val)
+static int _pltdev_out(void *devopq, unsigned id, uint64_t port,
+		       uint64_t val)
 {
 	switch (port & PLTPORT_SIZEMASK) {
 	case 1:
@@ -114,40 +122,95 @@ static int _pltdev_out(void *devopq, unsigned id, uint64_t port, uint64_t val)
 	return 0;
 }
 
-static int _pltdev_export(void *devopq, unsigned id, vaddr_t va, unsigned iopfn)
+static int _pltdev_export(void *devopq, unsigned id, vaddr_t va,
+			  unsigned iopfn)
 {
 	return -ENODEV;
 }
 
-static int _pltdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
+static int _pltdev_iomap(void *devopq, unsigned id, vaddr_t va,
+			 pfn_t mmiopfn, pmap_prot_t prot)
+{
+	int ret;
+	struct pltmap *pltmap;
+
+	printf("mapping at addr %lx pfn %lx (%d)\n", va, mmiopfn, prot);
+	if (!pfn_is_valid(mmiopfn))
+		return -EINVAL;
+
+	ret = _iomap(va, mmiopfn, prot);
+	if (ret < 0)
+		return ret;
+
+	pltmap = heap_alloc(sizeof(*pltmap));
+	pltmap->va = va;
+	spinlock(&platform_lock);
+	LIST_INSERT_HEAD(&platform_rems[id].pltmaps, pltmap, list);
+	spinunlock(&platform_lock);
+	return 0;
+}
+
+static int _pltdev_iounmap(void *devopq, unsigned id, vaddr_t va)
+{
+	struct pltmap *pm, *tpm;
+
+	spinlock(&platform_lock);
+	assert(platform_rems[id].in_use);
+	LIST_FOREACH_SAFE(pm, &platform_rems[id].pltmaps, list, tpm) {
+		if (pm->va == va) {
+			LIST_REMOVE(pm, list);
+			vmunmap(va);
+			heap_free(pm);
+			spinunlock(&platform_lock);
+			return 0;
+		}
+	}
+	spinunlock(&platform_lock);
+	return -ENOENT;
+}
+
+static int _pltdev_rdcfg(void *devopq, unsigned id,
+			 struct sys_creat_cfg *cfg)
 {
 	return -ENODEV;
 }
 
-static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq, unsigned sig)
+static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq,
+			  unsigned sig)
 {
+	int ret;
 	struct thread *th = current_thread();
 	struct pltsig *pltsig;
 
-	pltsig = structs_alloc(&platsigs);
-	printf("Registering irq %d at thread %p with signal %d\n", irq, th, sig);
+	pltsig = heap_alloc(sizeof(struct pltsig));
+	printf("Registering irq %d at thread %p with signal %d\n", irq, th,
+	       sig);
+	ret = irqregister(&pltsig->irqsig, irq, th, sig,
+			  0 /* No filter */ );
+	if (ret < 0)
+		return ret;
 	spinlock(&platform_lock);
 	LIST_INSERT_HEAD(&platform_rems[id].pltsigs, pltsig, list);
 	spinunlock(&platform_lock);
-	return irqregister(&pltsig->irqsig, irq, th, sig);
+	return ret;
 }
 
 static void _pltdev_close(void *devopq, unsigned id)
 {
 	struct pltsig *ps, *tps;
+	struct pltmap *pm, *tpm;
 
 	spinlock(&platform_lock);
 	assert(platform_rems[id].in_use);
-
+	LIST_FOREACH_SAFE(pm, &platform_rems[id].pltmaps, list, tpm) {
+		LIST_REMOVE(pm, list);
+		vmunmap(pm->va);
+		heap_free(pm);
+	}
 	LIST_FOREACH_SAFE(ps, &platform_rems[id].pltsigs, list, tps) {
 		LIST_REMOVE(ps, list);
 		irqunregister(&ps->irqsig);
-		structs_free(ps);
+		heap_free(ps);
 	}
 	platform_rems[id].in_use = 0;
 	spinunlock(&platform_lock);
@@ -159,13 +222,14 @@ static struct devops pltdev_ops = {
 	.in = _pltdev_in,
 	.out = _pltdev_out,
 	.export = _pltdev_export,
+	.iomap = _pltdev_iomap,
+	.iounmap = _pltdev_iounmap,
 	.rdcfg = _pltdev_rdcfg,
 	.irqmap = _pltdev_irqmap,
 };
 
 void pltdev_init(void)
 {
-	setup_structcache(&platsigs, pltsig);
 	memset(platform_rems, 0, sizeof(platform_rems));
 	dev_init(&platform_dev, 0, NULL, &pltdev_ops, 0, 0, 600);
 	dev_attach(&platform_dev);

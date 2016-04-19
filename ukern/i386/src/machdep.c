@@ -198,8 +198,10 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 		printf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
 		lapic_write(L_EOI, 0);
 	} else if (vect >= VECT_IRQ0) {
-		printf("IRQ%d\n", vect - VECT_IRQ0);
-		irqsignal(vect - VECT_IRQ0);
+		unsigned irq = vect - VECT_IRQ0;
+
+		printf("IRQ%d\n", irq);
+		irqsignal(irq);
 		lapic_write(L_EOI, 0);
 	}
 

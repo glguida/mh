@@ -68,6 +68,11 @@ static void pfndb_stats_dectype(uint8_t t)
 		pfndb_stats[t]--;
 }
 
+int pfndb_valid(unsigned pfn)
+{
+	return (pfn <= pfndb_max);
+}
+
 void *pfndb_setup(void *addr, unsigned maxpfn)
 {
 
@@ -159,34 +164,38 @@ void *pfndb_getptr(unsigned pfn)
 
 uint64_t pfndb_incref(unsigned pfn)
 {
-  ipfn_t *p = &pfndb[pfn];
+	ipfn_t *p = &pfndb[pfn];
 
-  assert(pfn <= pfndb_max);
-  return __sync_add_and_fetch(&p->ref, 1);
+	assert(pfn <= pfndb_max);
+	assert(p->type == PFNT_USER);
+	return __sync_add_and_fetch(&p->ref, 1);
 }
 
 uint64_t pfndb_decref(unsigned pfn)
 {
-  ipfn_t *p = &pfndb[pfn];
+	ipfn_t *p = &pfndb[pfn];
 
-  assert(pfn <= pfndb_max);
-  return __sync_add_and_fetch(&p->ref, -1);
+	assert(pfn <= pfndb_max);
+	assert(p->type == PFNT_USER);
+	return __sync_add_and_fetch(&p->ref, -1);
 }
 
 uint64_t pfndb_getref(unsigned pfn)
 {
-  ipfn_t *p = &pfndb[pfn];
+	ipfn_t *p = &pfndb[pfn];
 
-  assert(pfn <= pfndb_max);
-  return __sync_add_and_fetch(&p->ref, 0);
+	assert(pfn <= pfndb_max);
+	assert(p->type == PFNT_USER);
+	return __sync_add_and_fetch(&p->ref, 0);
 }
 
 uint64_t pfndb_clrref(unsigned pfn)
 {
-  ipfn_t *p = &pfndb[pfn];
+	ipfn_t *p = &pfndb[pfn];
 
-  assert(pfn <= pfndb_max);
-  return __sync_and_and_fetch(&p->ref, 0);
+	assert(pfn <= pfndb_max);
+	assert(p->type == PFNT_USER);
+	return __sync_and_and_fetch(&p->ref, 0);
 }
 
 void pfndb_printstats(void)

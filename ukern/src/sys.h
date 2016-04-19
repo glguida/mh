@@ -68,16 +68,30 @@ typedef enum {
 #define PLTPORT_SIZESHIFT 3
 #define PLTPORT_SIZEMASK 0x7
 #define PLTPORT_BYTE(_x) (((_x) << PLTPORT_SIZESHIFT) | 1)
-#define PLTPORT_WORD(_X) (((_x) << PLTPORT_SIZESHIFT) | 2)
+#define PLTPORT_WORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 2)
 #define PLTPORT_DWORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 4)
 #define SYS_IN     0x22
 #define SYS_OUT    0x23
 #define SYS_EXPORT 0x24
 #define SYS_RDCFG  0x25
+#define SYS_IOMAP  0x26
+#define SYS_IOUNMAP 0x27
 
-#define SYS_CLOSE  0x26
+#define SYS_CLOSE  0x2F
 
 #ifndef _ASSEMBLER
+struct sys_devres {
+	uint64_t type:1;
+	uint64_t addr:31;
+	uint32_t size:32;
+};
+
+struct sys_iodev_cfg {
+	uint64_t nameid;
+	uint32_t vendorid;
+	uint32_t deviceid;
+};
+
 struct sys_creat_cfg {
 	uint64_t nameid;
 	uint32_t vendorid;

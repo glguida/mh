@@ -527,6 +527,27 @@ static void idle(void)
 	}
 }
 
+int _iomap(vaddr_t addr, pfn_t mmiopfn, pmap_prot_t prot)
+{
+	int ret = 0;
+	pfn_t opfn;
+
+	if (!pfn_is_mmio(mmiopfn))
+		return -EINVAL;
+
+	ret = pmap_uiomap(NULL, addr, mmiopfn, prot, &opfn);
+	pmap_commit(NULL);
+
+	if (ret < 0)
+		return ret;
+
+	if (opfn != PFN_INVALID) {
+		__freepage(opfn);
+		ret = 1;
+	}
+	return ret;
+}
+
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 {
 	int i, ret = 0;
@@ -642,7 +663,8 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 		return -EBUSY;
 
 	th->usrdev = usrdev_creat(cfg, sig, mode);
-	printf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid, cfg->vendorid);
+	printf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
+	       cfg->vendorid);
 	if (th->usrdev == NULL)
 		return -EEXIST;
 	return 0;
@@ -744,6 +766,21 @@ int devout(unsigned dd, uint64_t port, uint64_t val)
 	return bus_out(&th->bus, dd, port, val);
 }
 
+int deviomap(unsigned dd, vaddr_t va, pfn_t mmiopfn, pmap_prot_t prot)
+{
+	struct thread *th = current_thread();
+
+	printf("(m %d) ", prot);
+	return bus_iomap(&th->bus, dd, va, mmiopfn, prot);
+}
+
+int deviounmap(unsigned dd, vaddr_t va)
+{
+	struct thread *th = current_thread();
+
+	return bus_iounmap(&th->bus, dd, va);
+}
+
 void devclose(unsigned dd)
 {
 	struct thread *th = current_thread();
@@ -755,8 +792,11 @@ void irqsignal(unsigned irq)
 {
 	struct irqsig *irqsig;
 
+	assert(irq < MAXIRQS);
 	spinlock(&irqsigs_lock);
 	LIST_FOREACH(irqsig, &irqsigs[irq], list) {
+		if (irqsig->filter && !platform_irqfilter(irqsig->filter))
+			continue;
 		printf("Raising %p:%d\n", irqsig->th, irqsig->sig);
 		thraise(irqsig->th, irqsig->sig);
 	}
@@ -772,13 +812,14 @@ void irqunregister(struct irqsig *irqsig)
 }
 
 int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
-		unsigned sig)
+		unsigned sig, uint32_t filter)
 {
 	if (irq >= MAXIRQS)
 		return -EINVAL;
 
 	irqsig->th = th;
 	irqsig->sig = sig;
+	irqsig->filter = filter;
 
 	spinlock(&irqsigs_lock);
 	LIST_INSERT_HEAD(&irqsigs[irq], irqsig, list);

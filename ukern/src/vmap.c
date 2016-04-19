@@ -187,6 +187,7 @@ vaddr_t vmap_alloc(size_t size, uint8_t type)
 void vmap_free(vaddr_t va, size_t size)
 {
 
+	size = round_page(size);
 	spinlock(&vmap_lock);
 	vmapzone_free(&vmap_zone, va, size);
 	spinunlock(&vmap_lock);

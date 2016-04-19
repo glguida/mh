@@ -125,12 +125,12 @@ int _pmap_fault(vaddr_t va, unsigned long err, struct usrframe *f)
 
 	spinlock(&pmap->lock);
 	l1e = *l1p;
-	if ((l1eflags(l1e) & (PG_P | PG_COW)) == (PG_P | PG_COW)) {
+	if (l1e_cow(l1e)) {
 		is_cow = 1;
 		if (pfn_getref(l1epfn(l1e)) == 1) {
 			printf("Fixing last COW!\n");
 			/* Last COW mapping. */
-			l1e &= ~PG_COW;
+			l1e = l1e_mknormal(l1e);
 			/* Do not set writable. It is user
 			 * responsibility to do so. */
 			__setl1e(l1p, l1e);
@@ -189,6 +189,46 @@ int pmap_kenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return ret;
 }
 
+int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+		pmap_prot_t prot, pfn_t * opfn)
+{
+	l1e_t ol1e, nl1e, *l1p;
+
+	assert(__isuaddr(va));
+	if (is_prot_present(prot)) {
+		assert(is_prot_user(prot));
+		assert(pfn_is_mmio(pfn));
+	}
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("iomap on foreign pmaps arbitrarily not supported.");
+
+	nl1e = l1e_mkiomap(mkl1e(ptoa(pfn), prot));
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	if (l1e_external(ol1e)) {
+		/* Externally controlled */
+		spinunlock(&pmap->lock);
+		if (opfn)
+			*opfn = PFN_INVALID;
+		return -EBUSY;
+	}
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	if (l1e_normal(ol1e) && !pfn_decref(l1epfn(ol1e)))
+		*opfn = l1epfn(ol1e);
+	else
+		*opfn = PFN_INVALID;
+	return 0;
+}
+
 /* Enter a new user page (or an non-present entry) in the pmap */
 int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
@@ -209,7 +249,7 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	else
 		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
 
-	nl1e = mkl1e(ptoa(pfn), prot);
+	nl1e = l1e_mknormal(mkl1e(ptoa(pfn), prot));
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	if (l1e_external(ol1e)) {
@@ -225,7 +265,7 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
+	if (l1e_normal(ol1e) && !pfn_decref(l1epfn(ol1e)))
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
@@ -264,13 +304,13 @@ int pmap_uchaddr(struct pmap *pmap, vaddr_t va, vaddr_t newva,
 		*opfn = PFN_INVALID;
 		return -EBUSY;
 	}
-	__setl1e(l1p1, mkl1e(PFN_INVALID, 0));
+	__setl1e(l1p1, mkl1e(ptoa(PFN_INVALID), 0));
 	__setl1e(l1p2, nl1e);
 	pmap->tlbflush |= __tlbflushp(ol1e, nl1e);
 	pmap->tlbflush |= __tlbflushp(nl1e, mkl1e(PFN_INVALID, 0));
 	spinunlock(&pmap->lock);
 
-	if ((ol1e & PG_P) && !pfn_decref(l1epfn(ol1e)))
+	if (l1e_normal(ol1e) && !pfn_decref(l1epfn(ol1e)))
 		*opfn = l1epfn(ol1e);
 	else
 		*opfn = PFN_INVALID;
@@ -306,13 +346,13 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 		spinunlock(&pmap->lock);
 		return -EPERM;
 	}
-	if (is_prot_writeable(prot) && (l1eflags(ol1e) & PG_COW)) {
+	if (is_prot_writeable(prot) && l1e_cow(ol1e)) {
 		/* Can't make COW writable with chprot */
 		spinunlock(&pmap->lock);
 		return -EINVAL;
 	}
 
-	nl1e = mkl1e(ptoa(l1epfn(ol1e)), prot);
+	nl1e = l1e_mknormal(mkl1e(ptoa(l1epfn(ol1e)), prot));
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
@@ -342,7 +382,7 @@ int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)
 		*l1e = mkl1e(PFN_INVALID, 0);
 		return -EBUSY;
 	}
-	nl1e = ol1e | PG_EXPORTD;
+	nl1e = l1e_mkexported(ol1e);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
@@ -371,7 +411,7 @@ int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va)
 		spinunlock(&pmap->lock);
 		return -1;
 	}
-	nl1e = ol1e & ~(l1e_t) PG_EXPORTD;
+	nl1e = l1e_mknormal(ol1e);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 
@@ -405,14 +445,13 @@ int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn)
 		spinunlock(&pmap->lock);
 		return -1;
 	}
-	nl1e = extl1e & ~(l1e_t) PG_EXPORTD;
-	nl1e |= PG_IMPORTD;
+	nl1e = l1e_mkimported(extl1e);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 
 	spinunlock(&pmap->lock);
 
-	if (l1e_present(ol1e) && !pfn_decref(l1epfn(ol1e))) {
+	if (l1e_normal(ol1e) && !pfn_decref(l1epfn(ol1e))) {
 		*pfn = l1epfn(ol1e);
 	} else {
 		*pfn = PFN_INVALID;
@@ -441,15 +480,13 @@ int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
 	    || l1eprotfl(ol1e) != l1eprotfl(ol1e))
 		return -1;
 	/* Expected l1e found. Can continume with the import */
-	nl1e = extl1e & ~(l1e_t) PG_EXPORTD;
-	nl1e |= PG_IMPORTD;
+	nl1e = l1e_mkexported(extl1e);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	if (l1e_present(ol1e)
-	    && !l1e_imported(ol1e)
-	    && !pfn_decref(l1epfn(ol1e))) {
+	assert(l1e_normal(ol1e));
+	if (l1e_present(ol1e) && !pfn_decref(l1epfn(ol1e))) {
 		*pfn = l1epfn(ol1e);
 	} else {
 		*pfn = PFN_INVALID;
@@ -518,8 +555,7 @@ struct pmap *pmap_copy(void)
 			assert(l1e & PG_U);
 			pfn_incref(l1epfn(l1e));
 			/* Remove writable and exported attributes */
-			l1e &= ~(PG_W | PG_EXPORTD);
-			l1e |= PG_COW;
+			l1e = l1e_mkcow(l1e);
 			__setl1e(orig, l1e);
 			__setl1e(copy, l1e);
 			pmap->tlbflush |= TLBF_NORMAL;

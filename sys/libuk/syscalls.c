@@ -126,6 +126,26 @@ int sys_open(u_long id)
 	return ret;
 }
 
+int sys_iomap(unsigned ddno, u_long va, unsigned mmiopfn)
+{
+	int ret;
+
+	printf("iomapping %lx %lx!\n", mmiopfn, va);
+	__syscall3(SYS_IOMAP, (unsigned long) ddno, (unsigned long) va,
+		   (unsigned long) mmiopfn, ret);
+	return ret;
+}
+
+int sys_iounmap(unsigned ddno, u_long va)
+{
+	int ret;
+
+	printf("iounmapping %lx!\n", va);
+	__syscall2(SYS_IOUNMAP, (unsigned long) ddno, (unsigned long) va,
+		   ret);
+	return ret;
+}
+
 int sys_export(unsigned ddno, u_long va, unsigned iopfn)
 {
 	int ret;
@@ -145,7 +165,7 @@ int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 
 }
 
-int sys_in(unsigned ddno, u_long port, uint64_t *val)
+int sys_in(unsigned ddno, u_long port, uint64_t * val)
 {
 	int ret;
 
@@ -167,7 +187,8 @@ int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg)
 {
 	int ret;
 
-	__syscall2(SYS_RDCFG, (unsigned long) ddno, (unsigned long) cfg, ret);
+	__syscall2(SYS_RDCFG, (unsigned long) ddno, (unsigned long) cfg,
+		   ret);
 	return ret;
 }
 

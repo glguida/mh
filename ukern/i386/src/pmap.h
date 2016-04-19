@@ -73,7 +73,6 @@ void pmap_free(struct pmap *);
 #define is_prot_user(_p) ((_p) & PG_U)
 #define is_prot_present(_p) ((_p) & PG_P)
 #define is_prot_writeable(_p) ((_p) & PG_W)
-typedef unsigned pmap_prot_t;
 
 #define FAULT_P 1
 #define FAULT_W 2

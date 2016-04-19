@@ -245,6 +245,66 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 	return ret;
 }
 
+int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
+	      pfn_t mmiopfn, pmap_prot_t prot)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto out_iomap;
+	}
+	assert(d != NULL);
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto out_iomap;
+	}
+	ret = d->ops->iomap(d->devopq, b->devs[desc].devid, va, mmiopfn,
+			    prot);
+	spinunlock(&d->lock);
+      out_iomap:
+	spinunlock(&b->lock);
+	return ret;
+}
+
+int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto out_iounmap;
+	}
+	assert(d != NULL);
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto out_iounmap;
+	}
+	ret = d->ops->iounmap(d->devopq, b->devs[desc].devid, va);
+	spinunlock(&d->lock);
+      out_iounmap:
+	spinunlock(&b->lock);
+	return ret;
+}
+
 int bus_rdcfg(struct bus *b, unsigned desc, struct sys_creat_cfg *cfg)
 {
 	int ret;
@@ -379,7 +439,8 @@ void dev_detach(struct dev *d)
 	}
 }
 
-void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops, uid_t uid, gid_t gid, devmode_t mode)
+void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops,
+	      uid_t uid, gid_t gid, devmode_t mode)
 {
 	d->did = id;
 	d->lock = 0;

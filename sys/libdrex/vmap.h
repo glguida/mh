@@ -36,6 +36,7 @@
 #define VFNT_EXEC    4
 #define VFNT_WREXEC  5
 #define VFNT_IMPORT  6
+#define VFNT_MMIO    7
 
 vaddr_t vmap_alloc(size_t size, uint8_t type);
 void vmap_free(vaddr_t va, size_t size);

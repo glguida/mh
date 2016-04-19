@@ -31,46 +31,41 @@
 #define _i386_platform_h
 
 #include <machine/uk/apic.h>
+#include "i386.h"
 
 void platform_init(void);
 
 static inline int platform_inb(unsigned port)
 {
-	int ret;
 
-	asm volatile ("xor %%eax, %%eax; inb %%dx, %%al":"=a" (ret):"d"(port));
-	return ret;
+	return inb(port);
 }
 
 static inline int platform_inw(unsigned port)
 {
-	int ret;
 
-	asm volatile ("xor %%eax, %%eax; inw %%dx, %%ax":"=a" (ret):"d"(port));
-	return ret;
+	return inw(port);
 }
 
 static inline int platform_inl(unsigned port)
 {
-	int ret;
 
-	asm volatile ("inl %%dx, %%eax":"=a" (ret):"d"(port));
-	return ret;
+	return inl(port);
 }
 
 static inline void platform_outb(unsigned port, int val)
 {
-	asm volatile ("outb %%al, %%dx"::"d" (port), "a"(val));
+	outb(port, val);
 }
 
 static inline void platform_outw(unsigned port, int val)
 {
-	asm volatile ("outw %%ax, %%dx"::"d" (port), "a"(val));
+	outw(port, val);
 }
 
 static inline void platform_outl(unsigned port, int val)
 {
-	asm volatile ("outl %%eax, %%dx"::"d" (port), "a"(val));
+	outl(port, val);
 }
 
 static inline void platform_wait(void)
@@ -81,13 +76,25 @@ static inline void platform_wait(void)
 
 static inline void platform_irqon(unsigned irq)
 {
-	/* 1:1 Mapping GSI-IRQ, only ones supported for now. */
+
+	/* 1:1 Mapping GSI-IRQ */
 	gsi_enable(irq);
 }
 
 static inline void platform_irqoff(unsigned irq)
 {
 	gsi_disable(irq);
+}
+
+/* IRQ filter used only for PCI interrupts */
+static inline int platform_irqfilter(uint32_t irqfilt)
+{
+	uint8_t bus, dev, fn;
+
+	bus = (irqfilt >> 16) && 0xff;
+	dev = (irqfilt >> 8) && 0xff;
+	fn = irqfilt & 0xff;
+	return pci_cfg_intsts(bus, dev, fn);
 }
 
 #endif
