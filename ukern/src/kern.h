@@ -147,7 +147,8 @@ struct irqsig {
 };
 
 void irqsignal(unsigned irq);
-int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th, unsigned sig);
+int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
+		unsigned sig, uint32_t filter);
 void irqunregister(struct irqsig *irqsig);
 
 #endif
