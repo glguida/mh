@@ -142,6 +142,7 @@ void die(void) __dead;
 struct irqsig {
 	struct thread *th;
 	unsigned sig;
+	uint32_t filter;
 	LIST_ENTRY(irqsig) list;
 };
 
