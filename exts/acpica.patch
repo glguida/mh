@@ -1,7 +1,7 @@
 diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 --- acpica.dist/include/platform/acdrex.h	1970-01-01 01:00:00.000000000 +0100
 +++ acpica/include/platform/acdrex.h	2014-09-08 00:40:32.000000000 +0100
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,31 @@
 +#ifndef __ACDREX_H__
 +#define __ACDREX_H__
 +
@@ -22,6 +22,14 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +
 +__decl_alias(AcpiOsPrintf, printf);
 +__decl_alias(AcpiOsVprintf, vprintf);
++
++#else  /* !_UKERNEL */
++
++#include <sys/cdefs.h>
++
++__strong_alias(AcpiOsPrintf, printf);
++__strong_alias(AcpiOsVprintf, vprintf);
++
 +#endif /* _UKERNEL */
 +
 +#endif
