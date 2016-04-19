@@ -194,7 +194,8 @@ vaddr_t vmap_alloc(size_t size, uint8_t type)
 	}
 	pgsz = round_page(size);
 	va = vmapzone_alloc(&vmap_zone, pgsz);
-	vmap_insert(va, pgsz, type);
+	if (va != 0)
+		vmap_insert(va, pgsz, type);
 	return va;
 }
 
@@ -206,6 +207,7 @@ void vmap_free(vaddr_t va, size_t size)
 		vmap_init();
 		initialized++;
 	}
+	size = round_page(size);
 	vme = vmap_find(va);
 	assert(vme != NULL);
 	assert(vme->addr == va);
