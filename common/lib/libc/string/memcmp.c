@@ -1,5 +1,5 @@
 /* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
-/*	$NetBSD: vsnprintf.c,v 1.27.6.1 2014/09/30 18:21:40 martin Exp $	*/
+/*	$NetBSD: memcmp.c,v 1.4 2013/12/02 21:21:33 joerg Exp $	*/
 
 /*-
  * Copyright (c) 1990, 1993
@@ -36,94 +36,40 @@
 #include <sys/cdefs.h>
 #if defined(LIBC_SCCS) && !defined(lint)
 #if 0
-static char sccsid[] = "@(#)vsnprintf.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)memcmp.c	8.1 (Berkeley) 6/4/93";
 #else
-__RCSID("$NetBSD: vsnprintf.c,v 1.27.6.1 2014/09/30 18:21:40 martin Exp $");
+__RCSID("$NetBSD: memcmp.c,v 1.4 2013/12/02 21:21:33 joerg Exp $");
 #endif
 #endif /* LIBC_SCCS and not lint */
 
-#include "namespace.h"
-
+#if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <assert.h>
-#include <errno.h>
-#include <locale.h>
-#include <stdio.h>
-#include "reentrant.h"
-#include "setlocale_local.h"
-#include "local.h"
+#include <string.h>
+#else
+#include <lib/libkern/libkern.h>
+#endif 
 
-#if defined(_FORTIFY_SOURCE) && !defined(__lint__)
-#undef vsnprintf
-#define vsnprintf _vsnprintf
-#undef snprintf
-#define snprintf _snprintf
-#endif
-
-#ifdef __weak_alias
-__weak_alias(vsnprintf,_vsnprintf)
-__weak_alias(vsnprintf_l,_vsnprintf_l)
-__weak_alias(snprintf,_snprintf)
-__weak_alias(snprintf_l,_snprintf_l)
-#endif
-
+#undef memcmp
+/*
+ * Compare memory regions.
+ */
 int
-vsnprintf_l(char *str, size_t n, locale_t loc, const char *fmt, va_list ap)
+memcmp(const void *s1, const void *s2, size_t n)
 {
-	int ret;
-	FILE f;
-	struct __sfileext fext;
-	unsigned char dummy[1];
+	_DIAGASSERT(s1 != 0);
+	_DIAGASSERT(s2 != 0);
 
-	_DIAGASSERT(n == 0 || str != NULL);
-	_DIAGASSERT(fmt != NULL);
+	if (n != 0) {
+		const unsigned char *p1 = s1, *p2 = s2;
 
-	if (n > INT_MAX) {
-		errno = EOVERFLOW;
-		return -1;
+		do {
+			if (*p1++ != *p2++)
+				return (*--p1 - *--p2);
+		} while (--n != 0);
 	}
-
-	_FILEEXT_SETUP(&f, &fext);
-	f._file = -1;
-	f._flags = __SWR | __SSTR;
-	if (n == 0) {
-		f._bf._base = f._p = dummy;
-		f._bf._size = f._w = 0;
-	} else {
-		f._bf._base = f._p = (unsigned char *)str;
-		_DIAGASSERT(__type_fit(int, n - 1));
-		f._bf._size = f._w = (int)(n - 1);
-	}
-	ret = __vfprintf_unlocked_l(&f, loc, fmt, ap);
-	*f._p = 0;
-	return ret;
+	return (0);
 }
 
-int
-vsnprintf(char *str, size_t n, const char *fmt, va_list ap)
-{
-	return vsnprintf_l(str, n, _current_locale(), fmt, ap);
-}
-
-int
-snprintf(char *str, size_t n, const char *fmt, ...)
-{
-	va_list ap;
-	int ret;
-
-	va_start(ap, fmt);
-	ret = vsnprintf(str, n, fmt, ap);
-	va_end(ap);
-	return ret;
-}
-
-int
-snprintf_l(char *str, size_t n, locale_t loc, const char *fmt, ...)
-{
-	va_list ap;
-	int ret;
-
-	va_start(ap, fmt);
-	ret = vsnprintf_l(str, n, loc, fmt, ap);
-	va_end(ap);
-	return ret;
-}
+#if defined(__ARM_EABI__)
+__strong_alias(__aeabi_memcmp, memcmp)
+#endif

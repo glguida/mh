@@ -43,18 +43,3 @@ ENTRY(fls)
 	mov %ebp, %esp
 	pop %ebp
 	ret
-
-ENTRY(ffs)
-	push %ebp
-	mov %esp, %ebp
-
-	mov 8(%ebp), %eax
-	cmp $0, %eax
-	jz 1f
-
-	bsf %eax, %eax
-	inc %eax
-1:
-	mov %ebp, %esp
-	pop %ebp
-	ret
