@@ -40,7 +40,11 @@ __RCSID("$NetBSD: exit.c,v 1.15 2011/05/18 19:36:36 dsl Exp $");
 #endif /* LIBC_SCCS and not lint */
 
 #include <stdlib.h>
+#ifndef _DREX_SOURCE
 #include <unistd.h>
+#else /* _DREX_SOURCE */
+
+#endif 
 #ifdef _LIBC
 #include "reentrant.h"
 #include "atexit.h"

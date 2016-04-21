@@ -2,8 +2,7 @@ SRCROOT=..
 include $(SRCROOT)/mk/mk.conf
 
 INCS= assert.h errno.h inttypes.h limits.h setjmp.h stdarg.h	\
-	stdbool.h stddef.h stdio.h stdlib.h string.h syslog.h 	\
-	unistd.h
+	stdbool.h stddef.h stdio.h stdlib.h string.h
 INCDIR=
 
 INCS+= $(SRCROOT)/sys/sys/stdint.h

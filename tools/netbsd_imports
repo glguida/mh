@@ -65,8 +65,6 @@ lib/libc/stdlib/atexit.c lib/libc/stdlib/atexit.c
 lib/libc/stdlib/atexit.h lib/libc/stdlib/atexit.h
 lib/libc/include/reentrant.h lib/libc/include/reentrant.h
 lib/libc/stdlib/exit.c lib/libc/stdlib/exit.c
-include/unistd.h include/unistd.h
-sys/sys/unistd.h sys/sys/unistd.h
 lib/libc/misc/initfini.c lib/libc/misc/initfini.c
 sys/sys/tls.h sys/sys/tls.h
 lib/libc/include/namespace.h lib/libc/include/namespace.h
@@ -151,7 +149,6 @@ lib/libc/arch/i386/string/strncmp.S common/lib/libc/arch/i386/string/strncmp.S
 common/lib/libc/arch/i386/string/strlen.S common/lib/libc/arch/i386/string/strlen.S
 lib/libc/gen/assert.c lib/libc/gen/assert.c
 include/stdio.h include/stdio.h
-sys/sys/syslog.h include/syslog.h
 sys/sys/wait.h sys/sys/wait.h
 sys/lib/libsa/printf.c lib/libsa/printf.c
 sys/lib/libsa/subr_prf.c lib/libsa/subr_prf.c

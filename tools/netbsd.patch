@@ -1,6 +1,6 @@
 diff -ru a/common/lib/libc/arch/i386/atomic/atomic.S b/common/lib/libc/arch/i386/atomic/atomic.S
---- a/common/lib/libc/arch/i386/atomic/atomic.S	2016-02-19 11:28:11.201457228 +0000
-+++ b/common/lib/libc/arch/i386/atomic/atomic.S	2016-02-19 11:28:17.239115041 +0000
+--- a/common/lib/libc/arch/i386/atomic/atomic.S	2016-04-21 19:34:52.794803243 +0100
++++ b/common/lib/libc/arch/i386/atomic/atomic.S	2016-04-21 19:34:59.611943353 +0100
 @@ -175,22 +175,34 @@
  END(_atomic_cas_32_ni)
  
@@ -36,9 +36,54 @@ diff -ru a/common/lib/libc/arch/i386/atomic/atomic.S b/common/lib/libc/arch/i386
  	ret
  END(_membar_sync)
  ENDLABEL(membar_sync_end)
+diff -ru a/common/lib/libc/gen/rb.c b/common/lib/libc/gen/rb.c
+--- a/common/lib/libc/gen/rb.c	2016-04-21 19:34:52.241791509 +0100
++++ b/common/lib/libc/gen/rb.c	2016-04-21 19:34:59.115933420 +0100
+@@ -29,6 +29,17 @@
+  * POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
++#if defined(_DREX_SOURCE) && defined(_UKERNEL)
++#include <uk/types.h>
++#include <uk/assert.h>
++#include <uk/stdbool.h>
++#include <lib/lib.h>
++#ifdef RBDEBUG
++#define KASSERT(s) assert(s)
++#else
++#define KASSERT(s) do { } while (0)
++#endif
++#else
+ #if !defined(_KERNEL) && !defined(_STANDALONE)
+ #include <sys/types.h>
+ #include <stddef.h>
+@@ -44,6 +55,7 @@
+ #include <lib/libkern/libkern.h>
+ __KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
+ #endif
++#endif /* _DREX_SOURCE && _UKERNEL */
+ 
+ #ifdef _LIBC
+ __weak_alias(rb_tree_init, _rb_tree_init)
+@@ -61,11 +73,15 @@
+ #include "namespace.h"
+ #endif
+ 
++#if defined(_DREX_SOURCE) && defined(_UKERNEL)
++#include <uk/rbtree.h>
++#else
+ #ifdef RBTEST
+ #include "rbtree.h"
+ #else
+ #include <sys/rbtree.h>
+ #endif
++#endif
+ 
+ static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
+ static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
 diff -ru a/include/setjmp.h b/include/setjmp.h
---- a/include/setjmp.h	2016-02-19 11:28:11.090445059 +0000
-+++ b/include/setjmp.h	2016-02-19 11:28:17.140104332 +0000
+--- a/include/setjmp.h	2016-04-21 19:34:52.669800591 +0100
++++ b/include/setjmp.h	2016-04-21 19:34:59.479940709 +0100
 @@ -72,7 +72,7 @@
  #endif /* not ANSI */
  #endif /* __LIBC12_SOURCE__ */
@@ -49,8 +94,8 @@ diff -ru a/include/setjmp.h b/include/setjmp.h
  void	_longjmp(jmp_buf, int) __dead;
  #endif
 diff -ru a/lib/csu/arch/i386/crt0.S b/lib/csu/arch/i386/crt0.S
---- a/lib/csu/arch/i386/crt0.S	2016-02-19 11:28:14.769847076 +0000
-+++ b/lib/csu/arch/i386/crt0.S	2016-02-19 11:28:21.470570819 +0000
+--- a/lib/csu/arch/i386/crt0.S	2016-04-21 19:34:56.986890298 +0100
++++ b/lib/csu/arch/i386/crt0.S	2016-04-21 19:35:03.366017767 +0100
 @@ -37,13 +37,43 @@
  
  #include <machine/asm.h>
@@ -96,8 +141,8 @@ diff -ru a/lib/csu/arch/i386/crt0.S b/lib/csu/arch/i386/crt0.S
 +	int $VECT_SYSC
 +#endif
 diff -ru a/lib/csu/arch/i386/crti.S b/lib/csu/arch/i386/crti.S
---- a/lib/csu/arch/i386/crti.S	2016-02-19 11:28:14.860856985 +0000
-+++ b/lib/csu/arch/i386/crti.S	2016-02-19 11:28:21.590583685 +0000
+--- a/lib/csu/arch/i386/crti.S	2016-04-21 19:34:57.080892216 +0100
++++ b/lib/csu/arch/i386/crti.S	2016-04-21 19:35:03.496020309 +0100
 @@ -37,7 +37,9 @@
  
  RCSID("$NetBSD: crti.S,v 1.1 2010/08/07 18:01:33 joerg Exp $")
@@ -109,8 +154,8 @@ diff -ru a/lib/csu/arch/i386/crti.S b/lib/csu/arch/i386/crti.S
  	.section ".init", "ax", @progbits
  	.align 16
 diff -ru a/lib/csu/common/crt0-common.c b/lib/csu/common/crt0-common.c
---- a/lib/csu/common/crt0-common.c	2016-02-19 11:28:14.997871904 +0000
-+++ b/lib/csu/common/crt0-common.c	2016-02-19 11:28:21.793605449 +0000
+--- a/lib/csu/common/crt0-common.c	2016-04-21 19:34:57.260895885 +0100
++++ b/lib/csu/common/crt0-common.c	2016-04-21 19:35:03.702024339 +0100
 @@ -40,12 +40,21 @@
  
  #include <sys/types.h>
@@ -218,9 +263,18 @@ diff -ru a/lib/csu/common/crt0-common.c b/lib/csu/common/crt0-common.c
  	}
  
 diff -ru a/lib/libc/gen/assert.c b/lib/libc/gen/assert.c
---- a/lib/libc/gen/assert.c	2016-02-19 11:28:14.250790559 +0000
-+++ b/lib/libc/gen/assert.c	2016-02-19 11:28:21.017522253 +0000
-@@ -51,7 +51,11 @@
+--- a/lib/libc/gen/assert.c	2016-04-21 19:34:56.345877155 +0100
++++ b/lib/libc/gen/assert.c	2016-04-21 19:35:02.811006886 +0100
+@@ -44,14 +44,20 @@
+ #include <assert.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#ifndef _DREX_SOURCE
+ #include <syslog.h>
++#endif
+ 
+ void
+ __assert13(const char *file, int line, const char *function,
      const char *failedexpr)
  {
  
@@ -232,7 +286,7 @@ diff -ru a/lib/libc/gen/assert.c b/lib/libc/gen/assert.c
  	    "assertion \"%s\" failed: file \"%s\", line %d%s%s%s\n",
  	    failedexpr, file, line,
  	    function ? ", function \"" : "",
-@@ -119,10 +123,14 @@
+@@ -119,10 +125,14 @@
  	    function ? ", function \"" : "",
  	    function ? function : "",
  	    function ? "\"" : "");
@@ -248,8 +302,8 @@ diff -ru a/lib/libc/gen/assert.c b/lib/libc/gen/assert.c
  		abort();
  }
 diff -ru a/lib/libc/include/env.h b/lib/libc/include/env.h
---- a/lib/libc/include/env.h	2016-02-19 11:28:11.740516315 +0000
-+++ b/lib/libc/include/env.h	2016-02-19 11:28:17.857181890 +0000
+--- a/lib/libc/include/env.h	2016-04-21 19:34:53.656821378 +0100
++++ b/lib/libc/include/env.h	2016-04-21 19:35:00.065952449 +0100
 @@ -56,7 +56,7 @@
  }
  
@@ -260,8 +314,8 @@ diff -ru a/lib/libc/include/env.h b/lib/libc/include/env.h
  	return true;
  }
 diff -ru a/lib/libc/include/reentrant.h b/lib/libc/include/reentrant.h
---- a/lib/libc/include/reentrant.h	2016-02-19 11:28:11.335471917 +0000
-+++ b/lib/libc/include/reentrant.h	2016-02-19 11:28:17.381130401 +0000
+--- a/lib/libc/include/reentrant.h	2016-04-21 19:34:53.216812147 +0100
++++ b/lib/libc/include/reentrant.h	2016-04-21 19:34:59.769946517 +0100
 @@ -1,5 +1,8 @@
  /*	$NetBSD: reentrant.h,v 1.17 2013/04/12 18:12:58 joerg Exp $	*/
  
@@ -338,8 +392,8 @@ diff -ru a/lib/libc/include/reentrant.h b/lib/libc/include/reentrant.h
 +
 +#endif /* __REENTRANT_H_ */
 diff -ru a/lib/libc/misc/initfini.c b/lib/libc/misc/initfini.c
---- a/lib/libc/misc/initfini.c	2016-02-19 11:28:11.486488470 +0000
-+++ b/lib/libc/misc/initfini.c	2016-02-19 11:28:17.541147708 +0000
+--- a/lib/libc/misc/initfini.c	2016-04-21 19:34:53.306814035 +0100
++++ b/lib/libc/misc/initfini.c	2016-04-21 19:34:59.845948039 +0100
 @@ -44,7 +44,9 @@
  void	_libc_init(void) __attribute__((__constructor__, __used__));
  
@@ -362,8 +416,8 @@ diff -ru a/lib/libc/misc/initfini.c b/lib/libc/misc/initfini.c
  	/* Initialize the atexit mutexes */
  	__libc_atexit_init();
 diff -ru a/lib/libc/misc/stack_protector.c b/lib/libc/misc/stack_protector.c
---- a/lib/libc/misc/stack_protector.c	2016-02-19 11:28:11.598500748 +0000
-+++ b/lib/libc/misc/stack_protector.c	2016-02-19 11:28:17.659160472 +0000
+--- a/lib/libc/misc/stack_protector.c	2016-04-21 19:34:53.440816847 +0100
++++ b/lib/libc/misc/stack_protector.c	2016-04-21 19:34:59.916949462 +0100
 @@ -34,14 +34,22 @@
  #include "namespace.h"
  #endif
@@ -430,9 +484,24 @@ diff -ru a/lib/libc/misc/stack_protector.c b/lib/libc/misc/stack_protector.c
  	_exit(127);
  }
  
+diff -ru a/lib/libc/stdlib/exit.c b/lib/libc/stdlib/exit.c
+--- a/lib/libc/stdlib/exit.c	2016-04-21 19:34:53.254812944 +0100
++++ b/lib/libc/stdlib/exit.c	2016-04-21 19:34:59.807947278 +0100
+@@ -39,7 +39,11 @@
+ #endif /* LIBC_SCCS and not lint */
+ 
+ #include <stdlib.h>
++#ifndef _DREX_SOURCE
+ #include <unistd.h>
++#else /* _DREX_SOURCE */
++
++#endif 
+ #ifdef _LIBC
+ #include "reentrant.h"
+ #include "atexit.h"
 diff -ru a/lib/libc/stdlib/simple_malloc.c b/lib/libc/stdlib/simple_malloc.c
---- a/lib/libc/stdlib/simple_malloc.c	2016-02-19 11:28:10.536384214 +0000
-+++ b/lib/libc/stdlib/simple_malloc.c	2016-02-19 11:28:16.603046148 +0000
+--- a/lib/libc/stdlib/simple_malloc.c	2016-04-21 19:34:51.993786246 +0100
++++ b/lib/libc/stdlib/simple_malloc.c	2016-04-21 19:34:58.895929001 +0100
 @@ -1,3 +1,13 @@
 +#ifdef _DREX_SOURCE
 +#include <machine/vmparam.h>
@@ -463,8 +532,8 @@ diff -ru a/lib/libc/stdlib/simple_malloc.c b/lib/libc/stdlib/simple_malloc.c
  
  /*
 diff -ru a/lib/libsa/printf.c b/lib/libsa/printf.c
---- a/lib/libsa/printf.c	2016-02-19 11:28:14.392806023 +0000
-+++ b/lib/libsa/printf.c	2016-02-19 11:28:21.107531902 +0000
+--- a/lib/libsa/printf.c	2016-04-21 19:34:56.500880333 +0100
++++ b/lib/libsa/printf.c	2016-04-21 19:35:02.931009249 +0100
 @@ -35,14 +35,20 @@
  #include <sys/types.h>
  #include <sys/stdarg.h>
@@ -489,8 +558,8 @@ diff -ru a/lib/libsa/printf.c b/lib/libsa/printf.c
 +	return 0;
  }
 diff -ru a/lib/libsa/snprintf.c b/lib/libsa/snprintf.c
---- a/lib/libsa/snprintf.c	2016-02-19 11:28:14.450812339 +0000
-+++ b/lib/libsa/snprintf.c	2016-02-19 11:28:21.146536083 +0000
+--- a/lib/libsa/snprintf.c	2016-04-21 19:34:56.572881809 +0100
++++ b/lib/libsa/snprintf.c	2016-04-21 19:35:03.010010804 +0100
 @@ -35,7 +35,22 @@
  #include <sys/types.h>
  #include <sys/stdarg.h>
@@ -515,8 +584,8 @@ diff -ru a/lib/libsa/snprintf.c b/lib/libsa/snprintf.c
  int
  snprintf(char *buf, size_t size, const char *fmt, ...)
 diff -ru a/lib/libsa/subr_prf.c b/lib/libsa/subr_prf.c
---- a/lib/libsa/subr_prf.c	2016-02-19 11:28:14.415808527 +0000
-+++ b/lib/libsa/subr_prf.c	2016-02-19 11:28:21.120533295 +0000
+--- a/lib/libsa/subr_prf.c	2016-04-21 19:34:56.537881091 +0100
++++ b/lib/libsa/subr_prf.c	2016-04-21 19:35:02.975010116 +0100
 @@ -38,8 +38,22 @@
  #include <sys/cdefs.h>
  #include <sys/types.h>
@@ -560,8 +629,8 @@ diff -ru a/lib/libsa/subr_prf.c b/lib/libsa/subr_prf.c
  
  int
 diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
---- a/sys/i386/include/asm.h	2016-02-19 11:28:09.617283152 +0000
-+++ b/sys/i386/include/asm.h	2016-02-19 11:28:15.629940574 +0000
+--- a/sys/i386/include/asm.h	2016-04-21 19:34:50.855761928 +0100
++++ b/sys/i386/include/asm.h	2016-04-21 19:34:57.941909767 +0100
 @@ -37,9 +37,11 @@
  #ifndef _I386_ASM_H_
  #define _I386_ASM_H_
@@ -575,8 +644,8 @@ diff -ru a/sys/i386/include/asm.h b/sys/i386/include/asm.h
  #ifdef __PIC__
  #define PIC_PROLOGUE	\
 diff -ru a/sys/i386/include/param.h b/sys/i386/include/param.h
---- a/sys/i386/include/param.h	2016-02-19 11:28:10.424371909 +0000
-+++ b/sys/i386/include/param.h	2016-02-19 11:28:16.490033898 +0000
+--- a/sys/i386/include/param.h	2016-04-21 19:34:51.810782341 +0100
++++ b/sys/i386/include/param.h	2016-04-21 19:34:58.855928195 +0100
 @@ -60,7 +60,11 @@
  
  #define ALIGNED_POINTER(p,t)	1
@@ -590,8 +659,8 @@ diff -ru a/sys/i386/include/param.h b/sys/i386/include/param.h
  #define	PGOFSET		(NBPG-1)	/* byte offset into page */
  #define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
 diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
---- a/sys/i386/include/types.h	2016-02-19 11:28:09.773300330 +0000
-+++ b/sys/i386/include/types.h	2016-02-19 11:28:15.872966976 +0000
+--- a/sys/i386/include/types.h	2016-04-21 19:34:51.126767745 +0100
++++ b/sys/i386/include/types.h	2016-04-21 19:34:58.206915120 +0100
 @@ -34,9 +34,12 @@
  #ifndef	_I386_MACHTYPES_H_
  #define	_I386_MACHTYPES_H_
@@ -636,8 +705,8 @@ diff -ru a/sys/i386/include/types.h b/sys/i386/include/types.h
  #if defined(_KERNEL)
  #define	__HAVE_RAS
 diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
---- a/sys/i386/include/vmparam.h	2016-02-19 11:28:09.652287006 +0000
-+++ b/sys/i386/include/vmparam.h	2016-02-19 11:28:15.714949809 +0000
+--- a/sys/i386/include/vmparam.h	2016-04-21 19:34:50.939763740 +0100
++++ b/sys/i386/include/vmparam.h	2016-04-21 19:34:58.017911312 +0100
 @@ -37,8 +37,26 @@
  #ifndef _I386_VMPARAM_H_
  #define _I386_VMPARAM_H_
@@ -723,8 +792,8 @@ diff -ru a/sys/i386/include/vmparam.h b/sys/i386/include/vmparam.h
 +
  #endif /* _I386_VMPARAM_H_ */
 diff -ru a/sys/sys/ansi.h b/sys/sys/ansi.h
---- a/sys/sys/ansi.h	2016-02-19 11:28:09.395258707 +0000
-+++ b/sys/sys/ansi.h	2016-02-19 11:28:15.392914823 +0000
+--- a/sys/sys/ansi.h	2016-04-21 19:34:50.620756857 +0100
++++ b/sys/sys/ansi.h	2016-04-21 19:34:57.758906037 +0100
 @@ -47,6 +47,10 @@
  typedef	__uint64_t	__fsblkcnt_t;	/* fs block count (statvfs) */
  typedef	__uint64_t	__fsfilcnt_t;	/* fs file count */
@@ -737,8 +806,8 @@ diff -ru a/sys/sys/ansi.h b/sys/sys/ansi.h
  typedef struct __tag_wctrans_t *__wctrans_t;
  
 diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
---- a/sys/sys/endian.h	2016-02-19 11:28:09.466266525 +0000
-+++ b/sys/sys/endian.h	2016-02-19 11:28:15.470923298 +0000
+--- a/sys/sys/endian.h	2016-04-21 19:34:50.694758454 +0100
++++ b/sys/sys/endian.h	2016-04-21 19:34:57.841907728 +0100
 @@ -91,7 +91,7 @@
  #endif
  
@@ -749,8 +818,8 @@ diff -ru a/sys/sys/endian.h b/sys/sys/endian.h
   *  Traditional names for byteorder.  These are defined as the numeric
   *  sequences so that third party code can "#define XXX_ENDIAN" and not
 diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
---- a/sys/sys/featuretest.h	2016-02-19 11:28:09.085224567 +0000
-+++ b/sys/sys/featuretest.h	2016-02-19 11:28:15.048877446 +0000
+--- a/sys/sys/featuretest.h	2016-04-21 19:34:50.310750168 +0100
++++ b/sys/sys/featuretest.h	2016-04-21 19:34:57.417899085 +0100
 @@ -66,8 +66,9 @@
  #endif
  
@@ -764,8 +833,8 @@ diff -ru a/sys/sys/featuretest.h b/sys/sys/featuretest.h
  
  #if ((_POSIX_C_SOURCE - 0) >= 199506L || (_XOPEN_SOURCE - 0) >= 500) && \
 diff -ru a/sys/sys/param.h b/sys/sys/param.h
---- a/sys/sys/param.h	2016-02-19 11:28:10.354364218 +0000
-+++ b/sys/sys/param.h	2016-02-19 11:28:16.424026743 +0000
+--- a/sys/sys/param.h	2016-04-21 19:34:51.737780783 +0100
++++ b/sys/sys/param.h	2016-04-21 19:34:58.777926623 +0100
 @@ -158,8 +158,10 @@
  #define	VNODE_COST	2048			/* assumed space in bytes */
  #endif /* _KERNEL */
@@ -778,8 +847,8 @@ diff -ru a/sys/sys/param.h b/sys/sys/param.h
  /* Machine type dependent parameters. */
  #include <machine/param.h>
 diff -ru a/sys/sys/types.h b/sys/sys/types.h
---- a/sys/sys/types.h	2016-02-19 11:28:09.340252651 +0000
-+++ b/sys/sys/types.h	2016-02-19 11:28:15.317906674 +0000
+--- a/sys/sys/types.h	2016-04-21 19:34:50.581756016 +0100
++++ b/sys/sys/types.h	2016-04-21 19:34:57.683904508 +0100
 @@ -97,7 +97,7 @@
  
  #include <machine/endian.h>
@@ -813,8 +882,8 @@ diff -ru a/sys/sys/types.h b/sys/sys/types.h
  
  #define	NBBY			8
 diff -ru a/sys/sys/wait.h b/sys/sys/wait.h
---- a/sys/sys/wait.h	2016-02-19 11:28:14.361802647 +0000
-+++ b/sys/sys/wait.h	2016-02-19 11:28:21.094530508 +0000
+--- a/sys/sys/wait.h	2016-04-21 19:34:56.436879021 +0100
++++ b/sys/sys/wait.h	2016-04-21 19:35:02.887008383 +0100
 @@ -59,7 +59,7 @@
  #define WTERMSIG(x)	(_WSTATUS(x))
  #define WIFEXITED(x)	(_WSTATUS(x) == 0)
@@ -825,8 +894,8 @@ diff -ru a/sys/sys/wait.h b/sys/sys/wait.h
  #define WCOREDUMP(x)	(_W_INT(x) & WCOREFLAG)
  
 diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
---- a/ukern/lib/queue.h	2016-02-19 11:28:10.035329171 +0000
-+++ b/ukern/lib/queue.h	2016-02-19 11:28:16.056986955 +0000
+--- a/ukern/lib/queue.h	2016-04-21 19:34:51.387773315 +0100
++++ b/ukern/lib/queue.h	2016-04-21 19:34:58.465920338 +0100
 @@ -80,6 +80,7 @@
   * For details on the use of these macros, see the queue(3) manual page.
   */
@@ -843,54 +912,9 @@ diff -ru a/ukern/lib/queue.h b/ukern/lib/queue.h
  
  #if defined(QUEUEDEBUG)
  # if defined(_KERNEL)
-diff -ru a/ukern/lib/rb.c b/ukern/lib/rb.c
---- a/ukern/lib/rb.c	2016-02-19 11:28:10.072333236 +0000
-+++ b/ukern/lib/rb.c	2016-02-19 11:28:16.101991834 +0000
-@@ -29,6 +29,17 @@
-  * POSSIBILITY OF SUCH DAMAGE.
-  */
- 
-+#if defined(_DREX_SOURCE) && defined(_UKERNEL)
-+#include <uk/types.h>
-+#include <uk/assert.h>
-+#include <uk/stdbool.h>
-+#include <lib/lib.h>
-+#ifdef RBDEBUG
-+#define KASSERT(s) assert(s)
-+#else
-+#define KASSERT(s) do { } while (0)
-+#endif
-+#else
- #if !defined(_KERNEL) && !defined(_STANDALONE)
- #include <sys/types.h>
- #include <stddef.h>
-@@ -44,6 +55,7 @@
- #include <lib/libkern/libkern.h>
- __KERNEL_RCSID(0, "$NetBSD: rb.c,v 1.11.22.1 2014/08/29 11:32:01 martin Exp $");
- #endif
-+#endif /* _DREX_SOURCE && _UKERNEL */
- 
- #ifdef _LIBC
- __weak_alias(rb_tree_init, _rb_tree_init)
-@@ -61,11 +73,15 @@
- #include "namespace.h"
- #endif
- 
-+#if defined(_DREX_SOURCE) && defined(_UKERNEL)
-+#include <uk/rbtree.h>
-+#else
- #ifdef RBTEST
- #include "rbtree.h"
- #else
- #include <sys/rbtree.h>
- #endif
-+#endif
- 
- static void rb_tree_insert_rebalance(struct rb_tree *, struct rb_node *);
- static void rb_tree_removal_rebalance(struct rb_tree *, struct rb_node *,
 diff -ru a/ukern/lib/rbtree.h b/ukern/lib/rbtree.h
---- a/ukern/lib/rbtree.h	2016-02-19 11:28:09.998325105 +0000
-+++ b/ukern/lib/rbtree.h	2016-02-19 11:28:16.012982185 +0000
+--- a/ukern/lib/rbtree.h	2016-04-21 19:34:51.351772546 +0100
++++ b/ukern/lib/rbtree.h	2016-04-21 19:34:58.425919532 +0100
 @@ -32,6 +32,16 @@
  #ifndef _SYS_RBTREE_H_
  #define	_SYS_RBTREE_H_

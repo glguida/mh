@@ -45,7 +45,9 @@ __RCSID("$NetBSD: assert.c,v 1.17 2012/06/25 22:32:43 abs Exp $");
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _DREX_SOURCE
 #include <syslog.h>
+#endif
 
 void
 __assert13(const char *file, int line, const char *function,
