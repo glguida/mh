@@ -183,6 +183,9 @@ kdoprnt(void (*put)(int), const char *fmt, va_list ap)
 	int width;
 	char *q;
 #endif
+#ifdef LIBSA_PRINTF_PRECISION_SUPPORT
+	int prec;
+#endif
 
 	for (;;) {
 		while ((ch = *fmt++) != '%') {
@@ -193,6 +196,9 @@ kdoprnt(void (*put)(int), const char *fmt, va_list ap)
 		lflag = 0;
 #ifdef LIBSA_PRINTF_WIDTH_SUPPORT
 		width = 0;
+#endif
+#ifdef LIBSA_PRINTF_PRECISION_SUPPORT
+		prec = 0;
 #endif
 reswitch:
 		switch (ch = *fmt++) {
@@ -222,8 +228,20 @@ reswitch:
 					break;
 				++fmt;
 			}
-#endif
 			goto reswitch;
+#endif
+#ifdef LIBSA_PRINTF_PRECISION_SUPPORT
+		case '.':
+			for (;;) {
+				ch = *fmt;
+				if ((unsigned)ch - '0' > 9)
+					break;
+				prec *= 10;
+				prec += ch - '0';
+				++fmt;
+			}
+			goto reswitch;
+#endif
 		case 'l':
 #ifdef LIBSA_PRINTF_LONGLONG_SUPPORT
 			if (*fmt == 'l') {
@@ -266,7 +284,18 @@ reswitch:
 				continue;
 			width -= q - p;
 #endif
+
+			if (prec && ((p + prec) >= q))
+				q = p + prec - 1;
 			LPAD();
+#ifdef LIBSA_PRINTF_PRECISION_SUPPORT
+			if (prec) {
+				while ((ch = (unsigned char)*p++)
+				       && (--prec >= 0))
+					put(ch);
+			} else
+			  /* PASSTHROUGH */
+#endif
 			while ((ch = (unsigned char)*p++))
 				put(ch);
 			RPAD();
@@ -301,6 +330,7 @@ reswitch:
 			put('x');
 #endif
 			/* FALLTHROUGH */
+		case 'X':
 		case 'x':
 			KPRINT(16);
 			break;
