@@ -70,7 +70,6 @@ sys/sys/tls.h sys/sys/tls.h
 lib/libc/include/namespace.h lib/libc/include/namespace.h
 lib/libc/misc/stack_protector.c lib/libc/misc/stack_protector.c
 include/ssp/ssp.h include/ssp/ssp.h
-lib/libc/include/extern.h lib/libc/include/extern.h
 sys/sys/stdarg.h include/stdarg.h
 lib/libc/stdlib/_env.c lib/libc/stdlib/_env.c
 lib/libc/include/env.h lib/libc/include/env.h
