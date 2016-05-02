@@ -85,15 +85,12 @@ static int _pltdev_in(void *devopq, unsigned id, uint64_t port,
 
 	switch (port & PLTPORT_SIZEMASK) {
 	case 1:
-		printf("Byte input %llx\n", port);
 		*val = platform_inb(port >> PLTPORT_SIZESHIFT);
 		break;
 	case 2:
-		printf("Word input %llx\n", port);
 		*val = platform_inw(port >> PLTPORT_SIZESHIFT);
 		break;
 	case 4:
-		printf("Word input %llx\n", port);
 		*val = platform_inl(port >> PLTPORT_SIZESHIFT);
 		break;
 	default:
