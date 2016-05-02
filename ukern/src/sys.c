@@ -344,7 +344,7 @@ static int sys_seteuid(uid_t uid)
 
 static int sys_issetuid(void)
 {
-	return !!current_thread()->setuid;
+	return ! !current_thread()->setuid;
 }
 
 static int sys_setgid(gid_t gid)

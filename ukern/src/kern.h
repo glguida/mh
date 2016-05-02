@@ -64,9 +64,9 @@ struct thread {
 
 	struct thread *parent;
 	lock_t children_lock;
-	LIST_HEAD(, thread) active_children;
-	LIST_HEAD(, thread) zombie_children;
-	LIST_ENTRY(thread) child_list;
+	 LIST_HEAD(, thread) active_children;
+	 LIST_HEAD(, thread) zombie_children;
+	 LIST_ENTRY(thread) child_list;
 	int exit_status;
 
 	pid_t pid;
@@ -87,12 +87,12 @@ struct thread {
 	u_long softintrs;
 	uint16_t status;
 	unsigned cpu;
-	TAILQ_ENTRY(thread) sched_list;
+	 TAILQ_ENTRY(thread) sched_list;
 };
 
 struct cpu {
 	struct thread *idle_thread;
-	TAILQ_HEAD(, thread) resched;
+	 TAILQ_HEAD(, thread) resched;
 	uint64_t softirq;
 
 	unsigned usrpgfault;

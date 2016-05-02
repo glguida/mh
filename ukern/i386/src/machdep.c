@@ -296,7 +296,8 @@ void usrframe_signal(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 void usrframe_extint(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		     uint32_t fl, unsigned xcpt, uint64_t sigs)
 {
-	usrframe_signal(f, ip, sp, fl, xcpt, sigs >> 32, sigs & 0xffffffff);
+	usrframe_signal(f, ip, sp, fl, xcpt, sigs >> 32,
+			sigs & 0xffffffff);
 }
 
 void usrframe_setret(struct usrframe *f, unsigned long r)

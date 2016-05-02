@@ -221,6 +221,7 @@ static int acpi_madt_scan(void)
 	lapic_platform_done();
 	ioapic_platform_done();
 	gsi_setup_done();
+
 	return 0;
 }
 #endif				/* MACHINE=i386 */
@@ -234,8 +235,6 @@ int acpi_init(void)
 		printf("ACPICA table init failed.\n");
 		return -1;
 	}
-
-
 	r = AcpiGetTable("APIC", 1, (ACPI_TABLE_HEADER **) & acpi_madt);
 	if (r != AE_OK) {
 		printf("APCICA MADT table retrieve failed.\n");

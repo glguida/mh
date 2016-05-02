@@ -101,7 +101,7 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 	return 0;
 }
 
-int __getperm(struct thread *th,uid_t uid, gid_t gid, mode_t mode)
+int __getperm(struct thread *th, uid_t uid, gid_t gid, mode_t mode)
 {
 	int perm;
 
@@ -117,20 +117,18 @@ int __getperm(struct thread *th,uid_t uid, gid_t gid, mode_t mode)
 	return perm;
 }
 
-static pid_t
-getnewpid(void)
+static pid_t getnewpid(void)
 {
 	static pid_t ret, pid = 0;
 
 	ret = pid++;
 
 	/* XXX: Okay, this is not serious. This is a hack. A bad one. */
-	assert (pid != 0);
+	assert(pid != 0);
 	return ret;
 }
 
-static void
-releasepid(pid_t pid)
+static void releasepid(pid_t pid)
 {
 }
 
@@ -477,8 +475,7 @@ __dead void __exit(int status)
 	struct thread *child, *tmp;
 
 	if (th->parent == NULL) {
-		panic("Killed System Process %d\nAye!\n",
-		      th->pid);
+		panic("Killed System Process %d\nAye!\n", th->pid);
 	}
 
 	/* In the future, remove shared mapping mechanisms before
@@ -508,7 +505,7 @@ __dead void __exit(int status)
 	}
 	spinunlock(&th->children_lock);
 	thraise(__kern_init, INTR_CHILD);
-	
+
 	th->exit_status = status;
 	schedule(THST_ZOMBIE);
 }
