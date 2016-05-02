@@ -2,4 +2,4 @@ exts/acpica
 *~
 dist/*
 *.a
-*/.objdir/*
+.objdir
