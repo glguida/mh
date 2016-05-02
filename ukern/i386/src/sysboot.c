@@ -71,6 +71,7 @@ void serial_putc(int c)
 #ifdef SERIAL_PUTC
 __decl_alias(_boot_putcinit, serial_init);
 __decl_alias(_boot_putc, serial_putc);
+__decl_alias(_boot_sysputc, serial_putc);
 #endif
 
 void platform_init(void)
