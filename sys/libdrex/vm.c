@@ -41,14 +41,14 @@
 
 extern lwt_t *lwt_current;
 extern void framedump(struct intframe *f);
-void framelongjmp(struct intframe *f, jmp_buf *jb);
+void framelongjmp(struct intframe *f, jmp_buf * jb);
 
 extern void _scode __asm("_scode");
 extern void _ecode __asm("_ecode");
 extern void _sdata __asm("_sdata");
 extern void _end __asm("_end");
 
-#define VACOW (1L*1024*1024*1024) /* XXX: MUST BE ALLOCATED! */
+#define VACOW (1L*1024*1024*1024)	/* XXX: MUST BE ALLOCATED! */
 #define VM_PROT_PASSTHROUGH -1
 
 static const void *maxbrk = (void *) (1LL * 1024 * 1024 * 1024);
@@ -84,14 +84,14 @@ static vm_prot_t _resolve_va(vaddr_t va)
 		return VM_PROT_NIL;
 	}
 
-	if (va >= (USRSTACK-MAXSSIZ) && va <= USRSTACK) {
+	if (va >= (USRSTACK - MAXSSIZ) && va <= USRSTACK) {
 		/* Stack */
 		return VM_PROT_RW;
 	}
 
 	/* Search for mmap areas */
 	vmap_info(va, &vastart, &vasize, &vatype);
-	switch(vatype) {
+	switch (vatype) {
 	case VFNT_RODATA:
 		return VM_PROT_RO;
 	case VFNT_RWDATA:
@@ -141,11 +141,11 @@ void *drex_mmap(void *addr, size_t len, int prot,
 	if (!prot)
 		return MAP_FAILED;
 
-	switch (prot & (PROT_EXEC|PROT_WRITE)) {
+	switch (prot & (PROT_EXEC | PROT_WRITE)) {
 	case PROT_EXEC:
 		type = VFNT_EXEC;
 		break;
-	case PROT_EXEC|PROT_WRITE:
+	case PROT_EXEC | PROT_WRITE:
 		type = VFNT_WREXEC;
 		break;
 	case PROT_WRITE:
@@ -159,25 +159,23 @@ void *drex_mmap(void *addr, size_t len, int prot,
 	if (va == 0)
 		return MAP_FAILED;
 	else
-		return (void *)va;
+		return (void *) va;
 }
 
-int drex_munmap(void*addr, size_t len)
+int drex_munmap(void *addr, size_t len)
 {
 	size_t i;
 	vaddr_t start;
 	size_t size;
 	uint8_t type;
 
-	vmap_info((vaddr_t)addr, &start, &size, &type);
+	vmap_info((vaddr_t) addr, &start, &size, &type);
 
 	if ((type == VFNT_FREE) || (type == VFNT_INVALID))
 		return -EINVAL;
 
-	if ((vaddr_t)addr != start
-	    || (vaddr_t)len != size) {
-		printf("Trying to unmap (%p:%d) of VMA (%p:%d). Unsupported\n",
-		       addr, len, (void *)start, size);
+	if ((vaddr_t) addr != start || (vaddr_t) len != size) {
+		printf("Trying to unmap (%p:%d) of VMA (%p:%d). Unsupported\n", addr, len, (void *) start, size);
 
 		return -ENOSYS;
 	}
@@ -194,18 +192,13 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	vm_prot_t prot = _resolve_va(va);
 	unsigned reason = err & PG_ERR_REASON_MASK;
 
-	printf("Exception handler, pagefault at addr %lx (%lx)!\n", va,
-	       err);
-	printf("Should be %d\n", prot);
-	framedump(f);
-
 	if (prot == VM_PROT_PASSTHROUGH
 	    && lwt_current != NULL
 	    && (membar_consumer(), lwt_current->flags & LWTF_XCPT)) {
 		framelongjmp(f, &lwt_current->xcptbuf);
 		return 0;
 	}
-	
+
 	if (prot == VM_PROT_NIL) {
 		printf("Segmentation fault, should be handled\n");
 		framedump(f);
@@ -242,7 +235,7 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	sys_die(-3);
 }
 
-static void __attribute__((constructor))
-_vm_init(void)
+static void __attribute__ ((constructor))
+	_vm_init(void)
 {
 }

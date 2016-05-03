@@ -244,4 +244,3 @@ vmap_info(vaddr_t va, vaddr_t * startp, size_t * sizep, uint8_t * typep)
 	if (typep)
 		*typep = type;
 }
-
