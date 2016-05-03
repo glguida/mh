@@ -197,17 +197,15 @@ void AcpiOsUnmapMemory(void *ptr, ACPI_SIZE len)
 void *AcpiOsAllocate(ACPI_SIZE size)
 {
 	void *ptr;
-	dbgprintf("(%s called.)\n", __FUNCTION__);
+
 	ptr = malloc(size);
 	memset(ptr, 0, size);
-	dbgprintf("%s(%d) = %p\n", __FUNCTION__, size, ptr);
 	return ptr;
 }
 
 void AcpiOsFree(void *ptr)
 {
 
-	dbgprintf("%s(%p)\n", __FUNCTION__, ptr);
 	free(ptr);
 }
 
@@ -294,7 +292,6 @@ ACPI_STATUS
 AcpiOsWaitSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units, UINT16 Timeout)
 {
 
-	dbgprintf("%s called\n", __FUNCTION__);
 	return AE_OK;
 }
 #endif
@@ -303,7 +300,6 @@ AcpiOsWaitSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units, UINT16 Timeout)
 ACPI_STATUS AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
 {
 
-	dbgprintf("%s called\n", __FUNCTION__);
 	return AE_OK;
 }
 #endif
@@ -332,7 +328,6 @@ void AcpiOsDeleteLock(ACPI_SPINLOCK Handle)
 ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 {
 
-	dbgprintf("%s called\n", __FUNCTION__);
 	return 0;
 }
 #endif
@@ -341,7 +336,6 @@ ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 void AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags)
 {
 
-	dbgprintf("%s called\n", __FUNCTION__);
 }
 #endif
 
@@ -503,7 +497,6 @@ ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info)
 ACPI_THREAD_ID AcpiOsGetThreadId(void)
 {
 
-	dbgprintf("%s called\n", __FUNCTION__);
 	return 1;
 }
 #endif
