@@ -130,7 +130,6 @@ int sys_iomap(unsigned ddno, u_long va, unsigned mmiopfn)
 {
 	int ret;
 
-	printf("iomapping %lx %lx!\n", mmiopfn, va);
 	__syscall3(SYS_IOMAP, (unsigned long) ddno, (unsigned long) va,
 		   (unsigned long) mmiopfn, ret);
 	return ret;
@@ -140,7 +139,6 @@ int sys_iounmap(unsigned ddno, u_long va)
 {
 	int ret;
 
-	printf("iounmapping %lx!\n", va);
 	__syscall2(SYS_IOUNMAP, (unsigned long) ddno, (unsigned long) va,
 		   ret);
 	return ret;
