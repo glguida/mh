@@ -56,7 +56,7 @@
 #define	LONG_MIN	(-0x7fffffffL-1)	/* min value for a long */
 
 #if defined(_POSIX_C_SOURCE) || defined(_XOPEN_SOURCE) || \
-    defined(_NETBSD_SOURCE)
+   defined(_NETBSD_SOURCE) || defined(_DREX_SOURCE)
 #define	SSIZE_MAX	INT_MAX		/* max value for a ssize_t */
 
 #if defined(_ISOC99_SOURCE) || (__STDC_VERSION__ - 0) >= 199901L || \
