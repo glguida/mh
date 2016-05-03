@@ -30,6 +30,8 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +__strong_alias(AcpiOsPrintf, printf);
 +__strong_alias(AcpiOsVprintf, vprintf);
 +
++#define ACPI_DEBUG_OUTPUT
++
 +#endif /* _UKERNEL */
 +
 +#endif

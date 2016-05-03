@@ -32,12 +32,36 @@
 #include <machine/vmparam.h>
 #include <stdlib.h>
 #include <microkernel.h>
+#include <drex/drex.h>
 #include <drex/vmap.h>
+#include <sys/queue.h>
 #include "acpi.h"
 
+#if 1
 #define dbgprintf(...) printf(__VA_ARGS__)
+#else
+#define dbgprintf(...)
+#endif
+
 ACPI_PHYSICAL_ADDRESS acpi_rdsp = -1;
 static int acpi_pltfd = -1;
+
+struct acpi_intr {
+	ACPI_OSD_HANDLER hdlr;
+	void *ctx;
+	 SLIST_ENTRY(acpi_entry) list;
+};
+SLIST_HEAD(, acpi_intr) acpi_intrs = SLIST_HEAD_INITIALIZER(&acpi_intrs);
+
+static void acpi_interrupt_handler(int intr, void *opq)
+{
+	uint32_t x;
+	struct acpi_intr *ai = (struct acpi_intr *) opq;
+
+	dbgprintf("ACPI Interrupt handler #%d\n", intr);
+	x = ai->hdlr(ai->ctx);
+	dbgprintf("Handler returned %d\n", x);
+}
 
 #define acpi_init()					\
 	do {						\
@@ -91,8 +115,9 @@ AcpiOsPredefinedOverride(const ACPI_PREDEFINED_NAMES * InitVal,
 			 ACPI_STRING * NewVal)
 {
 
+	*NewVal = NULL;
 	dbgprintf("%s called\n", __FUNCTION__);
-	return AE_NOT_CONFIGURED;
+	return AE_OK;
 }
 #endif
 
@@ -102,8 +127,9 @@ AcpiOsTableOverride(ACPI_TABLE_HEADER * ExistingTable,
 		    ACPI_TABLE_HEADER ** NewTable)
 {
 
+	*NewTable = NULL;
 	dbgprintf("%s called\n", __FUNCTION__);
-	return AE_NO_ACPI_TABLES;
+	return AE_OK;
 }
 #endif
 
@@ -114,8 +140,10 @@ AcpiOsPhysicalTableOverride(ACPI_TABLE_HEADER * ExistingTable,
 			    UINT32 * NewTableLength)
 {
 
+	*NewAddress = NULL;
+	*NewTableLength = 0;
 	dbgprintf("%s called\n", __FUNCTION__);
-	return AE_NO_ACPI_TABLES;
+	return AE_OK;
 }
 #endif
 
@@ -138,17 +166,17 @@ void *AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS pa, ACPI_SIZE len)
 		ret = sys_iomap(acpi_pltfd,
 				va + (i << PAGE_SHIFT),
 				(pa >> PAGE_SHIFT) + i);
-		printf("reg = %d\n", ret);
 		if (ret < 0) {
 			int j;
 			for (j = 0; j < i; j++)
-				sys_iounmap(acpi_pltfd, va + (j << PAGE_SHIFT));
+				sys_iounmap(acpi_pltfd,
+					    va + (j << PAGE_SHIFT));
 			return NULL;
 		}
 	}
 	dbgprintf("%lx = %s(%lx, %ld) called\n", va, __FUNCTION__, pa,
 		  len);
-	return (void *) (uintptr_t) (va + (pa & PAGE_MASK)) ;
+	return (void *) (uintptr_t) (va + (pa & PAGE_MASK));
 }
 
 void AcpiOsUnmapMemory(void *ptr, ACPI_SIZE len)
@@ -158,7 +186,7 @@ void AcpiOsUnmapMemory(void *ptr, ACPI_SIZE len)
 
 	dbgprintf("unmapping %p(%d)\n", ptr, len);
 	acpi_init();
-	va = (vaddr_t)(uintptr_t)ptr;
+	va = (vaddr_t) (uintptr_t) ptr;
 	pages = (len + PAGE_SIZE - 1) >> PAGE_SHIFT;
 	for (i = 0; i < pages; i++)
 		sys_iounmap(acpi_pltfd, va + (i << PAGE_SHIFT));
@@ -169,8 +197,9 @@ void AcpiOsUnmapMemory(void *ptr, ACPI_SIZE len)
 void *AcpiOsAllocate(ACPI_SIZE size)
 {
 	void *ptr;
-
+	dbgprintf("(%s called.)\n", __FUNCTION__);
 	ptr = malloc(size);
+	memset(ptr, 0, size);
 	dbgprintf("%s(%d) = %p\n", __FUNCTION__, size, ptr);
 	return ptr;
 }
@@ -189,6 +218,8 @@ AcpiOsCreateCache(const char *CacheName,
 		  UINT16 MaxDepth, ACPI_CACHE_T ** ReturnCache)
 {
 
+	dbgprintf("(%s called: %s[%d]\n", __FUNCTION__, CacheName,
+		  ObjectSize);
 	*ReturnCache = (ACPI_CACHE_T *) (uintptr_t) ObjectSize;
 	return AE_OK;
 }
@@ -216,9 +247,12 @@ ACPI_STATUS AcpiOsDeleteCache(ACPI_CACHE_T * Cache)
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsAcquireObject
 void *AcpiOsAcquireObject(ACPI_CACHE_T * Cache)
 {
-	size_t size = (size_t)(uintptr_t)Cache;
+	void *ptr;
+	size_t size = (size_t) (uintptr_t) Cache;
 
-	return malloc(size);
+	ptr = malloc(size);
+	memset(ptr, 0, size);
+	return ptr;
 }
 #endif
 
@@ -241,18 +275,17 @@ AcpiOsCreateSemaphore(UINT32 MaxUnits,
 		      UINT32 InitialUnits, ACPI_SEMAPHORE * OutHandle)
 {
 
-  	dbgprintf("%s called\n", __FUNCTION__);
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+	dbgprintf("%s called\n", __FUNCTION__);
+	return AE_OK;
 }
 #endif
 
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsDeleteSemaphore
 ACPI_STATUS AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+
+	dbgprintf("%s called\n", __FUNCTION__);
+	return AE_OK;
 }
 #endif
 
@@ -260,18 +293,18 @@ ACPI_STATUS AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
 ACPI_STATUS
 AcpiOsWaitSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units, UINT16 Timeout)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+
+	dbgprintf("%s called\n", __FUNCTION__);
+	return AE_OK;
 }
 #endif
 
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsSignalSemaphore
 ACPI_STATUS AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+
+	dbgprintf("%s called\n", __FUNCTION__);
+	return AE_OK;
 }
 #endif
 
@@ -281,7 +314,8 @@ ACPI_STATUS AcpiOsSignalSemaphore(ACPI_SEMAPHORE Handle, UINT32 Units)
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsCreateLock
 ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK * OutHandle)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
+
+	dbgprintf("%s called\n", __FUNCTION__);
 	return AE_OK;
 }
 #endif
@@ -289,14 +323,16 @@ ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK * OutHandle)
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsDeleteLock
 void AcpiOsDeleteLock(ACPI_SPINLOCK Handle)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
+
+	dbgprintf("%s called\n", __FUNCTION__);
 }
 #endif
 
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsAcquireLock
 ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
+
+	dbgprintf("%s called\n", __FUNCTION__);
 	return 0;
 }
 #endif
@@ -304,7 +340,8 @@ ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Handle)
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsReleaseLock
 void AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags)
 {
-  	dbgprintf("%s called\n", __FUNCTION__);
+
+	dbgprintf("%s called\n", __FUNCTION__);
 }
 #endif
 
@@ -318,23 +355,23 @@ AcpiOsReadPort(ACPI_IO_ADDRESS Address, UINT32 * Value, UINT32 Width)
 	unsigned long port;
 	uint64_t val;
 
-	switch(Width) {
-	case 1:
+	switch (Width) {
+	case 8:
 		port = PLTPORT_BYTE(Address);
 		break;
-	case 2:
+	case 16:
 		port = PLTPORT_WORD(Address);
 		break;
-	case 4:
+	case 32:
 		port = PLTPORT_DWORD(Address);
 		break;
 	default:
-	        return AE_ERROR;
+		return AE_ERROR;
 	}
 
 	dbgprintf("%s called\n", __FUNCTION__);
 	sys_in(acpi_pltfd, port, &val);
-	*Value = (uint32_t)val;
+	*Value = (uint32_t) val;
 	return AE_OK;
 }
 #endif
@@ -346,22 +383,22 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address, UINT32 Value, UINT32 Width)
 	unsigned long port;
 	uint64_t val;
 
-	dbgprintf("%s called\n", __FUNCTION__);
-	switch(Width) {
-	case 1:
+	dbgprintf("%s called (%d)\n", __FUNCTION__, Width);
+	switch (Width) {
+	case 8:
 		port = PLTPORT_BYTE(Address);
 		break;
-	case 2:
+	case 16:
 		port = PLTPORT_WORD(Address);
 		break;
-	case 4:
+	case 32:
 		port = PLTPORT_DWORD(Address);
 		break;
 	default:
-	        return AE_ERROR;
+		return AE_ERROR;
 	}
-	
-	sys_out(acpi_pltfd, port, (uint64_t)Value);
+
+	sys_out(acpi_pltfd, port, (uint64_t) Value);
 	return AE_OK;
 }
 #endif
@@ -375,7 +412,7 @@ AcpiOsReadMemory(ACPI_PHYSICAL_ADDRESS Address,
 		 UINT64 * Value, UINT32 Width)
 {
 
-	asm volatile ("ud2\n");
+	dbgprintf("%s called\n", __FUNCTION__);
 	return AE_NO_HANDLER;
 }
 #endif
@@ -386,7 +423,7 @@ AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
 		  UINT64 Value, UINT32 Width)
 {
 
-	asm volatile ("ud2\n");
+	dbgprintf("%s called\n", __FUNCTION__);
 	return AE_NO_HANDLER;
 }
 #endif
@@ -398,13 +435,22 @@ AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
  * certain compilers complain.
  */
 #ifndef ACPI_USE_ALTERNATE_PROTOTYPE_AcpiOsReadPciConfiguration
+#define PCI_CFG_ADDR 0xcf8
+#define PCI_CFG_DATA 0xcfc
 ACPI_STATUS
 AcpiOsReadPciConfiguration(ACPI_PCI_ID * PciId,
 			   UINT32 Reg, UINT64 * Value, UINT32 Width)
 {
+	uint32_t addr = (PciId->Bus << 16)
+		| (PciId->Device << 11)
+		| (PciId->Function << 8)
+		| (Reg << 2);
 
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+	/* enable bit */
+	addr |= 0x80000000;
+	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), (uint64_t) addr);
+	sys_in(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), Value);
+	return AE_OK;
 }
 #endif
 
@@ -413,9 +459,16 @@ ACPI_STATUS
 AcpiOsWritePciConfiguration(ACPI_PCI_ID * PciId,
 			    UINT32 Reg, UINT64 Value, UINT32 Width)
 {
+	uint32_t addr = (PciId->Bus << 16)
+		| (PciId->Device << 11)
+		| (PciId->Function << 8)
+		| (Reg << 2);
 
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+	/* enable bit */
+	addr |= 0x80000000;
+	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), (uint64_t) addr);
+	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), Value);
+	return AE_OK;
 }
 #endif
 
@@ -426,6 +479,7 @@ AcpiOsWritePciConfiguration(ACPI_PCI_ID * PciId,
 UINT64 AcpiOsGetTimer(void)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 	return AE_NO_HANDLER;
 }
@@ -435,6 +489,7 @@ UINT64 AcpiOsGetTimer(void)
 ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 	return AE_NO_HANDLER;
 }
@@ -448,8 +503,8 @@ ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info)
 ACPI_THREAD_ID AcpiOsGetThreadId(void)
 {
 
-	asm volatile ("ud2\n");
-	return 0;
+	dbgprintf("%s called\n", __FUNCTION__);
+	return 1;
 }
 #endif
 
@@ -459,6 +514,7 @@ AcpiOsExecute(ACPI_EXECUTE_TYPE Type,
 	      ACPI_OSD_EXEC_CALLBACK Function, void *Context)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 	return AE_NO_HANDLER;
 }
@@ -468,6 +524,8 @@ AcpiOsExecute(ACPI_EXECUTE_TYPE Type,
 void AcpiOsWaitEventsComplete(void)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
+	asm volatile ("ud2\n");
 	asm volatile ("ud2\n");
 }
 #endif
@@ -476,6 +534,7 @@ void AcpiOsWaitEventsComplete(void)
 void AcpiOsSleep(UINT64 Milliseconds)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 }
 #endif
@@ -484,6 +543,7 @@ void AcpiOsSleep(UINT64 Milliseconds)
 void AcpiOsStall(UINT32 Microseconds)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 }
 #endif
@@ -497,9 +557,27 @@ AcpiOsInstallInterruptHandler(UINT32 InterruptNumber,
 			      ACPI_OSD_HANDLER ServiceRoutine,
 			      void *Context)
 {
+	struct acpi_intr *ai;
+	int intr, rc;
 
-	asm volatile ("ud2\n");
-	return AE_NO_HANDLER;
+	dbgprintf("%s called\n", __FUNCTION__);
+	ai = malloc(sizeof(*ai));
+	if (ai == NULL)
+		return AE_NO_MEMORY;
+
+	intr = intalloc();
+	rc = sys_mapirq(acpi_pltfd, InterruptNumber, intr);
+	if (rc != 0) {
+		free(ai);
+		intfree(intr);
+		return AE_NOT_ACQUIRED;
+	}
+
+	ai->hdlr = ServiceRoutine;
+	ai->ctx = Context;
+	SLIST_INSERT_HEAD(&acpi_intrs, ai, list);
+	inthandler(intr, acpi_interrupt_handler, ai);
+	return AE_OK;
 }
 #endif
 
@@ -509,6 +587,7 @@ AcpiOsRemoveInterruptHandler(UINT32 InterruptNumber,
 			     ACPI_OSD_HANDLER ServiceRoutine)
 {
 
+	dbgprintf("%s called\n", __FUNCTION__);
 	asm volatile ("ud2\n");
 	return AE_NO_HANDLER;
 }
