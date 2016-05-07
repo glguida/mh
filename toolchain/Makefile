@@ -1,5 +1,6 @@
 SRCROOT=..
 MKDIR=$(SRCROOT)/mk
+MK_CONF_NO_RULES_MK_INCLUDE=y
 include $(MKDIR)/mk.conf
 
 FTP?=ftp
@@ -18,9 +19,11 @@ GCC= gcc-6.1.0
 
 EXTS += $(BINUTILS) $(GMP) $(MPFR) $(MPC) $(GCC)
 
-.PHONY: gmp mpfr mpc binutils gcc populate
+.PHONY: gmp mpfr mpc binutils gcc populate help
 ALL_TARGET+= binutils gcc
 
+help:
+	@echo "Run 'make populate' to download toolchain, 'make all' to compile."
 populate:
 	(cd $(EXTSDIR); \
 	$(FTP) ftp.gnu.org:/pub/gnu/gmp/$(GMP).tar.bz2; \
@@ -35,8 +38,7 @@ gmp:
 		cd $(TOOLBUILDDIR)/gmp; 		\
 		$(PWD)/$(EXTSDIR)/$(GMP)/configure 	\
 			--prefix $(TOOLPREFIXDIR) 	\
-			--with-gnu-ld			\
-			--target=$(BUILD_TARGET);	\
+			--with-gnu-ld;			\
 		$(MAKE) install 			\
 	)
 
