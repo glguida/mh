@@ -165,8 +165,8 @@ void cpu_wakeup_aps(void)
 		       (size_t) & _ap_end - (size_t) & _ap_start);
 
 		/* Setup Warm Reset Vector */
-		*(uint16_t *) (UKERNBASE + 0x467) = UKERN_APBOOT(i) & 0xf;
-		*(uint16_t *) (UKERNBASE + 0x469) = UKERN_APBOOT(i) >> 4;
+		*(volatile uint16_t *) (UKERNBASE + 0x467) = UKERN_APBOOT(i) & 0xf;
+		*(volatile uint16_t *) (UKERNBASE + 0x469) = UKERN_APBOOT(i) >> 4;
 
 		/* INIT-SIPI-SIPI sequence. */
 		lapic_ipi(cpu->phys_id, APIC_DLVR_INIT, 0);

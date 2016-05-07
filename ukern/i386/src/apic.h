@@ -79,7 +79,7 @@ void lapic_configure(void);
 static inline void lapic_write(unsigned reg, uint32_t data)
 {
 
-	*((uint32_t *) (lapic_base + reg)) = data;
+	*((volatile uint32_t *) (lapic_base + reg)) = data;
 }
 
 static inline uint32_t lapic_read(unsigned reg)
