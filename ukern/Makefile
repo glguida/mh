@@ -7,7 +7,6 @@ include $(SRCROOT)/common/lib/libc/Makefile.inc
 #include $(MKDIR)/rules.mk
 
 OBJDIR=$(SRCROOT)/ukern/.objs
-OBJCOPY?=objcopy
 
 include ukern.config
 include $(MACHINE)/Makefile.inc
