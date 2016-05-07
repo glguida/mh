@@ -11,7 +11,6 @@ EXTS += acpica
 include $(MAKEDIR)/ukern.mk
 
 LIBNAME=kacpica
-NOINST=y
 
 SRCS+= acpi.c acpios.c
 VPATH+= $(SRCROOT)/acpica
@@ -75,6 +74,6 @@ UKINCS= acpica.h
 include $(MAKEDIR)/ukinc.mk
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/exts.mk
-include $(MAKEDIR)/lib.mk
+include $(MAKEDIR)/klib.mk
 include $(MAKEDIR)/def.mk
 

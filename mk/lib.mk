@@ -2,9 +2,12 @@
 ALL_TARGET+= install_lib$(LIBNAME)
 CLEAN_TARGET+= clean_lib$(LIBNAME)
 
+include $(MKDIR)/sysflags.mk
+
 lib$(LIBNAME).a: $(OBJS)
 ifneq ($(OBJS)z,z)
 	$(AR) r $@ $(OBJS)
+	$(RANLIB) $@
 endif
 
 install_lib$(LIBNAME): lib$(LIBNAME).a $(EXTOBJS)

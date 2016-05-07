@@ -1,5 +1,3 @@
-INSTALLDIR=$(SRCROOT)/dist
-
 ifeq ($(MACHINE),i386)
 TOOLCHAINTARGET=i686-elf
 endif
@@ -19,10 +17,8 @@ INSTALLINCDIR= $(INSTALLDIR)/usr/include
 INSTALLUKINCDIR= $(INSTALLDIR)/usr/include/microkernel
 
 CFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
-	-fno-builtin -nostdinc -nostdlib -Wall \
 	-D_DREX_MACHINE=$(MACHINE)
-ASFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include \
-	-fno-builtin -nostdinc -nostdlib -Wall -D_ASSEMBLER \
+ASFLAGS+= -D_DREX_SOURCE -I$(INSTALLDIR)/usr/include -D_ASSEMBLER \
 	-D_DREX_MACHINE=$(MACHINE)
 
 CFLAGS+= -fno-strict-aliasing -fno-delete-null-pointer-checks

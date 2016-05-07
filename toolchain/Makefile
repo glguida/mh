@@ -15,6 +15,8 @@ BINUTILS= binutils-2.26
 GMP= gmp-6.1.0
 MPC= mpc-1.0.3
 MPFR= mpfr-3.1.4
+
+# If you change GCC version, be sure to change the path to libgcc in mk/
 GCC= gcc-6.1.0
 
 EXTS += $(BINUTILS) $(GMP) $(MPFR) $(MPC) $(GCC)
@@ -24,6 +26,9 @@ ALL_TARGET+= binutils gcc
 
 help:
 	@echo "Run 'make populate' to download toolchain, 'make all' to compile."
+	@echo "Be sure to run 'make includes' in the main source directory"
+	@echo "before compiling GCC."
+
 populate:
 	(cd $(EXTSDIR); \
 	$(FTP) ftp.gnu.org:/pub/gnu/gmp/$(GMP).tar.bz2; \
@@ -76,6 +81,8 @@ binutils: gmp mpfr mpc
 			--with-gnu-ld			\
 			--target=$(BUILD_TARGET)	\
 			--without-isl			\
+			--with-headers=$(PWD)/$(INSTALLDIR)/usr/include \
+			--without-libs			\
 			--with-gmp=$(TOOLPREFIXDIR) 	\
 			--with-mpfr=$(TOOLPREFIXDIR)	\
 			--with-mpc=$(TOOLPREFIXDIR);	\
@@ -91,6 +98,11 @@ gcc: binutils gmp mpfr mpc
 			--prefix $(TOOLPREFIXDIR) 	\
 			--with-gnu-ld			\
 			--target=$(BUILD_TARGET)	\
+			--enable-languages=c		\
+			--disable-libssp		\
+			--disable-libquadmath		\
+			--with-headers=$(PWD)/$(INSTALLDIR)/usr/include \
+			--without-libs			\
 			--with-gmp=$(TOOLPREFIXDIR) 	\
 			--with-mpfr=$(TOOLPREFIXDIR)	\
 			--with-mpc=$(TOOLPREFIXDIR);	\
