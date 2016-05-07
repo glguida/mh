@@ -30,6 +30,9 @@
 #ifndef __uk_locks_h
 #define __uk_locks_h
 
-#include <machine/uk/locks.h>
+#include <uk/types.h>
+
+void spinlock(lock_t * l);
+void spinunlock(lock_t * l);
 
 #endif
