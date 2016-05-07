@@ -7,10 +7,10 @@ INSTALL_TARGET+= install_$(PROGNAME)
 CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include
 CFLAGS+= -T $(SRCROOT)/mk/elf_i386.ld
 ASFLAGS+= -isystem $(INSTALLDIR)/usr/include
-LDFLAGS+= -B $(INSTALLDIR)/lib -B $(INSTALLDIR)/usr/lib
+LDFLAGS+= -B$(INSTALLDIR)/lib -B$(INSTALLDIR)/usr/lib
 
 # System programs specific flags
-LDFLAGS+= -L $(INSTALLDIR)/lib/sys
+LDFLAGS+= -L$(INSTALLDIR)/lib
 CRT0= $(INSTALLDIR)/lib/crti.o \
 	$(INSTALLDIR)/lib/crtbegin.o \
 	$(INSTALLDIR)/lib/crt0.o

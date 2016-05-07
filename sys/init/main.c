@@ -90,7 +90,7 @@ int main()
 		goto child;
 	if (sys_fork() == 0)
 		goto child;
-	inthandler(INTR_CHILD, do_child);
+	inthandler(INTR_CHILD, do_child, NULL);
 	lwt_sleep();
  child1:
 	if (sys_fork())

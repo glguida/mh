@@ -11,11 +11,11 @@ endif
 
 ifneq ($(INCS)z,z)
 ALL_TARGET+= incs
-incs:
+incs: incdir
 	install -m 0644 ${INCS} ${INSTALLINCDIR}/${INCDIR}/ 
 else
 incs:
 endif
 
-includes:
+includes: incs
 	for dir in $(INCSUBDIRS); do $(MAKE) -C $$dir includes incdir incs; done

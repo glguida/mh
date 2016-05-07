@@ -1,3 +1,16 @@
+diff -Nru acpica.dist/include/acutils.h acpica/include/acutils.h
+--- acpica.dist/include/acutils.h	2013-12-27 10:50:57.000000000 -0800
++++ acpica/include/acutils.h	2016-05-06 02:22:48.000000000 -0700
+@@ -50,7 +50,8 @@
+ 
+ /* Strings used by the disassembler and debugger resource dump routines */
+ 
+-#if defined(ACPI_DISASSEMBLER) || defined (ACPI_DEBUGGER)
++#if defined(ACPI_DISASSEMBLER) || defined (ACPI_DEBUGGER) \
++	|| defined (ACPI_DEBUG_OUTPUT)
+ 
+ extern const char                       *AcpiGbl_BmDecode[];
+ extern const char                       *AcpiGbl_ConfigDecode[];
 diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 --- acpica.dist/include/platform/acdrex.h	1970-01-01 01:00:00.000000000 +0100
 +++ acpica/include/platform/acdrex.h	2014-09-08 00:40:32.000000000 +0100
@@ -36,8 +49,8 @@ diff -Nru acpica.dist/include/platform/acdrex.h acpica/include/platform/acdrex.h
 +
 +#endif
 diff -Nru acpica.dist/include/platform/acenv.h acpica/include/platform/acenv.h
---- acpica.dist/include/platform/acenv.h	2013-12-27 18:46:13.000000000 +0000
-+++ acpica/include/platform/acenv.h	2014-09-08 00:38:01.000000000 +0100
+--- acpica.dist/include/platform/acenv.h	2013-12-27 10:46:13.000000000 -0800
++++ acpica/include/platform/acenv.h	2016-05-06 02:20:39.000000000 -0700
 @@ -146,7 +146,10 @@
   *
   *****************************************************************************/
