@@ -1,0 +1,129 @@
+diff -Nru binutils-2.26.dist/bfd/config.bfd binutils-2.26/bfd/config.bfd
+--- binutils-2.26.dist/bfd/config.bfd	2016-05-08 13:19:48.229532397 +0100
++++ binutils-2.26/bfd/config.bfd	2016-05-08 14:35:20.006793398 +0100
+@@ -659,6 +659,10 @@
+     targ64_selvecs="x86_64_elf64_nacl_vec x86_64_elf32_nacl_vec"
+     targ_archs="$targ_archs bfd_arm_arch"
+     ;;
++  i[3-7]86-*-murgia*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=i386_elf32_vec
++    ;;
+ #ifdef BFD64
+   x86_64-*-cloudabi*)
+     targ_defvec=x86_64_elf64_cloudabi_vec
+diff -Nru binutils-2.26.dist/config.sub binutils-2.26/config.sub
+--- binutils-2.26.dist/config.sub	2016-05-08 13:19:49.588532475 +0100
++++ binutils-2.26/config.sub	2016-05-08 14:35:20.061793401 +0100
+@@ -2,7 +2,7 @@
+ # Configuration validation subroutine script.
+ #   Copyright 1992-2015 Free Software Foundation, Inc.
+ 
+-timestamp='2015-07-28'
++timestamp='2016-05-08'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by
+@@ -1396,7 +1396,7 @@
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+ 	      | -storm-chaos* | -tops10* | -tenex* | -tops20* | -its* \
+-	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
++	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* | -murgia* \
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+ 	      | -powermax* | -dnix* | -nx6 | -nx7 | -sei* | -dragonfly* \
+ 	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops* | -es* | -tirtos*)
+diff -Nru binutils-2.26.dist/gas/configure.tgt binutils-2.26/gas/configure.tgt
+--- binutils-2.26.dist/gas/configure.tgt	2016-05-08 13:20:06.514533450 +0100
++++ binutils-2.26/gas/configure.tgt	2016-05-08 14:35:20.065793401 +0100
+@@ -282,6 +282,7 @@
+   i386-*-*nt*)				fmt=coff em=pe ;;
+   i386-*-chaos)				fmt=elf ;;
+   i386-*-rdos*)				fmt=elf ;;
++  i386-*-murgia*) 			fmt=elf ;;
+   i386-*-darwin*)			fmt=macho ;;
+ 
+   i860-*-*)				fmt=elf endian=little ;;
+diff -Nru binutils-2.26.dist/ld/Makefile.am binutils-2.26/ld/Makefile.am
+--- binutils-2.26.dist/ld/Makefile.am	2016-05-08 13:20:12.030533768 +0100
++++ binutils-2.26/ld/Makefile.am	2016-05-08 14:39:12.676806798 +0100
+@@ -330,6 +330,7 @@
+ 	ei386mach.c \
+ 	ei386moss.c \
+ 	ei386msdos.c \
++	ei386murgia.c \
+ 	ei386nbsd.c \
+ 	ei386nto.c \
+ 	ei386nw.c \
+@@ -1465,6 +1466,9 @@
+ ei386msdos.c: $(srcdir)/emulparams/i386msdos.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/i386msdos.sc ${GEN_DEPENDS}
+ 
++ei386murgia.c: $(srcdir)/emulparams/i386murgia.sh \
++  $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
+ ei386nbsd.c:	$(srcdir)/emulparams/i386nbsd.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
+ 
+diff -Nru binutils-2.26.dist/ld/Makefile.in binutils-2.26/ld/Makefile.in
+--- binutils-2.26.dist/ld/Makefile.in	2016-05-08 13:20:11.909533761 +0100
++++ binutils-2.26/ld/Makefile.in	2016-05-08 14:38:27.078804172 +0100
+@@ -660,6 +660,7 @@
+ 	ei386mach.c \
+ 	ei386moss.c \
+ 	ei386msdos.c \
++	ei386murgia.c \
+ 	ei386nbsd.c \
+ 	ei386nto.c \
+ 	ei386nw.c \
+@@ -1343,6 +1344,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386mach.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386moss.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386msdos.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386murgia.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386nbsd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386nto.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386nw.Po@am__quote@
+@@ -2971,6 +2973,9 @@
+ ei386msdos.c: $(srcdir)/emulparams/i386msdos.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/i386msdos.sc ${GEN_DEPENDS}
+ 
++ei386murgia.c: $(srcdir)/emulparams/i386murgia.sh \
++  $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS} 
++
+ ei386nbsd.c:	$(srcdir)/emulparams/i386nbsd.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
+ 
+diff -Nru binutils-2.26.dist/ld/configure.tgt binutils-2.26/ld/configure.tgt
+--- binutils-2.26.dist/ld/configure.tgt	2016-05-08 13:20:11.335533728 +0100
++++ binutils-2.26/ld/configure.tgt	2016-05-08 14:35:20.077793402 +0100
+@@ -231,6 +231,8 @@
+ i[3-7]86-*-sco*)	targ_emul=i386coff ;;
+ i[3-7]86-*-isc*)	targ_emul=i386coff ;;
+ i[3-7]86-*-lynxos*)	targ_emul=i386lynx ;;
++i[3-6]86-*-murgia*)	targ_emul=i386murgia 
++			targ_extra_emul=elf_i386 ;;
+ i[3-7]86-*-coff)	targ_emul=i386coff ;;
+ i[3-7]86-*-rtems*)	targ_emul=elf_i386
+ 			targ_extra_emuls=elf_iamcu ;;
+diff -Nru binutils-2.26.dist/ld/emulparams/i386murgia.sh binutils-2.26/ld/emulparams/i386murgia.sh
+--- binutils-2.26.dist/ld/emulparams/i386murgia.sh	1970-01-01 01:00:00.000000000 +0100
++++ binutils-2.26/ld/emulparams/i386murgia.sh	2016-05-08 14:52:35.708853048 +0100
+@@ -0,0 +1,17 @@
++. ${srcdir}/emulparams/elf_i386.sh
++TEXT_START_ADDR=0x400000
++
++MAXPAGESIZE=0x200000
++COMMONPAGESIZE=0x200000
++
++OTHER_READWRITE_SECTIONS='.zcow 0x200000 : { *(.zcow) }'
++
++TEXT_START_SYMBOLS='PROVIDE (_scode = .);'
++OTHER_READONLY_SECTIONS="${RELOCATING+PROVIDE (_ecode = .);}"
++
++DATA_START_SYMBOLS='PROVIDE (_sdata = .);'
++OTHER_SDATA_SECTIONS="${RELOCATING+PROVIDE (_edata = .);}"
++
++OTHER_BSS_SYMBOLS='PROVIDE (_sbss = .);'
++OTHER_BSS_END_SYMBOLS='PROVIDE (_ebss = .);'
++OTHER_SYMBOLS='PROVIDE(_end = .);'

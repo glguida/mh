@@ -1,5 +1,5 @@
 ifeq ($(MACHINE),i386)
-TOOLCHAINTARGET=i686-elf
+TOOLCHAINTARGET=i686-elf-murgia
 endif
 
 TOOLCHAINBIN= $(SRCROOT)/toolchain/install/bin
