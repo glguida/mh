@@ -31,7 +31,7 @@
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <machine/uk/machdep.h>
-#include <machine/uk/locks.h>
+#include <uk/locks.h>
 #include <uk/kern.h>
 #include <lib/lib.h>
 

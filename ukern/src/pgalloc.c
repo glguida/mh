@@ -30,7 +30,7 @@
 #include <uk/types.h>
 #include <uk/queue.h>
 #include <uk/param.h>
-#include <machine/uk/locks.h>
+#include <uk/locks.h>
 #include <uk/pgalloc.h>
 #include <uk/pfndb.h>
 

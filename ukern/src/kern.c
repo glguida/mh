@@ -30,6 +30,7 @@
 #include <uk/types.h>
 #include <uk/param.h>
 #include <uk/elf.h>
+#include <uk/locks.h>
 #include <uk/pfndb.h>
 #include <uk/fixmems.h>
 #include <uk/heap.h>
@@ -37,7 +38,6 @@
 #include <uk/structs.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
-#include <machine/uk/locks.h>
 #include <machine/uk/machdep.h>
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>

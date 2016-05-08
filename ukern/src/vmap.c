@@ -32,7 +32,7 @@
 #include <uk/assert.h>
 #include <uk/param.h>
 #include <machine/uk/pmap.h>
-#include <machine/uk/locks.h>
+#include <uk/locks.h>
 #include <uk/structs.h>
 #include <uk/vmap.h>
 #include <lib/lib.h>
