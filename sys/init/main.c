@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <sys/uio.h>
 #include <string.h>
+#include <squoze.h>
 #include <assert.h>
 
 static void framedump(struct intframe *f)
@@ -79,25 +80,38 @@ int do_child()
 int main()
 {
 	pid_t pid;
+	struct sys_hwcreat_cfg cfg;
 
 	printf("Hello!\n");
-	sys_cli();
-	printf("!Ue!\n");
+
+	cfg.nameid = squoze("platform");
+	cfg.irqsegs = 1;
+	cfg.piosegs = 0;
+	cfg.memsegs = 0;
+	cfg.segs[0].base = 1; /* IRQ 1 */
+	cfg.segs[0].len = 1;
+	printf("creat[%llx]: %d\n", cfg.nameid, sys_hwcreat(&cfg, 0111));
 
 	if (sys_fork() == 0)
 		goto child1;
+#if 0
 	if (sys_fork() == 0)
 		goto child;
 	if (sys_fork() == 0)
 		goto child;
 	inthandler(INTR_CHILD, do_child, NULL);
+#endif
 	lwt_sleep();
  child1:
 	if (sys_fork())
 		sys_die(21);
 	/* Child */
  child:
-	printf("Goodbye!\n");
+	printf("Child! Opening platform [%llx]\n", squoze("platform"));
+	printf("open[%llx]: %d\n", squoze("platform"), sys_open(squoze("platform")));
+	printf("irqmap[%llx]: %d\n", squoze("platform"), sys_mapirq(0, 1, 5));
+	lwt_sleep();
+	printf("Goodbye!");
 	sys_die(5);
 #if 0
 	int j;

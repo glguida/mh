@@ -6,7 +6,9 @@ PROGNAME= init
 PROGDIR=sys
 NOINST=yes
 
-LDADD+= -lacpi -ldrex
+LDFLAGS+= -L$(SRCROOT)/dist/usr/lib
+
+LDADD+= -lsquoze -lacpi -ldrex
 
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/sysprog.mk
