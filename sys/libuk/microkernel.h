@@ -70,7 +70,8 @@ int vmmap(vaddr_t addr, vm_prot_t prot);
 int vmunmap(vaddr_t addr);
 int vmchprot(vaddr_t addr, vm_prot_t prot);
 
-int sys_open(u_long id);
+int sys_open(u_int64_t id);
+int sys_open32(u_long hi, u_long lo);
 int sys_iomap(unsigned ddno, u_long va, unsigned mmiopfn);
 int sys_iounmap(unsigned ddno, u_long va);
 int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg);

@@ -118,11 +118,24 @@ int sys_move(vaddr_t dst, vaddr_t src)
 
 }
 
-int sys_open(u_long id)
+int sys_open(uint64_t id)
 {
 	int ret;
 
+#if _LP64
 	__syscall1(SYS_OPEN, (unsigned long) id, ret);
+#else
+
+	__syscall2(SYS_OPEN32, (unsigned long) (id >> 32), (unsigned long) id, ret);
+#endif
+	return ret;
+}
+
+int sys_open32(u_long hi, u_long lo)
+{
+	int ret;
+
+	__syscall2(SYS_OPEN32, hi, lo, ret);
 	return ret;
 }
 

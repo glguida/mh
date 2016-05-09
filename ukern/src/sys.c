@@ -154,6 +154,12 @@ static int sys_irq(unsigned id, unsigned irq)
 	return devirq(id, irq);
 }
 
+static int sys_open32(u_long hi, u_long lo)
+{
+	uint64_t id = ((uint64_t)hi << 32) | lo;
+	return devopen(id);
+}
+
 static int sys_open(u_long id)
 {
 	return devopen(id);
@@ -427,6 +433,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_irq(a1, a2);
 	case SYS_OPEN:
 		return sys_open(a1);
+	case SYS_OPEN32:
+		return sys_open32(a1,a2);
 	case SYS_EXPORT:
 		return sys_export(a1, a2, a3);
 	case SYS_RDCFG:
