@@ -97,6 +97,7 @@ struct cpu {
 
 	unsigned usrpgfault;
 	jmp_buf usrpgfaultctx;
+	vaddr_t usrpgaddr;
 };
 
 int __getperm(struct thread *th, uid_t uid, gid_t gid, uint32_t mode);

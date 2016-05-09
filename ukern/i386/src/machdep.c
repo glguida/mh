@@ -136,6 +136,7 @@ int xcpt_entry(uint32_t vect, struct usrframe *f)
 	if (__predict_false(f->cs != UCS)) {
 
 		if (current_cpu()->usrpgfault && (vect == 14)) {
+			current_cpu()->usrpgaddr = f->cr2;
 			_longjmp(current_cpu()->usrpgfaultctx, 1);
 			/* Not reached */
 		}

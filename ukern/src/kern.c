@@ -90,6 +90,7 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 	current_cpu()->usrpgfault = 1;
 	__insn_barrier();
 	if (_setjmp(current_cpu()->usrpgfaultctx)) {
+		current_cpu()->usrpgaddr = 0;
 		current_cpu()->usrpgfault = 0;
 		return -EFAULT;
 	}
@@ -98,6 +99,7 @@ int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 
 	__insn_barrier();
 	current_cpu()->usrpgfault = 0;
+	current_cpu()->usrpgaddr = 0;
 	return 0;
 }
 
