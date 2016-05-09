@@ -43,9 +43,9 @@ extern lwt_t *lwt_current;
 extern void framedump(struct intframe *f);
 void framelongjmp(struct intframe *f, jmp_buf * jb);
 
-extern void _scode __asm("_scode");
-extern void _ecode __asm("_ecode");
-extern void _sdata __asm("_sdata");
+extern void _scode __asm("__executable_start");
+extern void _ecode __asm("__etext");
+extern void _sdata __asm("__sdata");
 extern void _end __asm("_end");
 
 #define VACOW (1L*1024*1024*1024)	/* XXX: MUST BE ALLOCATED! */

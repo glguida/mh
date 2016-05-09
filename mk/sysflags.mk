@@ -1,7 +1,7 @@
 # Standard programs options
-CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include
+CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include 
 ASFLAGS+= -isystem $(INSTALLDIR)/usr/include
-LDFLAGS+= -B$(INSTALLDIR)/lib -L /usr/lib -T $(SRCROOT)/mk/elf_i386.ld
+LDFLAGS+= -B$(INSTALLDIR)/lib -L $(INSTALLDIR)/usr/lib
 
 # We don't yet support puts and putchar in libc, remove default
 # library. TO BE REMOVED.
