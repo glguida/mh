@@ -58,6 +58,7 @@ int bus_plug(struct bus *b, uint64_t did)
 	int i, devid, ret;
 	struct dev *d;
 
+	dprintf("bus: opening device %llx\n", did);
 	spinlock(&sys_device_rbtree_lock);
 	d = rb_tree_find_node(&sys_device_rbtree, (void *) &did);
 	spinunlock(&sys_device_rbtree_lock);
@@ -373,10 +374,11 @@ void bus_remove(struct bus *b)
 
 int dev_attach(struct dev *d)
 {
+	dprintf("attaching device %llx\n", d->did);
 	spinlock(&sys_device_rbtree_lock);
 	if (rb_tree_find_node(&sys_device_rbtree, &d->did)) {
 		spinunlock(&sys_device_rbtree_lock);
-		printf("device %" PRIx64 " already exists\n", d->did);
+		dprintf("device %" PRIx64 " already exists\n", d->did);
 		return -EEXIST;
 	}
 	rb_tree_insert_node(&sys_device_rbtree, (void *) d);

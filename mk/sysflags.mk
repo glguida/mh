@@ -1,5 +1,5 @@
 # Standard programs options
-CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include 
+CPPFLAGS+= -isystem $(INSTALLDIR)/usr/include
 ASFLAGS+= -isystem $(INSTALLDIR)/usr/include
 LDFLAGS+= -B$(INSTALLDIR)/lib -L $(INSTALLDIR)/usr/lib
 

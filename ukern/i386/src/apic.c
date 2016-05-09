@@ -306,12 +306,9 @@ void gsi_register(unsigned gsi, unsigned vect)
 	assert(gsi < gsis_no);
 	assert(vect < 256);
 
-	printf("Registering GSI %d to vect %d\n", gsi, vect);
 	lo = ioapic_read(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin));
 	ioapic_write(gsis[gsi].ioapic, IO_RED_LO(gsis[gsi].pin),
 		     lo | vect);
-	printf("GIANL: %02d: [%d/%d] = %08x\n", gsi, gsis[gsi].ioapic,
-	       gsis[gsi].pin, lo | vect);
 }
 
 void gsi_enable(unsigned gsi)

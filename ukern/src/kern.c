@@ -166,12 +166,9 @@ static void __childstart(void)
 {
 	struct thread *th = current_thread();
 
-	printf("child!\n");
 	/* Child returns zero */
 	usrframe_setret(th->frame, 0);
 	__insn_barrier();
-	printf("Starting at eip %x\n",
-	       ((struct usrframe *) th->frame)->eip);
 	usrframe_enter(th->frame);
 	/* Not reached */
 }
@@ -315,7 +312,6 @@ struct cpu *cpu_setup(int id)
 
 void cpu_softirq_raise(int id)
 {
-	printf("Raising softirq %d\n", id);
 	current_cpu()->softirq |= id;
 }
 
@@ -347,8 +343,6 @@ static void do_resched(void)
 {
 	struct thread *th, *tmp;
 
-	printf("resched!\n");
-
 	TAILQ_FOREACH_SAFE(th, &current_cpu()->resched, sched_list, tmp) {
 		TAILQ_REMOVE(&current_cpu()->resched, th, sched_list);
 		switch (th->status) {
@@ -356,9 +350,6 @@ static void do_resched(void)
 			spinlock(&sched_lock);
 			TAILQ_INSERT_TAIL(&running_threads, th,
 					  sched_list);
-			printf("Added runnable!\n");
-			printf("Waking first idle cpu! (%llx)\n",
-			       cpu_idlemap);
 			once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
 			spinunlock(&sched_lock);
 			break;
@@ -671,7 +662,7 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 		return -EBUSY;
 
 	th->usrdev = usrdev_creat(cfg, sig, mode);
-	printf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
+	dprintf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
 	       cfg->vendorid);
 	if (th->usrdev == NULL)
 		return -EEXIST;
@@ -778,7 +769,7 @@ int deviomap(unsigned dd, vaddr_t va, pfn_t mmiopfn, pmap_prot_t prot)
 {
 	struct thread *th = current_thread();
 
-	printf("(m %d) ", prot);
+	dprintf("(m %d) ", prot);
 	return bus_iomap(&th->bus, dd, va, mmiopfn, prot);
 }
 
@@ -805,7 +796,7 @@ void irqsignal(unsigned irq)
 	LIST_FOREACH(irqsig, &irqsigs[irq], list) {
 		if (irqsig->filter && !platform_irqfilter(irqsig->filter))
 			continue;
-		printf("Raising %p:%d\n", irqsig->th, irqsig->sig);
+		dprintf("Raising %p:%d\n", irqsig->th, irqsig->sig);
 		thraise(irqsig->th, irqsig->sig);
 	}
 	spinunlock(&irqsigs_lock);

@@ -244,8 +244,6 @@ uint32_t usrframe_iret(struct usrframe *f)
 		die();
 		/* not reached */
 	}
-	printf("iret: EAX: %x, EIP: %x, ESP: %x, EFL: %x\n",
-	       iretf.eax, iretf.eip, iretf.esp, iretf.efl);
 	f->eip = iretf.eip;
 	f->esp = iretf.esp;
 	current_thread()->userfl = iretf.efl;
