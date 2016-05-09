@@ -76,22 +76,11 @@ typedef enum {
 #define SYS_RDCFG  0x25
 #define SYS_IOMAP  0x26
 #define SYS_IOUNMAP 0x27
+#define SYS_OPEN32 0x28
 
 #define SYS_CLOSE  0x2F
 
 #ifndef _ASSEMBLER
-struct sys_devres {
-	uint64_t type:1;
-	uint64_t addr:31;
-	uint32_t size:32;
-};
-
-struct sys_iodev_cfg {
-	uint64_t nameid;
-	uint32_t vendorid;
-	uint32_t deviceid;
-};
-
 struct sys_creat_cfg {
 	uint64_t nameid;
 	uint32_t vendorid;
@@ -120,6 +109,25 @@ struct sys_poll_ior {
 #define SYS_EIO    0x32
 #define SYS_IRQ    0x33
 #define SYS_IMPORT 0x34
+
+#ifndef _ASSEMBLER
+#define SYS_HWCREAT_MAX_SEGMENTS 16
+
+struct sys_hwcreat_cfg {
+	uint64_t nameid;
+	uint32_t vendorid;
+	uint32_t deviceid;
+
+	uint8_t irqsegs;
+	uint8_t piosegs;
+	uint8_t memsegs;
+	struct hwcreat_seg {
+		uint16_t base;
+		uint16_t len;
+	} segs[SYS_HWCREAT_MAX_SEGMENTS];
+};
+#endif
+#define SYS_HWCREAT  0x40
 
 #define SYS_GETUID   0x50
 #define SYS_SETUID   0x51

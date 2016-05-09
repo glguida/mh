@@ -120,6 +120,8 @@ int vmmove(vaddr_t dst, vaddr_t src);
 int vmchprot(vaddr_t, pmap_prot_t prot);
 int vmunmap(vaddr_t);
 
+int hwcreat(struct sys_hwcreat_cfg *cfg, mode_t mode);
+
 int devcreat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int devpoll(struct sys_poll_ior *ior);
 int deveio(unsigned id);

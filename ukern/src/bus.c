@@ -376,7 +376,7 @@ int dev_attach(struct dev *d)
 	spinlock(&sys_device_rbtree_lock);
 	if (rb_tree_find_node(&sys_device_rbtree, &d->did)) {
 		spinunlock(&sys_device_rbtree_lock);
-		printf("device %" PRIx64 " already existing\n", d->did);
+		printf("device %" PRIx64 " already exists\n", d->did);
 		return -EEXIST;
 	}
 	rb_tree_insert_node(&sys_device_rbtree, (void *) d);

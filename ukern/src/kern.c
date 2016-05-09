@@ -649,6 +649,15 @@ int vmchprot(vaddr_t addr, pmap_prot_t prot)
 	return ret;
 }
 
+int hwcreat(struct sys_hwcreat_cfg *cfg, mode_t mode)
+{
+	struct thread *th = current_thread();
+
+	if (hwdev_creat(cfg, mode) == NULL)
+		return -EEXIST;
+	return 0;
+}
+
 int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 {
 	struct thread *th = current_thread();

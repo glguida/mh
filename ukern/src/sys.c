@@ -96,6 +96,20 @@ static int sys_fork(void)
 	return th == NULL ? 0 : th->pid;
 }
 
+static int sys_hwcreat(uaddr_t ucfg, devmode_t mode)
+{
+	struct sys_hwcreat_cfg cfg;
+
+	if (!__chkuaddr(ucfg, sizeof(cfg)))
+		return -EINVAL;
+	if (copy_from_user(&cfg, ucfg, sizeof(cfg)))
+		return -EFAULT;
+	if (cfg.irqsegs + cfg.piosegs + cfg.memsegs >= SYS_HWCREAT_MAX_SEGMENTS)
+		return -EINVAL;
+
+	return hwcreat(&cfg, mode);
+}
+
 static int sys_creat(uaddr_t ucfg, unsigned sig, devmode_t mode)
 {
 	struct sys_creat_cfg cfg;
@@ -427,6 +441,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_iomap(a1, a2, a3);
 	case SYS_CLOSE:
 		return sys_close(a1);
+	case SYS_HWCREAT:
+		return sys_hwcreat(a1,a2);
 	case SYS_GETUID:
 		return sys_getuid(a1);
 	case SYS_SETUID:
