@@ -850,15 +850,45 @@ static vaddr_t elfld(void *elfimg)
 		if (ph->type != PHT_LOAD)
 			continue;
 		if (ph->fsize) {
-			vmpopulate(ph->va, ph->fsize, PROT_USER_WRX);
+			/*
+			 * memcpy() to user and populate on fault.
+			 */
+
+			current_cpu()->usrpgfault = 1;
+			__insn_barrier();
+			if (_setjmp(current_cpu()->usrpgfaultctx)) {
+				dprintf("elf: pop %lx\n",
+					current_cpu()->usrpgaddr);
+				vmpopulate(current_cpu()->usrpgaddr,
+					   PAGE_SIZE, PROT_USER_WRX);
+				current_cpu()->usrpgaddr = 0;
+			}
 			memcpy((void *) ph->va, (void *) ELFOFF(ph->off),
 			       ph->fsize);
+			__insn_barrier();
+			current_cpu()->usrpgfault = 0;
+			current_cpu()->usrpgaddr = 0;
+
 		}
 		if (ph->msize - ph->fsize > 0) {
-			vmpopulate(ph->va + ph->fsize,
-				   ph->msize - ph->fsize, PROT_USER_WRX);
+			/*
+			 * memset() to user and populate on fault.
+			 */
+
+			current_cpu()->usrpgfault = 1;
+			__insn_barrier();
+			if (_setjmp(current_cpu()->usrpgfaultctx)) {
+				dprintf("elf: pop %lx\n",
+					current_cpu()->usrpgaddr);
+				vmpopulate(current_cpu()->usrpgaddr,
+					   PAGE_SIZE, PROT_USER_WRX);
+				current_cpu()->usrpgaddr = 0;
+			}
 			memset((void *) (ph->va + ph->fsize), 0,
 			       ph->msize - ph->fsize);
+			__insn_barrier();
+			current_cpu()->usrpgfault = 0;
+			current_cpu()->usrpgaddr = 0;
 		}
 	}
 
