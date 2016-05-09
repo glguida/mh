@@ -552,7 +552,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
-		pmap_uenter(NULL, addr + i * PAGE_SIZE, pfn, prot, &pfn);
+		pmap_uenter(NULL, trunc_page(addr) + i * PAGE_SIZE, pfn, prot, &pfn);
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
 			ret++;
@@ -562,7 +562,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 	/* Warning: accessing user space without checking (we are
 	   single threaded, area just mapped and still locked, it is
 	   fine, but future-fragile). */
-	memset(addr, 0, round_page(sz));
+	memset(trunc_page(addr), 0, round_page(sz));
 	return ret;
 }
 
