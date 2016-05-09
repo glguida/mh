@@ -240,6 +240,14 @@ int sys_import(unsigned id, unsigned iopfn, u_long va)
 	return ret;
 }
 
+int sys_hwcreat(struct sys_hwcreat_cfg *cfg, devmode_t mode)
+{
+	int ret;
+
+	__syscall2(SYS_HWCREAT, (unsigned long) cfg, mode, ret);
+	return ret;
+}
+
 uid_t sys_getuid(int sel)
 {
 	int ret;
