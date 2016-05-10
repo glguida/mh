@@ -6,7 +6,7 @@ PROGNAME= bootstrap
 PROGDIR=sys
 NOINST=yes
 
-LDADD+= -lacpi -ldrex
+LDADD+= -lsquoze -lacpi -ldrex
 
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/sysprog.mk
