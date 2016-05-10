@@ -25,7 +25,7 @@ LDFLAGS+= -Lacpica
 ukern: $(OBJS)
 	$(OBJCOPY) -I elf32-i386 -O elf32-i386 \
 		--remove-section .init.elf \
-		--add-section .init.elf=$(INSTALLDIR)/sys/init \
+		--add-section .init.elf=$(INSTALLDIR)/sys/bootstrap \
 		--set-section-flags .init.elf=alloc,load,data \
 		$(OBJDIR)/empty.o 
 	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(LIBS) $(LDADD)
