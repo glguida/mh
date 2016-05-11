@@ -139,12 +139,12 @@ int sys_open32(u_long hi, u_long lo)
 	return ret;
 }
 
-int sys_iomap(unsigned ddno, u_long va, unsigned mmiopfn)
+int sys_iomap(unsigned ddno, u_long va, uint64_t mmioaddr)
 {
 	int ret;
 
 	__syscall3(SYS_IOMAP, (unsigned long) ddno, (unsigned long) va,
-		   (unsigned long) mmiopfn, ret);
+		   (unsigned long) mmioaddr, ret);
 	return ret;
 }
 

@@ -247,7 +247,7 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 }
 
 int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
-	      pfn_t mmiopfn, pmap_prot_t prot)
+	      paddr_t mmioaddr, pmap_prot_t prot)
 {
 	int ret;
 	struct dev *d;
@@ -269,7 +269,7 @@ int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 		ret = -ESRCH;
 		goto out_iomap;
 	}
-	ret = d->ops->iomap(d->devopq, b->devs[desc].devid, va, mmiopfn,
+	ret = d->ops->iomap(d->devopq, b->devs[desc].devid, va, mmioaddr,
 			    prot);
 	spinunlock(&d->lock);
       out_iomap:

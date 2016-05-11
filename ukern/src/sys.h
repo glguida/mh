@@ -111,20 +111,27 @@ struct sys_poll_ior {
 #define SYS_IMPORT 0x34
 
 #ifndef _ASSEMBLER
-#define SYS_HWCREAT_MAX_SEGMENTS 16
+#define SYS_HWCREAT_MAX_SEGMENTS 24
+#define SYS_HWCREAT_MAX_MEMSEGMENTS 16
 
 struct sys_hwcreat_cfg {
 	uint64_t nameid;
 	uint32_t vendorid;
 	uint32_t deviceid;
 
-	uint8_t irqsegs;
-	uint8_t piosegs;
-	uint8_t memsegs;
-	struct hwcreat_seg {
+	uint8_t nirqsegs;
+	uint8_t npiosegs;
+	uint8_t nmemsegs;
+
+	struct sys_hwcreat_seg {
 		uint16_t base;
 		uint16_t len;
 	} segs[SYS_HWCREAT_MAX_SEGMENTS];
+
+	struct sys_hwcreat_memseg {
+		uint64_t base;
+		uint32_t len;
+	} memsegs[SYS_HWCREAT_MAX_MEMSEGMENTS];
 };
 #endif
 #define SYS_HWCREAT  0x40

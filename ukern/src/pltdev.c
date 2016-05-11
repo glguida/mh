@@ -126,16 +126,29 @@ static int _pltdev_export(void *devopq, unsigned id, vaddr_t va,
 }
 
 static int _pltdev_iomap(void *devopq, unsigned id, vaddr_t va,
-			 pfn_t mmiopfn, pmap_prot_t prot)
+			 paddr_t mmioaddr, pmap_prot_t prot)
 {
-	int ret;
+	pfn_t mmiopfn = (pfn_t)atop(mmioaddr);
 	struct pltmap *pltmap;
+	int ret;
 
-	printf("mapping at addr %lx pfn %lx (%d)\n", va, mmiopfn, prot);
+	if ((va & PAGE_MASK) != (mmioaddr & PAGE_MASK)) {
+		/* Do not confuse  the caller by thinking  one can get
+		 * away with  mapping at  different page  offsets.  Do
+		 * not  make  implicitly  a vfn-to-pfn  mapping  (thus
+		 * ignoring the page  offset) as other implementations
+		 * of other device types  might actually support this,
+		 * e.g. through copying. */
+		return -EINVAL;
+	}
+
 	if (!pfn_is_valid(mmiopfn))
 		return -EINVAL;
 
-	ret = _iomap(va, mmiopfn, prot);
+	dprintf("mapping at addr %lx paddr %"PRIx64" (%d)\n",
+	       va, (uint64_t)mmioaddr, prot);
+
+	ret = iomap(va, mmiopfn, prot);
 	if (ret < 0)
 		return ret;
 

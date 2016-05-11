@@ -63,13 +63,21 @@ struct seg {
 	uint16_t len;
 };
 
+struct memseg {
+	paddr_t base;
+	unsigned long len;
+};
+
 struct hwdev_cfg {
 	uint32_t vid;
 	uint32_t did;
 
-	uint8_t irqsegs;
-	uint8_t piosegs;
-	uint8_t memsegs;
+	uint8_t nirqsegs;
+	uint8_t npiosegs;
+
+	uint8_t nmemsegs;
+	struct memseg *memsegptr;
+
 	struct seg segs[0];
 };
 
@@ -113,12 +121,12 @@ static int _hwdev_in(void *devopq, unsigned id, uint64_t port,
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
-	struct seg *ptr= cfg->segs + cfg->irqsegs;
+	struct seg *ptr= cfg->segs + cfg->nirqsegs;
 	uint8_t iosize = port & PLTPORT_SIZEMASK;
 	uint16_t ioport = port >> PLTPORT_SIZESHIFT;
 
 	found = 0;
-	for (i = 0; i < cfg->piosegs; i++, ptr++) {
+	for (i = 0; i < cfg->npiosegs; i++, ptr++) {
 		uint16_t start = ptr->base;
 		uint16_t end = ptr->base + ptr->len - 1;
 
@@ -154,12 +162,12 @@ static int _hwdev_out(void *devopq, unsigned id, uint64_t port,
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
-	struct seg *ptr= cfg->segs + cfg->irqsegs;
+	struct seg *ptr= cfg->segs + cfg->nirqsegs;
 	uint8_t iosize = port & PLTPORT_SIZEMASK;
 	uint16_t ioport = port >> PLTPORT_SIZESHIFT;
 
 	found = 0;
-	for (i = 0; i < cfg->piosegs; i++, ptr++) {
+	for (i = 0; i < cfg->npiosegs; i++, ptr++) {
 		uint16_t start = ptr->base;
 		uint16_t end = ptr->base + ptr->len - 1;
 
@@ -196,20 +204,21 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 }
 
 static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
-			 pfn_t mmiopfn, pmap_prot_t prot)
+			 paddr_t mmioaddr, pmap_prot_t prot)
 {
+	struct hwdev *hd = (struct hwdev *) devopq;
+	pfn_t mmiopfn = (pfn_t)atop(mmioaddr);
+	struct hwdev_cfg *cfg = hd->cfg;
+	struct memseg *ptr= cfg->memsegptr;
 	int i, found, ret;
 	struct hwmap *hwmap;
-	struct hwdev *hd = (struct hwdev *) devopq;
-	struct hwdev_cfg *cfg = hd->cfg;
-	struct seg *ptr= cfg->segs + cfg->irqsegs + cfg->piosegs;
 
 	found = 0;
-	for (i = 0; i < cfg->memsegs; i++, ptr++) {
-		uint16_t start = ptr->base;
-		uint16_t end = ptr->base + ptr->len -1;
+	for (i = 0; i < cfg->nmemsegs; i++, ptr++) {
+		paddr_t start = ptr->base;
+		paddr_t end = ptr->base + ptr->len;
 
-		if (start <= mmiopfn && mmiopfn <= end) {
+		if (start <= mmioaddr && mmioaddr <= end) {
 			found = 1;
 			break;
 		}
@@ -217,11 +226,23 @@ static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
 	if (!found)
 		return -EPERM;
 
-	printf("mapping at addr %lx pfn %lx (%d)\n", va, mmiopfn, prot);
+	if ((va & PAGE_MASK) != (mmioaddr & PAGE_MASK)) {
+		/* Do not confuse  the caller by thinking  one can get
+		 * away with  mapping at  different page  offsets.  Do
+		 * not  make  implicitly  a vfn-to-pfn  mapping  (thus
+		 * ignoring the page  offset) as other implementations
+		 * of other device types  might actually support this,
+		 * e.g. through copying. */
+		return -EINVAL;
+	}
+
 	if (!pfn_is_valid(mmiopfn))
 		return -EINVAL;
 
-	ret = _iomap(va, mmiopfn, prot);
+	dprintf("mapping at addr %lx mmio %"PRIx64" (%d)\n",
+	       va, (uint64_t)mmioaddr, prot);
+
+	ret = iomap(va, mmiopfn, prot);
 	if (ret < 0)
 		return ret;
 
@@ -271,7 +292,7 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	int i, found, ret;
 
 	found = 0;
-	for (i = 0; i < cfg->irqsegs; i++, ptr++) {
+	for (i = 0; i < cfg->nirqsegs; i++, ptr++) {
 		uint16_t start = ptr->base;
 		uint16_t end = ptr->base + ptr->len - 1;
 
@@ -284,7 +305,7 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 		return -EPERM;
 	
 	hwsig = heap_alloc(sizeof(struct hwsig));
-	printf("Registering irq %d at thread %p with signal %d\n", irq, th,
+	dprintf("hwdev: registering irq %d at thread %p with signal %d\n", irq, th,
 	       sig);
 	ret = irqregister(&hwsig->irqsig, irq, th, sig,
 			  0 /* No filter */ );
@@ -333,16 +354,18 @@ static struct devops hwdev_ops = {
 
 struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 {
-	int i, segs;
+	int i, segs, nmemsegs;
 	size_t size;
 	struct hwdev *hd;
 	struct thread *th = current_thread();
 
-	segs = syscfg->irqsegs + syscfg->piosegs + syscfg->memsegs;
+	segs = syscfg->nirqsegs + syscfg->npiosegs;
+	nmemsegs = syscfg->nmemsegs;
 
 	size = sizeof(*hd);
 	size += sizeof(struct hwdev_cfg);
 	size += sizeof(struct seg) * segs;
+	size += sizeof(struct memseg) * nmemsegs;
 
 	hd = heap_alloc(size);
 	hd->lock = 0;
@@ -352,16 +375,20 @@ struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 
 	hd->cfg->vid = syscfg->vendorid;
 	hd->cfg->did = syscfg->deviceid;
-	hd->cfg->irqsegs = syscfg->irqsegs;
-	hd->cfg->piosegs = syscfg->piosegs;
-	hd->cfg->memsegs = syscfg->memsegs;
-
-	printf("Registering %llx : %d %d %d\n", syscfg->nameid, hd->cfg->irqsegs, hd->cfg->piosegs, hd->cfg->memsegs);
+	hd->cfg->nirqsegs = syscfg->nirqsegs;
+	hd->cfg->npiosegs = syscfg->npiosegs;
+	hd->cfg->nmemsegs = syscfg->nmemsegs;
 
 	for (i = 0; i < segs; i++) {
 		hd->cfg->segs[i].base = syscfg->segs[i].base;
 		hd->cfg->segs[i].len = syscfg->segs[i].len;
 	}
+	hd->cfg->memsegptr = (struct memseg *)&hd->cfg->segs[i];
+	for (i = 0; i < nmemsegs; i++) {
+		hd->cfg->memsegptr[i].base = syscfg->memsegs[i].base;
+		hd->cfg->memsegptr[i].len = syscfg->memsegs[i].len;
+	}
+
 	dev_init(&hd->dev, syscfg->nameid, (void *) hd, &hwdev_ops, th->euid, th->egid, mode);
 	if (dev_attach(&hd->dev)) {
 		heap_free(hd);

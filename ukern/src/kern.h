@@ -128,7 +128,7 @@ int devpoll(struct sys_poll_ior *ior);
 int deveio(unsigned id);
 int devirq(unsigned id, unsigned irq);
 int devimport(unsigned id, unsigned iopfn, unsigned va);
-int deviomap(unsigned dd, vaddr_t va, pfn_t mmiopfn, pmap_prot_t prot);
+int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot);
 void devremove(void);
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);

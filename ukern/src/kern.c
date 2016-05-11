@@ -517,7 +517,7 @@ static void idle(void)
 	}
 }
 
-int _iomap(vaddr_t addr, pfn_t mmiopfn, pmap_prot_t prot)
+int iomap(vaddr_t vaddr, pfn_t mmiopfn, pmap_prot_t prot)
 {
 	int ret = 0;
 	pfn_t opfn;
@@ -525,7 +525,7 @@ int _iomap(vaddr_t addr, pfn_t mmiopfn, pmap_prot_t prot)
 	if (!pfn_is_mmio(mmiopfn))
 		return -EINVAL;
 
-	ret = pmap_uiomap(NULL, addr, mmiopfn, prot, &opfn);
+	ret = pmap_uiomap(NULL, vaddr, mmiopfn, prot, &opfn);
 	pmap_commit(NULL);
 
 	if (ret < 0)
@@ -765,12 +765,12 @@ int devout(unsigned dd, uint64_t port, uint64_t val)
 	return bus_out(&th->bus, dd, port, val);
 }
 
-int deviomap(unsigned dd, vaddr_t va, pfn_t mmiopfn, pmap_prot_t prot)
+int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot)
 {
 	struct thread *th = current_thread();
 
 	dprintf("(m %d) ", prot);
-	return bus_iomap(&th->bus, dd, va, mmiopfn, prot);
+	return bus_iomap(&th->bus, dd, va, mmioaddr, prot);
 }
 
 int deviounmap(unsigned dd, vaddr_t va)

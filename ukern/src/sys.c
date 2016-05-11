@@ -104,7 +104,9 @@ static int sys_hwcreat(uaddr_t ucfg, devmode_t mode)
 		return -EINVAL;
 	if (copy_from_user(&cfg, ucfg, sizeof(cfg)))
 		return -EFAULT;
-	if (cfg.irqsegs + cfg.piosegs + cfg.memsegs >= SYS_HWCREAT_MAX_SEGMENTS)
+	if (cfg.nirqsegs + cfg.npiosegs > SYS_HWCREAT_MAX_SEGMENTS)
+		return -EINVAL;
+	if (cfg.nmemsegs > SYS_HWCREAT_MAX_MEMSEGMENTS)
 		return -EINVAL;
 
 	return hwcreat(&cfg, mode);

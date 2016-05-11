@@ -165,7 +165,7 @@ void *AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS pa, ACPI_SIZE len)
 	for (i = 0; i < pages; i++) {
 		ret = sys_iomap(acpi_pltfd,
 				va + (i << PAGE_SHIFT),
-				(pa >> PAGE_SHIFT) + i);
+				trunc_page(pa) + i);
 		if (ret < 0) {
 			int j;
 			for (j = 0; j < i; j++)
