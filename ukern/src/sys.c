@@ -162,7 +162,7 @@ static int sys_open32(u_long hi, u_long lo)
 	return devopen(id);
 }
 
-static int sys_open(u_long id)
+static int sys_open(uint64_t id)
 {
 	return devopen(id);
 }
@@ -272,15 +272,18 @@ static int sys_move(vaddr_t dst, vaddr_t src)
 	return vmmove(dst, src);
 }
 
-static int sys_iomap(unsigned ddno, vaddr_t va, uint64_t mmiopfn)
+/* Only  32-bit  addresses  supported  on  32-bit  architectures  from
+   now. Add  sys_iomap32 if the  need of  I/O addresses at  top 64bits
+   arises. */
+static int sys_iomap(unsigned ddno, vaddr_t va, uint64_t mmioaddr)
 {
 	int ret;
 	pmap_prot_t prot = PROT_USER_WR;
 
 	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
 		return -EINVAL;
-	printf("using prot %d ", prot);
-	return deviomap(ddno, va, mmiopfn, prot);
+	dprintf("using prot %d ", prot);
+	return deviomap(ddno, va, mmioaddr, prot);
 }
 
 static int sys_iounmap(unsigned ddno, vaddr_t va)
