@@ -37,7 +37,7 @@
 #include <sys/queue.h>
 #include "acpi.h"
 
-#if 1
+#if 0
 #define dbgprintf(...) printf(__VA_ARGS__)
 #else
 #define dbgprintf(...)
