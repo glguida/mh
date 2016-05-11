@@ -73,7 +73,8 @@ int do_child()
 
 	do {
 		pid = sys_childstat(&cs);
-		printf("-> %d: %d\n", pid, cs.exit_status);
+		if (pid > 0)
+			printf("CHLD %d: exit %d\n", pid, cs.exit_status);
 	} while (pid > 0);
 }
 
@@ -85,29 +86,23 @@ int main()
 	printf("Hello!\n");
 
 	cfg.nameid = squoze("platform");
-	cfg.irqsegs = 1;
-	cfg.piosegs = 0;
-	cfg.memsegs = 0;
+	cfg.nirqsegs = 1;
+	cfg.npiosegs = 0;
+	cfg.nmemsegs = 0;
 	cfg.segs[0].base = 1; /* IRQ 1 */
 	cfg.segs[0].len = 1;
 	printf("creat[%llx]: %d\n", cfg.nameid, sys_hwcreat(&cfg, 0111));
 
 	if (sys_fork() == 0)
-		goto child1;
-#if 0
-	if (sys_fork() == 0)
-		goto child;
-	if (sys_fork() == 0)
 		goto child;
 	inthandler(INTR_CHILD, do_child, NULL);
-#endif
 	lwt_sleep();
- child1:
-	if (sys_fork())
-		sys_die(21);
-	/* Child */
+
  child:
-	printf("Child! Opening platform [%llx]\n", squoze("platform"));
+	if (sys_fork())
+		sys_die(-3);
+	/* Child of Child */
+	printf("Opening platform [%llx]\n", squoze("platform"));
 	printf("open[%llx]: %d\n", squoze("platform"), sys_open(squoze("platform")));
 	printf("irqmap[%llx]: %d\n", squoze("platform"), sys_mapirq(0, 1, 5));
 	lwt_sleep();
