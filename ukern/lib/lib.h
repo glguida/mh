@@ -48,6 +48,9 @@ int _setjmp(jmp_buf);
 void _longjmp(jmp_buf, int);
 void _setupjmp(jmp_buf, void (*)(void), void *);
 
+uint64_t squoze(char *string);
+size_t unsquozelen(uint64_t enc, size_t len, char *string);
+
 #ifdef __DEBUG
 #define dprintf(...) do { printf(__VA_ARGS__); } while(0)
 #else
