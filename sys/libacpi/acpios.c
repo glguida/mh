@@ -165,7 +165,7 @@ void *AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS pa, ACPI_SIZE len)
 	for (i = 0; i < pages; i++) {
 		ret = sys_iomap(acpi_pltfd,
 				va + (i << PAGE_SHIFT),
-				trunc_page(pa) + i);
+				trunc_page(pa) + (i << PAGE_SHIFT));
 		if (ret < 0) {
 			int j;
 			for (j = 0; j < i; j++)
@@ -435,15 +435,32 @@ ACPI_STATUS
 AcpiOsReadPciConfiguration(ACPI_PCI_ID * PciId,
 			   UINT32 Reg, UINT64 * Value, UINT32 Width)
 {
-	uint32_t addr = (PciId->Bus << 16)
+	int ret;
+	uint32_t inaddr = 0xcfc + (Reg & 3);
+	uint32_t outval = (PciId->Bus << 16)
 		| (PciId->Device << 11)
 		| (PciId->Function << 8)
-		| (Reg << 2);
+		| (Reg & ~0x3)
+		| 0x80000000; /* enable bit */
+	uint64_t port;
 
-	/* enable bit */
-	addr |= 0x80000000;
-	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), (uint64_t) addr);
-	sys_in(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), Value);
+	ret = sys_out(acpi_pltfd, PLTPORT_DWORD(0xcf8), outval);
+	if (ret)
+		return -1;
+	switch (Width) {
+	case 32: 
+		port = PLTPORT_DWORD(inaddr);
+		break;
+	case 16:
+		port = PLTPORT_WORD(inaddr);
+		break;
+	case 8:
+		port = PLTPORT_BYTE(inaddr);
+		break;
+	default:
+		return -1;
+	}
+	sys_in(acpi_pltfd, port, Value);
 	return AE_OK;
 }
 #endif
@@ -453,15 +470,32 @@ ACPI_STATUS
 AcpiOsWritePciConfiguration(ACPI_PCI_ID * PciId,
 			    UINT32 Reg, UINT64 Value, UINT32 Width)
 {
-	uint32_t addr = (PciId->Bus << 16)
+	int ret;
+	uint32_t inaddr = 0xcfc + (Reg & 3);
+	uint32_t outval = (PciId->Bus << 16)
 		| (PciId->Device << 11)
 		| (PciId->Function << 8)
-		| (Reg << 2);
+		| (Reg & ~0x3)
+		| 0x80000000; /* enable bit */
+	uint64_t port;
 
-	/* enable bit */
-	addr |= 0x80000000;
-	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), (uint64_t) addr);
-	sys_out(acpi_pltfd, PLTPORT_DWORD(PCI_CFG_ADDR), Value);
+	ret = sys_out(acpi_pltfd, PLTPORT_DWORD(0xcf8), outval);
+	if (ret)
+		return -1;
+	switch (Width) {
+	case 32: 
+		port = PLTPORT_DWORD(inaddr);
+		break;
+	case 16:
+		port = PLTPORT_WORD(inaddr);
+		break;
+	case 8:
+		port = PLTPORT_BYTE(inaddr);
+		break;
+	default:
+		return -1;
+	}
+	sys_out(acpi_pltfd, port, Value);
 	return AE_OK;
 }
 #endif
