@@ -74,7 +74,7 @@ int sys_open(u_int64_t id);
 int sys_open32(u_long hi, u_long lo);
 int sys_iomap(unsigned ddno, u_long va, uint64_t mmioaddr);
 int sys_iounmap(unsigned ddno, u_long va);
-int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg);
+int sys_rdcfg(unsigned ddno, struct sys_rdcfg_cfg *cfg);
 int sys_export(unsigned ddno, u_long va, unsigned iopfn);
 int sys_mapirq(unsigned ddno, unsigned id, unsigned sig);
 int sys_in(unsigned ddno, u_long port, uint64_t * val);
@@ -86,6 +86,8 @@ int sys_poll(struct sys_poll_ior *ior);
 int sys_eio(unsigned id);
 int sys_irq(unsigned id, unsigned irq);
 int sys_import(unsigned id, unsigned iopfn, u_long va);
+
+int sys_hwcreat(struct sys_hwcreat_cfg *cfg, devmode_t mode);
 
 uid_t sys_getuid(int sel);
 gid_t sys_getgid(int sel);

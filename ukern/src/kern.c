@@ -737,7 +737,7 @@ int devexport(unsigned dd, vaddr_t va, unsigned iopfn)
 	return bus_export(&th->bus, dd, va, iopfn);
 }
 
-int devrdcfg(unsigned dd, struct sys_creat_cfg *cfg)
+int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg)
 {
 	struct thread *th = current_thread();
 

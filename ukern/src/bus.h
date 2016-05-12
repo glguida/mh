@@ -62,7 +62,7 @@ struct devops {
 	int (*export) (void *devopq, unsigned id, vaddr_t va,
 		       unsigned iopfn);
 	int (*rdcfg) (void *devopq, unsigned id,
-		      struct sys_creat_cfg * cfg);
+		      struct sys_rdcfg_cfg * cfg);
 	int (*irqmap) (void *devopq, unsigned id, unsigned intr,
 		       unsigned sig);
 	void (*close) (void *devopq, unsigned id);
@@ -93,7 +93,7 @@ int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	      paddr_t mmioaddr, pmap_prot_t prot);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
-int bus_rdcfg(struct bus *b, unsigned desc, struct sys_creat_cfg *cfg);
+int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg);
 void bus_remove(struct bus *b);
 
 void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops,

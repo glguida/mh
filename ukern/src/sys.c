@@ -98,8 +98,11 @@ static int sys_fork(void)
 
 static int sys_hwcreat(uaddr_t ucfg, devmode_t mode)
 {
+	struct thread *th = current_thread();
 	struct sys_hwcreat_cfg cfg;
 
+	if (th->euid)
+		return -EPERM;
 	if (!__chkuaddr(ucfg, sizeof(cfg)))
 		return -EINVAL;
 	if (copy_from_user(&cfg, ucfg, sizeof(cfg)))
@@ -177,10 +180,12 @@ static int sys_export(unsigned ddno, u_long va, unsigned iopfn)
 static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)
 {
 	int ret;
-	struct sys_creat_cfg cfg;
+	struct sys_rdcfg_cfg cfg;
 
 	if (!__chkuaddr(ucfg, sizeof(cfg)))
 		return -EINVAL;
+
+	memset(&cfg, 0, sizeof(struct sys_rdcfg_cfg));
 	ret = devrdcfg(ddno, &cfg);
 	if (ret)
 		return ret;

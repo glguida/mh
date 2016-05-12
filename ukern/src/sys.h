@@ -30,6 +30,9 @@
 #ifndef _uk_sys_h_
 #define _uk_sys_h_
 
+#define SYS_DEVCFG_MAXDEVIDS 8
+
+
 /*
  * Syscalls
  */
@@ -61,9 +64,34 @@ typedef enum {
 #define SYS_MAP  0x10
 #define SYS_MOVE 0x11
 
+#ifndef _ASSEMBLER
+struct sys_rdcfg_cfg {
+#define SYS_RDCFG_IRQSEG(_cfg, _i) ((_cfg)->segs[(_i)])
+#define SYS_RDCFG_IOSEG(_cfg, _i) ((_cfg)->segs[(_cfg)->nirqsegs + (_i)])
+#define SYS_RDCFG_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
+#define SYS_RDCFG_MAX_SEGMENTS 24
+#define SYS_RDCFG_MAX_MEMSEGMENTS 16
+	uint64_t nameid;
+	uint64_t vendorid;
+	uint64_t deviceids[SYS_RDCFG_MAX_DEVIDS];
+
+	uint8_t nirqsegs;
+	uint8_t npiosegs;
+	uint8_t nmemsegs;
+
+	struct sys_rdcfg_seg {
+		uint16_t base;
+		uint16_t len;
+	} segs[SYS_RDCFG_MAX_SEGMENTS];
+
+	struct sys_rdcfg_memseg {
+		uint64_t base;
+		uint32_t len;
+	} memsegs[SYS_RDCFG_MAX_MEMSEGMENTS];
+};
+#endif
 #define SYS_OPEN   0x20
 #define SYS_MAPIRQ 0x21
-
 /* Platform device port mangling */
 #define PLTPORT_SIZESHIFT 3
 #define PLTPORT_SIZEMASK 0x7
@@ -85,6 +113,7 @@ struct sys_creat_cfg {
 	uint64_t nameid;
 	uint32_t vendorid;
 	uint32_t deviceid;
+	uint8_t nirqs;
 };
 
 enum sys_poll_ior_op {
@@ -111,13 +140,14 @@ struct sys_poll_ior {
 #define SYS_IMPORT 0x34
 
 #ifndef _ASSEMBLER
+#define SYS_HWCREAT_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
 #define SYS_HWCREAT_MAX_SEGMENTS 24
 #define SYS_HWCREAT_MAX_MEMSEGMENTS 16
 
 struct sys_hwcreat_cfg {
 	uint64_t nameid;
-	uint32_t vendorid;
-	uint32_t deviceid;
+	uint64_t vendorid;
+	uint64_t deviceids[SYS_HWCREAT_MAX_DEVIDS];
 
 	uint8_t nirqsegs;
 	uint8_t npiosegs;

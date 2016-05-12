@@ -29,13 +29,13 @@
 
 #include <uk/types.h>
 #include <uk/rbtree.h>
-#include <uk/bus.h>
 #include <uk/structs.h>
 #include <uk/assert.h>
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
 #include <lib/lib.h>
 #include <uk/sys.h>
+#include <uk/bus.h>
 
 static lock_t sys_device_rbtree_lock = 0;
 static rb_tree_t sys_device_rbtree;
@@ -306,7 +306,7 @@ int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
 	return ret;
 }
 
-int bus_rdcfg(struct bus *b, unsigned desc, struct sys_creat_cfg *cfg)
+int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg)
 {
 	int ret;
 	struct dev *d;

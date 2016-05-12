@@ -194,7 +194,7 @@ int sys_out(unsigned ddno, u_long port, u_long val)
 	return ret;
 }
 
-int sys_readcfg(unsigned ddno, struct sys_creat_cfg *cfg)
+int sys_rdcfg(unsigned ddno, struct sys_rdcfg_cfg *cfg)
 {
 	int ret;
 

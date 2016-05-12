@@ -81,6 +81,7 @@ struct remth {
 struct usrdev_cfg {
 	uint32_t vid;
 	uint32_t did;
+	uint8_t nirqs;
 };
 
 struct usrdev {
@@ -214,7 +215,7 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 	return 0;
 }
 
-static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
+static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 {
 	struct usrdev *ud = (struct usrdev *) devopq;
 
@@ -223,7 +224,15 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
 
 	spinlock(&ud->lock);
 	cfg->vendorid = ud->cfg.vid;
-	cfg->deviceid = ud->cfg.did;
+	cfg->deviceids[0] = ud->cfg.did;
+
+	if (ud->cfg.nirqs) {
+	  cfg->nirqsegs = 1;
+	  cfg->segs[0].base = 0;
+	  cfg->segs[0].len = ud->cfg.nirqs;
+	} else {
+	  cfg->nirqsegs = 0;
+	}
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -305,6 +314,7 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->sig = sig;
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
+	ud->cfg.nirqs = cfg->nirqs;
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	TAILQ_INIT(&ud->ioreqs);
 

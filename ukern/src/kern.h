@@ -135,7 +135,7 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig);
 int devexport(unsigned dd, vaddr_t va, unsigned iopfn);
 int devin(unsigned dd, uint64_t port, uint64_t * valptr);
 int devout(unsigned dd, uint64_t port, uint64_t val);
-int devrdcfg(unsigned dd, struct sys_creat_cfg *cfg);
+int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg);
 void devclose(unsigned dd);
 
 void wake(struct thread *);

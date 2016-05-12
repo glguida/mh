@@ -146,7 +146,7 @@ static int _pltdev_iomap(void *devopq, unsigned id, vaddr_t va,
 		return -EINVAL;
 
 	dprintf("mapping at addr %lx paddr %"PRIx64" (%d)\n",
-	       va, (uint64_t)mmioaddr, prot);
+		va, (uint64_t)mmioaddr, prot);
 
 	ret = iomap(va, mmiopfn, prot);
 	if (ret < 0)
@@ -180,7 +180,7 @@ static int _pltdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 }
 
 static int _pltdev_rdcfg(void *devopq, unsigned id,
-			 struct sys_creat_cfg *cfg)
+			 struct sys_rdcfg_cfg *cfg)
 {
 	return -ENODEV;
 }

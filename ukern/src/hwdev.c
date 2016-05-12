@@ -40,6 +40,7 @@
 #include <uk/errno.h>
 #include <lib/lib.h>
 
+#define MAXHWDEVIDS SYS_RDCFG_MAX_DEVIDS
 #define MAXHWDEVREMS 256
 
 struct hwsig {
@@ -69,8 +70,8 @@ struct memseg {
 };
 
 struct hwdev_cfg {
-	uint32_t vid;
-	uint32_t did;
+	uint64_t vid;
+	uint64_t did[MAXHWDEVIDS];
 
 	uint8_t nirqsegs;
 	uint8_t npiosegs;
@@ -111,7 +112,6 @@ static int _hwdev_open(void *devopq, uint64_t did)
 	ret = i;
       out:
 	spinunlock(&hd->lock);
-	printf("open %" PRIx64 "! = %d", did, ret);
 	return ret;
 }
 
@@ -275,10 +275,29 @@ static int _hwdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 }
 
 
-static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_creat_cfg *cfg)
+static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 {
-	/* XXX: pass buffer and size, and fill accordingly. */
-	return -ENODEV;
+	int i;
+	struct hwdev *hd = (struct hwdev *) devopq;
+	struct hwdev_cfg *hdcfg = hd->cfg;
+
+	cfg->vendorid = hdcfg->vid;
+	for (i = 0; i < MAXHWDEVIDS; i++)
+		cfg->deviceids[i] = hdcfg->did[i];
+	cfg->nirqsegs = hdcfg->nirqsegs;
+	cfg->npiosegs = hdcfg->npiosegs;
+	cfg->nmemsegs = hdcfg->nmemsegs;
+
+	for (i = 0; i < hdcfg->nirqsegs + cfg->npiosegs; i++) {
+		cfg->segs[i].base = hdcfg->segs[i].base;
+		cfg->segs[i].len = hdcfg->segs[i].len;
+	}
+	for (i = 0; i < hdcfg->nmemsegs; i++) {
+		cfg->memsegs[i].base = hdcfg->memsegptr[i].base;
+		cfg->memsegs[i].len = hdcfg->memsegptr[i].len;
+	}
+		
+	return 0;
 }
 
 static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
@@ -374,7 +393,8 @@ struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 	hd->cfg = (struct hwdev_cfg *)(hd+1);
 
 	hd->cfg->vid = syscfg->vendorid;
-	hd->cfg->did = syscfg->deviceid;
+	for (i = 0; i < MAXHWDEVIDS; i++)
+		hd->cfg->did[i] = syscfg->deviceids[i];
 	hd->cfg->nirqsegs = syscfg->nirqsegs;
 	hd->cfg->npiosegs = syscfg->npiosegs;
 	hd->cfg->nmemsegs = syscfg->nmemsegs;
