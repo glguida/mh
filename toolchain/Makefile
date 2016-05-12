@@ -60,6 +60,7 @@ GCC_CONFIGURE_OPTS=					\
 			--disable-libquadmath		\
 			--with-headers=$(PWD)/$(INSTALLDIR)/usr/include \
 			--without-libs			\
+			--with-build-sysroot=$(PWD)/$(INSTALLDIR) \
 			--with-gmp=$(TOOLPREFIXDIR) 	\
 			--with-mpfr=$(TOOLPREFIXDIR)	\
 			--with-mpc=$(TOOLPREFIXDIR);
@@ -103,7 +104,8 @@ mpc:
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/mpc install
 
 # Ensure we can find the just compiled libraries during gcc bootstrap
-export LDFLAGS=-Wl,-rpath=$(TOOLPREFIXDIR)/install/lib
+export LDFLAGS=-Wl,-rpath,$(TOOLPREFIXDIR)/lib
+export CFLAGS=-Wno-error
 
 binutils: gmp mpfr mpc
 	mkdir -p $(TOOLBUILDDIR)/binutils;
