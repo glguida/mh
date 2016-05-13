@@ -32,9 +32,8 @@
 #include <machine/vmparam.h>
 #include <stdlib.h>
 #include <microkernel.h>
-#include <drex/drex.h>
-#include <drex/vmap.h>
 #include <sys/queue.h>
+#include <mrg.h>
 #include "acpi.h"
 
 #if 0

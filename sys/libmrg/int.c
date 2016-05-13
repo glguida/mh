@@ -6,8 +6,7 @@
 #include <microkernel.h>
 #include <stdlib.h>
 #include <assert.h>
-
-#include <drex/preempt.h>
+#include <mrg.h>
 
 /*
  * IRQ queues and interrupts.

@@ -34,10 +34,10 @@
 #include <sys/rbtree.h>
 #include <sys/bitops.h>
 #include <machine/vmparam.h>
-#include <machine/drexparam.h>
+#include <machine/param.h>
+#include <machine/mrgparam.h>
 #include <assert.h>
-#include "vmap.h"
-
+#include "mrg.h"
 
 
 /*

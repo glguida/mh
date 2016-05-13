@@ -32,8 +32,7 @@
 #include <sys/errno.h>
 #include <setjmp.h>
 #include <stdlib.h>
-#include <drex/lwt.h>
-#include <drex/preempt.h>
+#include <mrg.h>
 
 
 static int lwt_initialized = 0;

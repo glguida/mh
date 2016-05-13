@@ -3,12 +3,12 @@ MKDIR=$(SRCROOT)/mk
 include $(MKDIR)/mk.conf
 include $(MACHINE)/Makefile.inc
 
-LIBNAME=drex
+LIBNAME=mrg
 LIBDIR=/lib
 SRCS+= vm.c vmap.c lwt.c int.c
 
-INCS= drex.h preempt.h lwt.h vmap.h
-INCDIR= drex
+INCS= mrg.h mrg_lwt.h mrg_preempt.h
+INCDIR= 
 
 include $(MKDIR)/inc.mk
 include $(MKDIR)/obj.mk

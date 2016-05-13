@@ -34,7 +34,7 @@ diff -Nru gcc-6.1.0.dist/gcc/config/murgia.h gcc-6.1.0/gcc/config/murgia.h
 +#define TARGET_OBJECT_SUFFIX ".obj"
 +#define TARGET_EXECUTABLE_SUFFIX ".exe"
 +
-+#define LIB_SPEC "-lc -ldrex -lc -lcrt -luk"
++#define LIB_SPEC "-lc -lmrg -lc -luk"
 +
 +#undef NO_IMPLICIT_EXTERN_C
 +#define NO_IMPLICIT_EXTERN_C

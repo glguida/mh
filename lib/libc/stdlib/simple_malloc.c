@@ -1,10 +1,9 @@
 /* *INDENT-OFF* */ /* Imported from NetBSD -- MHDIFFIGNORE */
 #ifdef _DREX_SOURCE
+#include <mrg.h>
 #include <machine/vmparam.h>
 
 #define fprintf(_x, ...) printf(__VA_ARGS__)
-#define brk drex_brk
-#define sbrk drex_sbrk
 #define getpagesize() PAGE_SIZE
 
 #endif

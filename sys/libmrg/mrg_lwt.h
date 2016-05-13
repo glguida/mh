@@ -27,55 +27,58 @@
  */
 
 
-#ifndef __drex_event_h_
-#define __drex_event_h_
+#ifndef __mrg_lwt_h
+#define __mrg_lwt_h
 
+#include <sys/types.h>
 #include <sys/queue.h>
-#include <drex/lwt.h>
+#include <setjmp.h>
 
-struct drex_queue;
+struct lwt {
+#define LWTF_ACTIVE   1
+#define LWTF_XCPT     2
+	int flags;
 
-struct drex_event {
-	unsigned filter;
-	uintptr_t ident;
-	uintptr_t udata;
-	int data;
+	jmp_buf buf;
+	jmp_buf xcptbuf;
+	void *priv;
 
-	int active;
-	struct drex_queue *queue;
-	LIST_ENTRY(drex_event) event_list;
-	LIST_ENTRY(drex_event) queue_list;
+	void (*start)(void *);
+	void *arg;
+	void *stack;
+	size_t stack_size;
+
+	SIMPLEQ_ENTRY(lwt) list;
 };
+typedef struct lwt lwt_t;
 
-LIST_HEAD(drex_events, drex_event);
 
-struct drex_queue {
-#define DREX_QUEUE_LWTWAIT 1
-	unsigned flags;
-	lwt_t *lwt;
-	LIST_HEAD(, drex_event) events;
-};
+void lwt_makebuf(lwt_t *lwt, void (*start)(void *), void * arg,
+		 void *stack_base, size_t stack_size);
+lwt_t *lwt_create(void (*start)(void *), void *arg, size_t stack_size);
 
-#define EVFILT_DREX_IRQ 0
-#define EVFILT_DIRTIO_DEV 1
-#define EVFILT_NUMFILTERS 2
+void __lwt_wake(lwt_t *lwt);
 
-struct evfilter {
-	int (*attach)(struct drex_event *e, uintptr_t ident);
-	int (*detach)(struct drex_event *e, uintptr_t ident);
+void lwt_exception_clear(void);
 
-	int (*event)(struct drex_event *e, unsigned evfilt, int data);
-};
+void lwt_wake(lwt_t *lwt);
+void lwt_yield(void);
+void lwt_sleep(void);
+void lwt_exit(void);
 
-int _drex_kqueue_events(struct drex_events *evs, uintptr_t ident, int data);
 
-int drex_kqueue_setup(unsigned fil, struct evfilter *evf);
-int drex_kqueue_set_filter(unsigned fil, struct evfilter *evf);
+lwt_t *lwt_getcurrent(void);
+void *lwt_getprivate(void);
+void lwt_setprivate(void *ptr);
 
-int drex_kqueue(void);
-int drex_kqueue_add(int qn, unsigned fil, uintptr_t ident, uintptr_t udata);
-int drex_kqueue_del(int qn, unsigned fil, uintptr_t ident);
-int drex_kqueue_wait(int qn, unsigned *filter, uintptr_t *ident,
-		     uintptr_t *udata,int poll);
+#define lwt_exception(__block)					\
+	do {							\
+		if (_setjmp(lwt_getcurrent()->xcptbuf)) {	\
+			lwt_getcurrent()->flags &= ~LWTF_XCPT;	\
+			{ __block }				\
+		} else {					\
+			lwt_getcurrent()->flags |= LWTF_XCPT;	\
+		}						\
+	} while(0)
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Gianluca Guida
+ * Copyright (c) 2015-2016, Gianluca Guida
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __drex_vmap_h
-#define __drex_vmap_h
+
+#ifndef __mrg_runtime_h
+#define __mrg_runtime_h
+
+#include <sys/types.h>
+#include <inttypes.h>
+
+
+/*
+ * VM Memory Management
+ */
 
 #define VFNT_INVALID 0
 #define VFNT_FREE    1
@@ -41,5 +50,25 @@
 vaddr_t vmap_alloc(size_t size, uint8_t type);
 void vmap_free(vaddr_t va, size_t size);
 void vmap_info(vaddr_t va, vaddr_t * start, size_t * size, uint8_t * type);
+
+int brk(void *);
+void *sbrk(int);
+
+
+/*
+ * Interrupt allocation and handling.
+ */
+
+unsigned intalloc(void);
+void intfree(unsigned);
+void inthandler(unsigned, void (*)(int, void *), void *);
+#include "mrg_preempt.h"
+
+
+/*
+ * Lightweight Threads.
+ */
+
+#include "mrg_lwt.h"
 
 #endif

@@ -27,17 +27,37 @@
  */
 
 
-#ifndef __drex_drex_h
-#define __drex_drex_h
+#ifndef __mrgrt_preempt_h_
+#define __mrgrt_preempt_h_
 
-int drex_brk(void *);
-void *drex_sbrk(int);
-void *drex_mmap(void *addr, size_t len, int prot,
-		int flags, int fd, off_t offset);
-int drex_munmap(void *addr, size_t len);
+#include <assert.h>
+#include <microkernel.h>
 
-unsigned intalloc(void);
-void intfree(unsigned);
-void inthandler(unsigned, void (*)(int, void *), void *);
+extern unsigned __preemption_level;
+
+static inline void
+preempt_enable(void)
+{
+	assert(__preemption_level != 0);
+	if (!--__preemption_level) {
+		sys_sti();
+	}
+}
+
+static inline void
+preempt_disable(void)
+{
+	if (!__preemption_level++) {
+		sys_cli();
+	}
+}
+
+static inline void
+preempt_restore(void)
+{
+	sys_cli();
+	if (!__preemption_level)
+		sys_sti();
+}
 
 #endif
