@@ -57,9 +57,11 @@ dopen(char *devname, devmode_t mode)
 
 		d->flags |= FLAG_HAS_EIO;
 		d->eio = eio;
+	} else {
+		d->eio = -1;
 	}
 
-	printf("Opened device %p (%d): %d -> %d with eio: %d (flags: %lx)\n",
+	printf("Opened device %p (%d): %d -> %d (flags: %lx)\n",
 	       d, d->dd, cfg.eio, d->eio, d->flags);
 
 	return d;
