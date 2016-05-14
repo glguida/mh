@@ -126,6 +126,28 @@ lwt_wake(lwt_t *lwt)
 }
 
 void
+lwt_pause(void)
+{
+	lwt_t *old, *new;
+
+	if (!lwt_initialized)
+		lwt_init();
+	old = lwt_current;
+
+	preempt_disable();
+	SIMPLEQ_INSERT_TAIL(&__lwtq_active, old, list);
+	old->flags |= LWTF_ACTIVE;
+	new = SIMPLEQ_FIRST(&__lwtq_active);
+	SIMPLEQ_REMOVE_HEAD(&__lwtq_active, list);
+	new->flags &= ~LWTF_ACTIVE;
+	preempt_enable();
+	if (old != new)
+		_lwt_switch(new, 1);
+	else
+		sys_yield();
+}
+
+void
 lwt_yield(void)
 {
 	lwt_t *old, *new;

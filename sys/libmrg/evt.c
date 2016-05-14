@@ -58,3 +58,15 @@ void evtwait(int evt)
 	lwt_sleep();
 	preempt_enable();
 }
+
+void evtclear(int evt)
+{
+  	int i = evt / 64, r = evt % 64;
+
+
+	assert(evt < MAXEVT);
+
+	preempt_disable();
+	set_evts[i] &= ~((uint64_t)1 << r);
+	preempt_enable();
+}

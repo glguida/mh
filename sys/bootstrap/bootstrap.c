@@ -32,18 +32,11 @@ devadd(struct sys_hwcreat_cfg *cfg)
 	SLIST_INSERT_HEAD(&devices, d, list);
 }
 
-int run_lwt(void *arg)
-{
-	printf("Running!\n");
-	preempt_disable();
-	__evtset((int)(uintptr_t)arg);
-	preempt_enable();
-	lwt_exit();
-}
-
-int main()
+int
+main()
 {
 	int ret;
+	DEVICE *console;
 
 	printf("MRG bootstrap initiated.\n");
 
@@ -67,32 +60,16 @@ int main()
 
 	/* Become SIGCHILD handler */
 
-	/* open console and start command loop.
+	/* open console */
+	console = dopen("console", 0111);
+	while (console == NULL) {
+		printf("(%d)...", ret);
+		lwt_pause();
+		console = dopen("console", 0111);
+	}
+	
+	/* start command loop
 	 * ret = pltcommand_setup(); */
-
-#if 1
-{
-	int evt;
-
-	lwt_t *new = lwt_create(run_lwt, (void *)3, 1024);
-	lwt_wake(new);
-	printf("Created lwt %p\n", new);
-
-	evt = evtalloc();
-	printf("allocated evt %d\n", evt);
-	evt = evtalloc();
-	printf("allocated evt %d\n", evt);
-	evt = evtalloc();
-	printf("allocated evt %d\n", evt);
-	evt = evtalloc();
-	printf("allocated evt %d\n", evt);
-
-	evtwait(evt);
-	printf("Done!\n");
-
-	dopen("PCI0", 0111);
-}
-#endif
 
 	lwt_sleep();
 }

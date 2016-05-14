@@ -32,6 +32,9 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <squoze.h>
 
 
 /*
@@ -78,6 +81,7 @@ void inthandler(unsigned, void (*)(int, void *), void *);
 
 int evtalloc(void);
 void evtwait(int evt);
+void evtclear(int evt);
 void __evtset(int evt);
 
 
@@ -88,9 +92,24 @@ void __evtset(int evt);
 struct _DEVICE;
 typedef struct _DEVICE DEVICE;
 
+enum dio_op {
+	PORT_IN,
+	PORT_OUT,
+};
+
 DEVICE *dopen(char *devname, devmode_t mode);
-int dio(DEVICE *d, uint8_t op, uint64_t *val, int evtid);
-int diow(DEVICE *d, uint8_t op, uint64_t *val, int evtid);
+int vdio(DEVICE *d, int evtid, enum dio_op op, va_list opargs);
+int dio(DEVICE *d, int evtid, enum dio_op op, ...);
+int diow(DEVICE *d, int evtid, enum dio_op op, ...);
 void dclose(DEVICE *d);
+
+
+/*
+ * Devices.
+ */
+
+int devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt);
+int devpoll(struct sys_poll_ior *ior);
+int deveio(int req);
 
 #endif

@@ -58,6 +58,13 @@ unsigned intalloc(void)
 void intfree(unsigned intr)
 {
 	assert(intr < 64);
+
+	/* Remove handler */
+	preempt_disable();
+	handlers[intr] = NULL;
+	opaques[intr] = NULL;
+	preempt_enable();
+
 	free_intrs |= ((uint64_t) 1 << intr);
 }
 
