@@ -547,7 +547,7 @@ struct pmap *pmap_copy(void)
 		if (!(l1e & PG_P)) {
 			/* Not present, copy */
 			__setl1e(copy, l1e);
-		} else if (l1e_imported(l1e)) {
+		} else if (l1e_imported(l1e) || l1e_iomap(l1e)) {
 			/* Do not inherit imported mappings */
 			__setl1e(copy, 0);
 		} else {
