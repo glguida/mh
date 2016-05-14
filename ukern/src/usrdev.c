@@ -227,12 +227,7 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	cfg->deviceids[0] = ud->cfg.did;
 
 	cfg->eio = (uint8_t)BUS_IRQEIO;
-
-	/* Always account for EIO */
-	assert(BUS_IRQEIO == 0);
-	cfg->nirqsegs = 1;
-	cfg->segs[0].base = 0;
-	cfg->segs[0].len = 1 + ud->cfg.nirqs;
+	cfg->segs[0].len = ud->cfg.nirqs;
 
 	spinunlock(&ud->lock);
 	return 0;
@@ -315,7 +310,8 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->sig = sig;
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
-	ud->cfg.nirqs = cfg->nirqs;
+	/* Always account for EIO */
+	ud->cfg.nirqs = 1 + cfg->nirqs;
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	TAILQ_INIT(&ud->ioreqs);
 
