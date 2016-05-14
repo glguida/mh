@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #define perror(...) printf(__VA_ARGS__)
+#warning add perror
 
 /*
  * PCI bus.

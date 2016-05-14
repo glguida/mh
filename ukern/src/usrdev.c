@@ -226,13 +226,14 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	cfg->vendorid = ud->cfg.vid;
 	cfg->deviceids[0] = ud->cfg.did;
 
-	if (ud->cfg.nirqs) {
-	  cfg->nirqsegs = 1;
-	  cfg->segs[0].base = 0;
-	  cfg->segs[0].len = ud->cfg.nirqs;
-	} else {
-	  cfg->nirqsegs = 0;
-	}
+	cfg->eio = (uint8_t)BUS_IRQEIO;
+
+	/* Always account for EIO */
+	assert(BUS_IRQEIO == 0);
+	cfg->nirqsegs = 1;
+	cfg->segs[0].base = 0;
+	cfg->segs[0].len = 1 + ud->cfg.nirqs;
+
 	spinunlock(&ud->lock);
 	return 0;
 }

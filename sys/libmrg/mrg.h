@@ -71,4 +71,26 @@ void inthandler(unsigned, void (*)(int, void *), void *);
 
 #include "mrg_lwt.h"
 
+
+/*
+ * Event handling.
+ */
+
+int evtalloc(void);
+void evtwait(int evt);
+void __evtset(int evt);
+
+
+/*
+ * Device handling.
+ */
+
+struct _DEVICE;
+typedef struct _DEVICE DEVICE;
+
+DEVICE *dopen(char *devname, devmode_t mode);
+int dio(DEVICE *d, uint8_t op, uint64_t *val, int evtid);
+int diow(DEVICE *d, uint8_t op, uint64_t *val, int evtid);
+void dclose(DEVICE *d);
+
 #endif
