@@ -71,7 +71,6 @@ pltpci_init(void)
 
 	unsquozelen(d->nameid, 13, name);
 	printf("PCI root device found at %s\n", name);
-	free(name);
 
 	/*
 	 * Open PCI device
