@@ -52,8 +52,8 @@ main()
 
 	/* ret = pltusb_init(); */
 
-	/* fork and create console device.
-	 * ret = pltconsole_process(); */
+	/* fork and create console device. */
+	ret = pltconsole_process();
 
 	/* fork and create kloggerd.
 	 * ret = kloggerd_process(); */
