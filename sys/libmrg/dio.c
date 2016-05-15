@@ -129,9 +129,9 @@ vdio(DEVICE *d, int evtid, enum dio_op op, va_list opargs)
 	switch (op) {
 	case PORT_IN: {
 		uint64_t port = va_arg(opargs, uint64_t);
-		uint64_t *val = va_arg(opargs, uint64_t *);
+		uint64_t val;
 
-		ret = sys_in(d->dd, port, val);
+		ret = sys_in(d->dd, port, &val);
 		if (ret != 0)
 			break;
 
@@ -190,6 +190,7 @@ int
 diow(DEVICE *d, int evtid, enum dio_op op, ...)
 {
 	int ret;
+	uint64_t *val;
 	va_list opargs;
 
 	va_start(opargs, op);
@@ -198,12 +199,33 @@ diow(DEVICE *d, int evtid, enum dio_op op, ...)
 	dwait(d);
 
 	ret = vdio(d, evtid, op, opargs);
+	if (ret != 0) {
+		va_end(opargs);
+		return ret;
+	}
 
 	/* Wait for current event to terminate */
 	dwait(d);
 
+	if (d->dioevt == -1) {
+		va_arg(opargs, uint64_t);
+		val = va_arg(opargs, uint64_t *);
+		ret = sys_retval(d->dd, val);
+		if (ret != 0) {
+			va_end(opargs);
+			return ret;
+		}
+	}
+
 	va_end(opargs);
 	return ret; 
+}
+
+int
+dretval(DEVICE *d, uint64_t *val)
+{
+
+	return sys_retval(d->dd, val);
 }
 
 void

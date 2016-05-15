@@ -49,13 +49,14 @@ struct bus {
 	} devs[MAXBUSDEVS];
 };
 
-struct sys_creat_cfg;
+struct sys_rdcfg_cfg;
 struct devops {
 	int (*open) (void *devopq, uint64_t did);
 	int (*in) (void *devopq, unsigned id, uint64_t port,
 		   uint64_t * val);
 	int (*out) (void *devopq, unsigned id, uint64_t port,
 		    uint64_t val);
+	int (*retval) (void *devopq, unsigned id, uint64_t * val);
 	int (*iomap) (void *devopq, unsigned id, vaddr_t va,
 		      paddr_t mmioaddr, pmap_prot_t prot);
 	int (*iounmap) (void *devopq, unsigned id, vaddr_t va);
@@ -88,6 +89,7 @@ struct dev {
 int bus_plug(struct bus *b, uint64_t did);
 int bus_in(struct bus *b, unsigned desc, uint64_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val);
+int bus_retval(struct bus *b, unsigned desc, uint64_t *retval);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn);
 int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	      paddr_t mmioaddr, pmap_prot_t prot);

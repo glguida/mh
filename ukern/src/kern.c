@@ -679,13 +679,13 @@ int devpoll(struct sys_poll_ior *polld)
 	return ret;
 }
 
-int deveio(unsigned id)
+int deveio(unsigned id, uint64_t val)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
 	if (th->usrdev)
-		ret = usrdev_eio(th->usrdev, id);
+		ret = usrdev_eio(th->usrdev, id, val);
 	return ret;
 }
 
@@ -763,6 +763,13 @@ int devout(unsigned dd, uint64_t port, uint64_t val)
 	struct thread *th = current_thread();
 
 	return bus_out(&th->bus, dd, port, val);
+}
+
+int devretval(unsigned dd, uint64_t *val)
+{
+	struct thread *th = current_thread();
+
+	return bus_retval(&th->bus, dd, val);
 }
 
 int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot)

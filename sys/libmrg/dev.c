@@ -38,8 +38,8 @@ devpoll(struct sys_poll_ior *ior)
 }
 
 int
-deveio(int req)
+deveio(int req, uint64_t val)
 {
 
-	sys_eio(req);
+	sys_eio(req, val);
 }

@@ -110,6 +110,6 @@ void dclose(DEVICE *d);
 
 int devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt);
 int devpoll(struct sys_poll_ior *ior);
-int deveio(int req);
+int deveio(int req, uint64_t val);
 
 #endif

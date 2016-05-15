@@ -93,20 +93,21 @@ struct sys_rdcfg_cfg {
 };
 #endif
 #define SYS_OPEN   0x20
-#define SYS_MAPIRQ 0x21
+#define SYS_OPEN32 0x21
+#define SYS_MAPIRQ 0x22
 /* Platform device port mangling */
 #define PLTPORT_SIZESHIFT 3
 #define PLTPORT_SIZEMASK 0x7
 #define PLTPORT_BYTE(_x) (((_x) << PLTPORT_SIZESHIFT) | 1)
 #define PLTPORT_WORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 2)
 #define PLTPORT_DWORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 4)
-#define SYS_IN     0x22
-#define SYS_OUT    0x23
-#define SYS_EXPORT 0x24
-#define SYS_RDCFG  0x25
-#define SYS_IOMAP  0x26
-#define SYS_IOUNMAP 0x27
-#define SYS_OPEN32 0x28
+#define SYS_IN     0x23
+#define SYS_OUT    0x24
+#define SYS_RETVAL 0x25
+#define SYS_EXPORT 0x26
+#define SYS_RDCFG  0x27
+#define SYS_IOMAP  0x28
+#define SYS_IOUNMAP 0x29
 
 #define SYS_CLOSE  0x2F
 
@@ -120,6 +121,7 @@ struct sys_creat_cfg {
 
 enum sys_poll_ior_op {
 	SYS_POLL_OP_OUT,
+	SYS_POLL_OP_IN,
 };
 
 struct sys_poll_ior {
@@ -138,8 +140,9 @@ struct sys_poll_ior {
 #define SYS_CREAT  0x30
 #define SYS_POLL   0x31
 #define SYS_EIO    0x32
-#define SYS_IRQ    0x33
-#define SYS_IMPORT 0x34
+#define SYS_EIO32  0x33
+#define SYS_IRQ    0x34
+#define SYS_IMPORT 0x35
 
 #ifndef _ASSEMBLER
 #define SYS_HWCREAT_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS

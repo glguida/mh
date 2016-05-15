@@ -218,6 +218,35 @@ int bus_out(struct bus *b, unsigned desc, uint64_t port, uint64_t val)
 	return ret;
 }
 
+int bus_retval(struct bus *b, unsigned desc, uint64_t *val)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto out_io_out;
+	}
+	assert(d != NULL);
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto out_io_out;
+	}
+	ret = d->ops->retval(d->devopq, b->devs[desc].devid, val);
+	spinunlock(&d->lock);
+      out_io_out:
+	spinunlock(&b->lock);
+	return ret;
+}
+
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned iopfn)
 {
 	int ret;
