@@ -22,6 +22,7 @@ static void pltconsole(int indd, int outdd)
 
 	while (1) {
 		int req;
+		uint64_t val = 0;
 
 		evtwait(reqevt);
 
@@ -31,6 +32,9 @@ static void pltconsole(int indd, int outdd)
 			case SYS_POLL_OP_OUT:
 				printf("<%c>", ior.val);
 				break;
+			case SYS_POLL_OP_IN:
+				val = squoze("Gianluca");
+				break;
 			default:
 				break;
 			}
@@ -38,6 +42,7 @@ static void pltconsole(int indd, int outdd)
 		evtclear(reqevt);
 
 		printf("CONSOLE REQUEST!\n");
+		sys_eio(req, val);
 	}
 
 	lwt_sleep();

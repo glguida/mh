@@ -67,7 +67,12 @@ main()
 		lwt_pause();
 		console = dopen("console", 0111);
 	}
-	
+
+	uint64_t val = 0;
+	ret = diow(console, 0, PORT_IN, (uint64_t)4, &val);
+	if (ret < 0)
+		return ret;
+		
 	/* start command loop
 	 * ret = pltcommand_setup(); */
 
