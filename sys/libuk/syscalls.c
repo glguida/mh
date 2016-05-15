@@ -194,14 +194,6 @@ int sys_out(unsigned ddno, u_long port, u_long val)
 	return ret;
 }
 
-int sys_retval(unsigned ddno, uint64_t *val)
-{
-	int ret;
-
-	__syscall2(SYS_RETVAL, (unsigned long) ddno, (unsigned long) val, ret);
-	return ret;
-}
-
 int sys_rdcfg(unsigned ddno, struct sys_rdcfg_cfg *cfg)
 {
 	int ret;
@@ -236,17 +228,11 @@ int sys_poll(struct sys_poll_ior *ior)
 	return ret;
 }
 
-int sys_eio(unsigned id, uint64_t val)
+int sys_eio(unsigned id)
 {
 	int ret;
 
-#if _LP64
-	__syscall2(SYS_EIO, (unsigned long) id, val, ret);
-#else
-	__syscall3(SYS_EIO32, (unsigned long) id,
-		   (unsigned long) (val >> 32),
-		   (unsigned long) val, ret);
-#endif
+	__syscall1(SYS_EIO, (unsigned long) id, ret);
 	return ret;
 }
 

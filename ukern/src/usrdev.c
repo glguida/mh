@@ -44,7 +44,6 @@ static struct slab usrioreqs;
 
 enum usrior_op {
 	IOR_OP_OUT,
-	IOR_OP_IN,
 };
 
 struct usrioreq {
@@ -75,7 +74,6 @@ struct remth {
 	int bsy:1;		/* Request in progress (device) */
 	unsigned id;		/* Remote ID descriptor */
 	struct thread *th;	/* Remote threads */
-	uint64_t retval;	/* Return Value Register */
 	unsigned irqmap[IRQMAPSZ];	/* Interrupt Remapping Table */
   	struct apert apertbl[MAXUSRDEVAPERTS];
 };
@@ -108,6 +106,7 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
+
 	spinlock(&ud->lock);
 	for (i = 0; i < MAXUSRDEVREMS; i++) {
 		if (!ud->remths[i].use && !ud->remths[i].bsy)
@@ -130,34 +129,7 @@ static int _usrdev_open(void *devopq, uint64_t did)
 static int _usrdev_in(void *devopq, unsigned id, uint64_t port,
 		      uint64_t * val)
 {
-	/* Current thread: Process */
-	struct usrdev *ud = (struct usrdev *) devopq;
-	struct thread *th = current_thread();
-	struct usrioreq *ior;
-
-	assert (id < MAXUSRDEVREMS);
-
-	ior = structs_alloc(&usrioreqs);
-	ior->id = id;
-	ior->op = IOR_OP_IN;
-
-	dprintf("uid: %d, gid %d\n", th->euid, th->egid);
-	ior->uid = th->euid;
-	ior->gid = th->egid;
-
-	spinlock(&ud->lock);
-	if (ud->remths[id].bsy) {
-		spinunlock(&ud->lock);
-		structs_free(ior);
-		return -EBUSY;
-	}
-	ud->remths[id].bsy = 1;
-	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
-	thraise(ud->th, ud->sig);
-	spinunlock(&ud->lock);
-
-	*val = -1;
-	return 0;
+	return -ENODEV;
 }
 
 static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
@@ -177,7 +149,7 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	ior->port = port;
 	ior->val = val;
 
-	dprintf("uid: %d, gid %d\n", th->euid, th->egid);
+	printf("uid: %d, gid %d\n", th->euid, th->egid);
 	ior->uid = th->euid;
 	ior->gid = th->egid;
 
@@ -190,22 +162,6 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	ud->remths[id].bsy = 1;
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
 	thraise(ud->th, ud->sig);
-	spinunlock(&ud->lock);
-	return 0;
-}
-
-static int _usrdev_retval(void *devopq, unsigned id, uint64_t *val)
-{
-	/* Current thread: Process */
-	struct usrdev *ud = (struct usrdev *) devopq;
-	struct thread *th = current_thread();
-
-	spinlock(&ud->lock);
-	if (ud->remths[id].bsy) {
-		spinunlock(&ud->lock);
-		return -EBUSY;
-	}
-	*val = ud->remths[id].retval;
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -338,7 +294,6 @@ static struct devops usrdev_ops = {
 	.close = _usrdev_close,
 	.in = _usrdev_in,
 	.out = _usrdev_out,
-	.retval = _usrdev_retval,
 	.export = _usrdev_export,
 	.rdcfg = _usrdev_rdcfg,
 	.irqmap = _usrdev_irqmap,
@@ -355,7 +310,6 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->sig = sig;
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
-
 	/* Always account for EIO */
 	ud->cfg.nirqs = 1 + cfg->nirqs;
 	memset(&ud->remths, 0, sizeof(ud->remths));
@@ -393,11 +347,6 @@ retry:
 		poll->port = ior->port;
 		poll->val = ior->val;
 		break;
-	case IOR_OP_IN:
-		poll->op = SYS_POLL_OP_IN;
-		poll->port = ior->port;
-		poll->val = ior->val;
-		break;
 	default:
 		panic("Invalid IOR entry type %d!\n", ior->op);
 		goto retry;
@@ -411,7 +360,7 @@ retry:
 	return id;
 }
 
-int usrdev_eio(struct usrdev *ud, unsigned id, uint64_t val)
+int usrdev_eio(struct usrdev *ud, unsigned id)
 {
 	int sig;
 
@@ -423,7 +372,6 @@ int usrdev_eio(struct usrdev *ud, unsigned id, uint64_t val)
 	printf("sig = %d\n", sig);
 	if ((sig != -1) && ud->remths[id].use)
 		thraise(ud->remths[id].th, sig);
-	ud->remths[id].retval = val;
 	ud->remths[id].bsy = 0;
 	spinunlock(&ud->lock);
 	return 0;

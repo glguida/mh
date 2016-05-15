@@ -142,16 +142,9 @@ static int sys_poll(uaddr_t uior)
 	return id;
 }
 
-static int sys_eio32(unsigned id, unsigned long hival, unsigned long loval)
+static int sys_eio(unsigned id)
 {
-	uint64_t val = ((uint64_t)hival << 32) | loval;
-
-	return deveio(id, val);
-}
-
-static int sys_eio(unsigned id,  unsigned long val)
-{
-	return deveio(id, val);
+	return deveio(id);
 }
 
 static int sys_import(unsigned id, unsigned iopfn, u_long va)
@@ -190,7 +183,7 @@ static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)
 	struct sys_rdcfg_cfg cfg;
 
 	if (!__chkuaddr(ucfg, sizeof(cfg)))
-		return -EFAULT;
+		return -EINVAL;
 
 	memset(&cfg, 0, sizeof(struct sys_rdcfg_cfg));
 	ret = devrdcfg(ddno, &cfg);
@@ -212,9 +205,6 @@ static int sys_in(unsigned ddno, uint64_t port, uaddr_t valptr)
 	int ret;
 	uint64_t val;
 
-	if (!__chkuaddr(valptr, sizeof(val)))
-		return -EFAULT;
-
 	ret = devin(ddno, port, &val);
 	if (ret)
 		return ret;
@@ -227,18 +217,6 @@ static int sys_out(unsigned ddno, uint64_t port, uint64_t val)
 {
 
 	return devout(ddno, port, val);
-}
-
-static int sys_retval(unsigned ddno, uaddr_t uval)
-{
-	int ret;
-	uint64_t val;
-
-	ret = devretval(ddno, &val);
-	if (ret != 0)
-		return ret;
-
-	return copy_to_user(uval, &val, sizeof(uint64_t));
 }
 
 static int sys_close(unsigned ddno)
@@ -457,10 +435,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_creat(a1, a2, a3);
 	case SYS_POLL:
 		return sys_poll(a1);
-	case SYS_EIO32:
-		return sys_eio32(a1, a2, a3);
 	case SYS_EIO:
-		return sys_eio(a1, a2);
+		return sys_eio(a1);
 	case SYS_IMPORT:
 		return sys_import(a1, a2, a3);
 	case SYS_IRQ:
@@ -479,8 +455,6 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_in(a1, a2, a3);
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
-	case SYS_RETVAL:
-		return sys_retval(a1, a2);
 	case SYS_IOMAP:
 		return sys_iomap(a1, a2, a3);
 	case SYS_CLOSE:

@@ -34,7 +34,7 @@ struct sys_creat_cfg;
 
 struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int usrdev_poll(struct usrdev *ud, struct sys_poll_ior *poll);
-int usrdev_eio(struct usrdev *ud, unsigned id, uint64_t val);
+int usrdev_eio(struct usrdev *ud, unsigned id);
 int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq);
 int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 		  unsigned va);
