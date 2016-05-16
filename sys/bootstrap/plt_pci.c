@@ -25,8 +25,8 @@ pltpci_rdcfg_io(unsigned bus, unsigned dev, unsigned func, uint16_t reg)
 	uint32_t val;
 	unsigned addr = 0xc000 | dev << 8 | reg;
 
-	sys_out(rootfd, PLTPORT_DWORD(0xcf8), 0xf0 | (func << 1));
-	sys_out(rootfd, PLTPORT_DWORD(0xcfa), 0x
+	sys_out(rootfd, IOPORT_DWORD(0xcf8), 0xf0 | (func << 1));
+	sys_out(rootfd, IOPORT_DWORD(0xcfa), 0x
 	outb(bus, 0xcfa);
 	val = inl(addr);
 	outb(0, 0xcf8);

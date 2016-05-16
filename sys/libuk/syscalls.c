@@ -228,11 +228,11 @@ int sys_poll(struct sys_poll_ior *ior)
 	return ret;
 }
 
-int sys_eio(unsigned id)
+int sys_wriospc(unsigned id, uint32_t port, unsigned long val)
 {
 	int ret;
 
-	__syscall1(SYS_EIO, (unsigned long) id, ret);
+	__syscall3(SYS_WRIOSPC, (unsigned long) id, port, val, ret);
 	return ret;
 }
 

@@ -69,10 +69,16 @@ main()
 	}
 
 	uint64_t val = 0;
-	ret = diow(console, 0, PORT_IN, (uint64_t)4, &val);
+	ret = dio(console, 0, PORT_OUT, (uint64_t)4, &val);
+	printf("ret = %d\n", ret);
 	if (ret < 0)
 		return ret;
-		
+
+	sys_wait();
+
+	ret = dio(console, 0, PORT_IN, (uint64_t)1, &val);
+	printf("val = %llx\n", val);
+
 	/* start command loop
 	 * ret = pltcommand_setup(); */
 

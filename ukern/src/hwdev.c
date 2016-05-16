@@ -115,15 +115,15 @@ static int _hwdev_open(void *devopq, uint64_t did)
 	return ret;
 }
 
-static int _hwdev_in(void *devopq, unsigned id, uint64_t port,
+static int _hwdev_in(void *devopq, unsigned id, uint32_t port,
 		      uint64_t * val)
 {
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
 	struct seg *ptr= cfg->segs + cfg->nirqsegs;
-	uint8_t iosize = port & PLTPORT_SIZEMASK;
-	uint16_t ioport = port >> PLTPORT_SIZESHIFT;
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 
 	found = 0;
 	for (i = 0; i < cfg->npiosegs; i++, ptr++) {
@@ -150,21 +150,21 @@ static int _hwdev_in(void *devopq, unsigned id, uint64_t port,
 		*val = platform_inl(ioport);
 		break;
 	default:
-		printf("Meh: %llx\n", port);
+		printf("Unsupported I/O port size %d at port %llx\n", iosize, port);
 		return -EINVAL;
 	}
 	return 0;
 }
 
-static int _hwdev_out(void *devopq, unsigned id, uint64_t port,
+static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 		       uint64_t val)
 {
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
 	struct seg *ptr= cfg->segs + cfg->nirqsegs;
-	uint8_t iosize = port & PLTPORT_SIZEMASK;
-	uint16_t ioport = port >> PLTPORT_SIZESHIFT;
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 
 	found = 0;
 	for (i = 0; i < cfg->npiosegs; i++, ptr++) {

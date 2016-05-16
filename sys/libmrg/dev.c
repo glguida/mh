@@ -37,9 +37,3 @@ devpoll(struct sys_poll_ior *ior)
 	return sys_poll(ior);
 }
 
-int
-deveio(int req)
-{
-
-	sys_eio(req);
-}

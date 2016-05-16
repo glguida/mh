@@ -350,13 +350,13 @@ AcpiOsReadPort(ACPI_IO_ADDRESS Address, UINT32 * Value, UINT32 Width)
 
 	switch (Width) {
 	case 8:
-		port = PLTPORT_BYTE(Address);
+		port = IOPORT_BYTE(Address);
 		break;
 	case 16:
-		port = PLTPORT_WORD(Address);
+		port = IOPORT_WORD(Address);
 		break;
 	case 32:
-		port = PLTPORT_DWORD(Address);
+		port = IOPORT_DWORD(Address);
 		break;
 	default:
 		return AE_ERROR;
@@ -379,13 +379,13 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address, UINT32 Value, UINT32 Width)
 	dbgprintf("%s called (%d)\n", __FUNCTION__, Width);
 	switch (Width) {
 	case 8:
-		port = PLTPORT_BYTE(Address);
+		port = IOPORT_BYTE(Address);
 		break;
 	case 16:
-		port = PLTPORT_WORD(Address);
+		port = IOPORT_WORD(Address);
 		break;
 	case 32:
-		port = PLTPORT_DWORD(Address);
+		port = IOPORT_DWORD(Address);
 		break;
 	default:
 		return AE_ERROR;
@@ -443,18 +443,18 @@ AcpiOsReadPciConfiguration(ACPI_PCI_ID * PciId,
 		| 0x80000000; /* enable bit */
 	uint64_t port;
 
-	ret = sys_out(acpi_pltfd, PLTPORT_DWORD(0xcf8), outval);
+	ret = sys_out(acpi_pltfd, IOPORT_DWORD(0xcf8), outval);
 	if (ret)
 		return -1;
 	switch (Width) {
 	case 32: 
-		port = PLTPORT_DWORD(inaddr);
+		port = IOPORT_DWORD(inaddr);
 		break;
 	case 16:
-		port = PLTPORT_WORD(inaddr);
+		port = IOPORT_WORD(inaddr);
 		break;
 	case 8:
-		port = PLTPORT_BYTE(inaddr);
+		port = IOPORT_BYTE(inaddr);
 		break;
 	default:
 		return -1;
@@ -478,18 +478,18 @@ AcpiOsWritePciConfiguration(ACPI_PCI_ID * PciId,
 		| 0x80000000; /* enable bit */
 	uint64_t port;
 
-	ret = sys_out(acpi_pltfd, PLTPORT_DWORD(0xcf8), outval);
+	ret = sys_out(acpi_pltfd, IOPORT_DWORD(0xcf8), outval);
 	if (ret)
 		return -1;
 	switch (Width) {
 	case 32: 
-		port = PLTPORT_DWORD(inaddr);
+		port = IOPORT_DWORD(inaddr);
 		break;
 	case 16:
-		port = PLTPORT_WORD(inaddr);
+		port = IOPORT_WORD(inaddr);
 		break;
 	case 8:
-		port = PLTPORT_BYTE(inaddr);
+		port = IOPORT_BYTE(inaddr);
 		break;
 	default:
 		return -1;

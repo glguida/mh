@@ -79,19 +79,20 @@ int _pltdev_open(void *devopq, uint64_t did)
 	return ret;
 }
 
-static int _pltdev_in(void *devopq, unsigned id, uint64_t port,
+static int _pltdev_in(void *devopq, unsigned id, uint32_t port,
 		      uint64_t * val)
 {
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
 
-	switch (port & PLTPORT_SIZEMASK) {
+	switch (iosize) {
 	case 1:
-		*val = platform_inb(port >> PLTPORT_SIZESHIFT);
+		*val = platform_inb(port >> IOPORT_SIZESHIFT);
 		break;
 	case 2:
-		*val = platform_inw(port >> PLTPORT_SIZESHIFT);
+		*val = platform_inw(port >> IOPORT_SIZESHIFT);
 		break;
 	case 4:
-		*val = platform_inl(port >> PLTPORT_SIZESHIFT);
+		*val = platform_inl(port >> IOPORT_SIZESHIFT);
 		break;
 	default:
 		printf("Meh: %llx\n", port);
@@ -100,18 +101,20 @@ static int _pltdev_in(void *devopq, unsigned id, uint64_t port,
 	return 0;
 }
 
-static int _pltdev_out(void *devopq, unsigned id, uint64_t port,
+static int _pltdev_out(void *devopq, unsigned id, uint32_t port,
 		       uint64_t val)
 {
-	switch (port & PLTPORT_SIZEMASK) {
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
+
+	switch (iosize) {
 	case 1:
-		platform_outb(port >> PLTPORT_SIZESHIFT, val);
+		platform_outb(port >> IOPORT_SIZESHIFT, val);
 		break;
 	case 2:
-		platform_outw(port >> PLTPORT_SIZESHIFT, val);
+		platform_outw(port >> IOPORT_SIZESHIFT, val);
 		break;
 	case 4:
-		platform_outl(port >> PLTPORT_SIZESHIFT, val);
+		platform_outl(port >> IOPORT_SIZESHIFT, val);
 		break;
 	default:
 		return -EINVAL;

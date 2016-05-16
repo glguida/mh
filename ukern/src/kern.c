@@ -684,8 +684,6 @@ int deveio(unsigned id)
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
-	if (th->usrdev)
-		ret = usrdev_eio(th->usrdev, id);
 	return ret;
 }
 
@@ -696,6 +694,16 @@ int devirq(unsigned id, unsigned irq)
 
 	if (th->usrdev)
 		ret = usrdev_irq(th->usrdev, id, irq);
+	return ret;
+}
+
+int devwriospace(unsigned id, uint32_t port, uint64_t val)
+{
+	int ret = -ENOENT;
+	struct thread *th = current_thread();
+
+	if (th->usrdev)
+		ret = usrdev_wriospace(th->usrdev, id, port, val);
 	return ret;
 }
 
@@ -751,14 +759,14 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 	return bus_irqmap(&th->bus, dd, irq, sig);
 }
 
-int devin(unsigned dd, uint64_t port, uint64_t * valptr)
+int devin(unsigned dd, uint32_t port, uint64_t * valptr)
 {
 	struct thread *th = current_thread();
 
 	return bus_in(&th->bus, dd, port, valptr);
 }
 
-int devout(unsigned dd, uint64_t port, uint64_t val)
+int devout(unsigned dd, uint32_t port, uint64_t val)
 {
 	struct thread *th = current_thread();
 

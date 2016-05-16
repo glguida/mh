@@ -123,18 +123,21 @@ int vmunmap(vaddr_t);
 
 int hwcreat(struct sys_hwcreat_cfg *cfg, mode_t mode);
 
+int childstat(struct sys_childstat *cs);
+
 int devcreat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int devpoll(struct sys_poll_ior *ior);
-int deveio(unsigned id);
+int devwriospace(unsigned id, uint32_t port, uint64_t val);
 int devirq(unsigned id, unsigned irq);
 int devimport(unsigned id, unsigned iopfn, unsigned va);
 int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot);
+int deviounmap(unsigned dd, vaddr_t va);
 void devremove(void);
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);
 int devexport(unsigned dd, vaddr_t va, unsigned iopfn);
-int devin(unsigned dd, uint64_t port, uint64_t * valptr);
-int devout(unsigned dd, uint64_t port, uint64_t val);
+int devin(unsigned dd, uint32_t port, uint64_t * valptr);
+int devout(unsigned dd, uint32_t port, uint64_t val);
 int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg);
 void devclose(unsigned dd);
 

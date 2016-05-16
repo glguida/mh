@@ -142,9 +142,9 @@ static int sys_poll(uaddr_t uior)
 	return id;
 }
 
-static int sys_eio(unsigned id)
+static int sys_wriospace(unsigned id, uint32_t port, uint64_t val)
 {
-	return deveio(id);
+	return devwriospace(id, port, val);
 }
 
 static int sys_import(unsigned id, unsigned iopfn, u_long va)
@@ -200,7 +200,7 @@ static int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 	return devirqmap(ddno, id, sig);
 }
 
-static int sys_in(unsigned ddno, uint64_t port, uaddr_t valptr)
+static int sys_in(unsigned ddno, uint32_t port, uaddr_t valptr)
 {
 	int ret;
 	uint64_t val;
@@ -213,7 +213,7 @@ static int sys_in(unsigned ddno, uint64_t port, uaddr_t valptr)
 	return ret;
 }
 
-static int sys_out(unsigned ddno, uint64_t port, uint64_t val)
+static int sys_out(unsigned ddno, uint32_t port, uint64_t val)
 {
 
 	return devout(ddno, port, val);
@@ -435,8 +435,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_creat(a1, a2, a3);
 	case SYS_POLL:
 		return sys_poll(a1);
-	case SYS_EIO:
-		return sys_eio(a1);
+	case SYS_WRIOSPC:
+		return sys_wriospace(a1, a2, a3);
 	case SYS_IMPORT:
 		return sys_import(a1, a2, a3);
 	case SYS_IRQ:

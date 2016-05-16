@@ -95,11 +95,12 @@ struct sys_rdcfg_cfg {
 #define SYS_OPEN   0x20
 #define SYS_MAPIRQ 0x21
 /* Platform device port mangling */
-#define PLTPORT_SIZESHIFT 3
-#define PLTPORT_SIZEMASK 0x7
-#define PLTPORT_BYTE(_x) (((_x) << PLTPORT_SIZESHIFT) | 1)
-#define PLTPORT_WORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 2)
-#define PLTPORT_DWORD(_x) (((_x) << PLTPORT_SIZESHIFT) | 4)
+#define IOPORT_SIZESHIFT 2
+#define IOPORT_SIZEMASK 0x3
+#define IOPORT_BYTE(_x) (((_x) << IOPORT_SIZESHIFT) | 0)
+#define IOPORT_WORD(_x) (((_x) << IOPORT_SIZESHIFT) | 1)
+#define IOPORT_DWORD(_x) (((_x) << IOPORT_SIZESHIFT) | 2)
+#define IOPORT_QWORD(_x) (((_x) << IOPORT_SIZESHIFT) | 3)
 #define SYS_IN     0x22
 #define SYS_OUT    0x23
 #define SYS_EXPORT 0x24
@@ -126,7 +127,8 @@ struct sys_poll_ior {
 	enum sys_poll_ior_op op;
 	union {
 		struct {
-			uint64_t port;
+			uint8_t size;
+			uint16_t port;
 			uint64_t val;
 		};
 	};
@@ -137,7 +139,7 @@ struct sys_poll_ior {
 #endif
 #define SYS_CREAT  0x30
 #define SYS_POLL   0x31
-#define SYS_EIO    0x32
+#define SYS_WRIOSPC 0x32
 #define SYS_IRQ    0x33
 #define SYS_IMPORT 0x34
 

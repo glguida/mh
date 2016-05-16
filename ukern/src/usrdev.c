@@ -39,6 +39,7 @@
 
 #define MAXUSRDEVREMS 256
 #define MAXUSRDEVAPERTS 16
+#define IOSPACESZ 32
 
 static struct slab usrioreqs;
 
@@ -52,7 +53,8 @@ struct usrioreq {
 	union {
 		struct {
 			/* OUT */
-			uint64_t port;
+			uint8_t size;
+			uint16_t port;
 			uint64_t val;
 		};
 	};
@@ -70,10 +72,10 @@ struct apert {
 };
 
 struct remth {
-	int use:1;		/* Entry in use (proc) */
-	int bsy:1;		/* Request in progress (device) */
-	unsigned id;		/* Remote ID descriptor */
-	struct thread *th;	/* Remote threads */
+	int use:1;			/* Entry in use (proc) */
+	unsigned id;	       		/* Remote ID descriptor */
+	struct thread *th;		/* Remote threads */
+	uint8_t iospace[IOSPACESZ];	/* I/O Space */
 	unsigned irqmap[IRQMAPSZ];	/* Interrupt Remapping Table */
   	struct apert apertbl[MAXUSRDEVAPERTS];
 };
@@ -109,7 +111,7 @@ static int _usrdev_open(void *devopq, uint64_t did)
 
 	spinlock(&ud->lock);
 	for (i = 0; i < MAXUSRDEVREMS; i++) {
-		if (!ud->remths[i].use && !ud->remths[i].bsy)
+		if (!ud->remths[i].use)
 			break;
 	}
 	if (i >= MAXUSRDEVREMS) {
@@ -126,18 +128,42 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	return ret;
 }
 
-static int _usrdev_in(void *devopq, unsigned id, uint64_t port,
+static int _usrdev_in(void *devopq, unsigned id, uint32_t port,
 		      uint64_t * val)
 {
-	return -ENODEV;
+	struct usrdev *ud = (struct usrdev *) devopq;
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
+	uint64_t ioval;
+	uint8_t *ptr;
+	int i, start, end;
+
+	start = MIN(ioport, IOSPACESZ);
+	end = MIN(start + iosize, IOSPACESZ);
+
+	printf("Reading space (%d): port %d (%d)\n", port, start, iosize);
+	ioval = -1;
+	printf("ioval = %llx\n", ioval);
+	ptr = (uint8_t *)&ioval;
+	spinlock(&ud->lock);
+	for (i = start; i < end; i++) {
+		printf("ptr[%d] = %d\n", i - start, ud->remths[id].iospace[i]);
+		ptr[i - start] = ud->remths[id].iospace[i];
+	}
+	spinunlock(&ud->lock);
+	printf("ioval = %llx\n", ioval);
+	*val = ioval;
+	return 0;
 }
 
-static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
+static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 		       uint64_t val)
 {
 	/* Current thread: Process */
 	struct usrdev *ud = (struct usrdev *) devopq;
 	struct thread *th = current_thread();
+	uint8_t iosize = port & IOPORT_SIZEMASK;
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 	struct usrioreq *ior;
 
 	assert (id < MAXUSRDEVREMS);
@@ -146,7 +172,8 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	ior->id = id;
 	ior->op = IOR_OP_OUT;
 
-	ior->port = port;
+	ior->size = iosize;
+	ior->port = ioport;
 	ior->val = val;
 
 	printf("uid: %d, gid %d\n", th->euid, th->egid);
@@ -154,12 +181,6 @@ static int _usrdev_out(void *devopq, unsigned id, uint64_t port,
 	ior->gid = th->egid;
 
 	spinlock(&ud->lock);
-	if (ud->remths[id].bsy) {
-		spinunlock(&ud->lock);
-		structs_free(ior);
-		return -EBUSY;
-	}
-	ud->remths[id].bsy = 1;
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
 	thraise(ud->th, ud->sig);
 	spinunlock(&ud->lock);
@@ -225,8 +246,6 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	spinlock(&ud->lock);
 	cfg->vendorid = ud->cfg.vid;
 	cfg->deviceids[0] = ud->cfg.did;
-
-	cfg->eio = (uint8_t)BUS_IRQEIO;
 	cfg->segs[0].len = ud->cfg.nirqs;
 
 	spinunlock(&ud->lock);
@@ -310,8 +329,7 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->sig = sig;
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
-	/* Always account for EIO */
-	ud->cfg.nirqs = 1 + cfg->nirqs;
+	ud->cfg.nirqs = cfg->nirqs;
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	TAILQ_INIT(&ud->ioreqs);
 
@@ -344,6 +362,7 @@ retry:
 	switch (ior->op) {
 	case IOR_OP_OUT:
 		poll->op = SYS_POLL_OP_OUT;
+		poll->size = ior->size;
 		poll->port = ior->port;
 		poll->val = ior->val;
 		break;
@@ -360,19 +379,22 @@ retry:
 	return id;
 }
 
-int usrdev_eio(struct usrdev *ud, unsigned id)
+int usrdev_wriospace(struct usrdev *ud, unsigned id, uint32_t port,
+		     uint64_t val)
 {
-	int sig;
+	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
+	int i, start, end;
+	uint8_t *ptr;
 
-	if (id >= MAXUSRDEVREMS)
-		return -EINVAL;
-	printf("set busy of %d to zero\n", id);
+	start = MIN(ioport, IOSPACESZ);
+	end = MIN(start + iosize, IOSPACESZ);
+
+	printf("Writing space %lld at port %d:  %d (%d)\n", val, port, start, iosize);
+	ptr = (uint8_t *)&val;
 	spinlock(&ud->lock);
-	sig = ud->remths[id].irqmap[BUS_IRQEIO] - 1;
-	printf("sig = %d\n", sig);
-	if ((sig != -1) && ud->remths[id].use)
-		thraise(ud->remths[id].th, sig);
-	ud->remths[id].bsy = 0;
+	for (i = start; i < end; i++)
+		ud->remths[id].iospace[i] = ptr[i - start];
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -437,9 +459,6 @@ void usrdev_destroy(struct usrdev *ud)
 	/* EOI all pending ioreqs */
 	TAILQ_FOREACH_SAFE(ior, &ud->ioreqs, queue, tmp) {
 		id = ior->id;
-		sig = ud->remths[id].irqmap[BUS_IRQEIO] - 1;
-		if ((sig != -1) && ud->remths[id].use)
-		  thraise(ud->remths[id].th, sig);
 		structs_free(ior);
 	}
 	spinunlock(&ud->lock);

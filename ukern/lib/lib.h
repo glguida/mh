@@ -33,6 +33,9 @@
 #include <uk/cdefs.h>
 #include <uk/stdarg.h>
 
+#define	MIN(a,b)	((/*CONSTCOND*/(a)<(b))?(a):(b))
+#define	MAX(a,b)	((/*CONSTCOND*/(a)>(b))?(a):(b))
+
 int (*putc) (int);
 int (*sysputc) (int);
 void *memset(void *b, int c, size_t len);

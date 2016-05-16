@@ -83,7 +83,7 @@ int sys_close(unsigned ddno);
 
 int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int sys_poll(struct sys_poll_ior *ior);
-int sys_eio(unsigned id);
+int sys_wriospc(unsigned id, uint32_t port, u_long val);
 int sys_irq(unsigned id, unsigned irq);
 int sys_import(unsigned id, unsigned iopfn, u_long va);
 
