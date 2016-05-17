@@ -82,10 +82,10 @@ static inline void lapic_write(unsigned reg, uint32_t data)
 	*((volatile uint32_t *) (lapic_base + reg)) = data;
 }
 
-static inline uint32_t lapic_read(unsigned reg)
+static inline volatile uint32_t lapic_read(unsigned reg)
 {
 
-	return *((uint32_t *) (lapic_base + reg));
+	return *((volatile uint32_t *) (lapic_base + reg));
 }
 
 static inline void lapic_ipi(unsigned physid, uint8_t dlvr, uint8_t vct)
