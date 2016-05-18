@@ -376,7 +376,7 @@ void wake(struct thread *th)
 	case THST_RUNNABLE:
 		break;
 	case THST_RUNNING:
-		/* Send nmi to cpu */
+		cpu_ipi(th->cpu, VECT_NOP);
 		break;
 	case THST_STOPPED:
 		TAILQ_REMOVE(&stopped_threads, th, sched_list);
