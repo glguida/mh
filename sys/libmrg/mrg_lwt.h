@@ -64,6 +64,7 @@ void lwt_exception_clear(void);
 void lwt_wake(lwt_t *lwt);
 void lwt_yield(void);
 void lwt_sleep(void);
+void lwt_pause(void);
 void lwt_exit(void);
 
 

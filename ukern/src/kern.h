@@ -114,6 +114,8 @@ void do_softirq(void);
 struct thread *thfork(void);
 void thraise(struct thread *th, unsigned vect);
 
+int iomap(vaddr_t vaddr, pfn_t mmiopfn, pmap_prot_t prot);
+
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot);
 unsigned vmclear(vaddr_t addr, size_t sz);
 int vmmap(vaddr_t, pmap_prot_t prot);

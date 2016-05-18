@@ -47,6 +47,7 @@ void usrframe_extint(struct usrframe *f, vaddr_t ip, vaddr_t sp,
 		     uint32_t fl, unsigned xcpt, uint64_t sigs);
 void usrframe_setret(struct usrframe *f, unsigned long r);
 uint32_t usrframe_iret(struct usrframe *f);
+void usrframe_switch(void);
 
 extern int __crash_requested;
 

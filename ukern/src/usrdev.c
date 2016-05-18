@@ -357,7 +357,7 @@ retry:
 	spinunlock(&ud->lock);
 
 	if (ior == NULL)
-		return -1;
+		return -ENOENT;
 
 	switch (ior->op) {
 	case IOR_OP_OUT:

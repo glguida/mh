@@ -555,7 +555,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 	/* Warning: accessing user space without checking (we are
 	   single threaded, area just mapped and still locked, it is
 	   fine, but future-fragile). */
-	memset(trunc_page(addr), 0, round_page(sz));
+	memset((void *)trunc_page(addr), 0, round_page(sz));
 	return ret;
 }
 

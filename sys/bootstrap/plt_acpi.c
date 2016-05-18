@@ -7,6 +7,7 @@
 #include <microkernel.h>
 #include <acpi/acpi.h>
 #include <squoze.h>
+#include <stdio.h>
 #include "internal.h"
 
 #define ACPI_BUFFER_SIZE (10*1024)

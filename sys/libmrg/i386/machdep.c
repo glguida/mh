@@ -1,7 +1,8 @@
 #include <sys/types.h>
 #include <microkernel.h>
 #include <setjmp.h>
-#include <drex/lwt.h>
+#include <stdio.h>
+#include <mrg.h>
 
 void _setupjmp(jmp_buf, void *, void *);
 

@@ -96,6 +96,8 @@ int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn);
 int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
 		      l1e_t extl1e, pfn_t * pfn);
 int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va);
+int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
+		pmap_prot_t prot, pfn_t * opfn);
 void pmap_commit(struct pmap *pmap);
 
 struct pmap *pmap_copy(void);

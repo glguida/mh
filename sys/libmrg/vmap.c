@@ -37,6 +37,7 @@
 #include <machine/param.h>
 #include <machine/mrgparam.h>
 #include <assert.h>
+#include <stdio.h>
 #include "mrg.h"
 
 

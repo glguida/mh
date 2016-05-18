@@ -35,6 +35,7 @@
 #include <machine/vmparam.h>
 #include <machine/mrgparam.h>
 #include <microkernel.h>
+#include <stdio.h>
 #include <string.h>
 #include "mrg.h"
 

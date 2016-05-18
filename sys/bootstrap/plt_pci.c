@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <microkernel.h>
 #include <squoze.h>
+#include <stdio.h>
 #include <errno.h>
 
 #define perror(...) printf(__VA_ARGS__)
