@@ -160,7 +160,7 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 		    == (PG_ERR_INFO_COW | PG_ERR_INFO_WRITE)) {
 			vaddr_t pg = va & ~PAGE_MASK;
 
-			printf("_: cow fault %lx\n", va);
+			/* cow fault */
 			vmmap(VACOW, VM_PROT_RW);
 			memcpy((void *) VACOW, (void *) pg, PAGE_SIZE);
 			sys_move(va, VACOW);

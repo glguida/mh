@@ -8,6 +8,14 @@ static uint64_t alloc_evts[MAXEVTQWORD] = { 0, };
 static uint64_t set_evts[MAXEVTQWORD] = {0, };
 static lwt_t *wait_evts[MAXEVT] = {0, };
 
+void __astfunc(void *farg)
+{
+	void (*func)(void) = (void (*)(void))farg;
+
+	func();
+	lwt_exit();
+}
+
 int evtalloc(void)
 {
 	int i, evt = -1;;
@@ -56,6 +64,26 @@ void evtwait(int evt)
 	assert(wait_evts[MAXEVT] == NULL);
 	wait_evts[evt] = lwt_getcurrent();
 	lwt_sleep();
+	preempt_enable();
+}
+
+void evtast(int evt, void (*func)(void))
+{
+	int i = evt / 64, r = evt % 64;
+	lwt_t *lwt;
+
+	assert(evt < MAXEVT);
+
+	preempt_disable();
+	/* Check event is already set. */
+	if (set_evts[i] & ((uint64_t)1 << r))
+		return;
+
+	lwt = lwt_create(__astfunc, (void *)func, 1024);
+
+	/* XXX: add to queue */
+	assert(wait_evts[MAXEVT] == NULL);
+	wait_evts[evt] = lwt;
 	preempt_enable();
 }
 

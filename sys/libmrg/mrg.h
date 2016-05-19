@@ -98,9 +98,8 @@ enum dio_op {
 };
 
 DEVICE *dopen(char *devname, devmode_t mode);
-int vdio(DEVICE *d, int evtid, enum dio_op op, va_list opargs);
-int dio(DEVICE *d, int evtid, enum dio_op op, ...);
-int diow(DEVICE *d, int evtid, enum dio_op op, ...);
+int din(DEVICE *d, uint32_t port, uint64_t *val);
+int dout(DEVICE *d, uint32_t port, uint64_t val);
 void dclose(DEVICE *d);
 
 
