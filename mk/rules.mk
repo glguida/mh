@@ -26,7 +26,7 @@ CFLAGS+= -fno-strict-aliasing -fno-delete-null-pointer-checks
 ifneq ($(DEBUG)z,z)
 CFLAGS+= -D__DEBUG -O0 -g
 else
-CFLAGS+= -O2 -g
+CFLAGS+= -O7 -g
 endif
 
 do_all: all
