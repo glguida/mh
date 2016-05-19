@@ -124,7 +124,7 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	ret = i;
       out:
 	spinunlock(&ud->lock);
-	printf("open %" PRIx64 "! = %d", did, ret);
+	dprintf("open %" PRIx64 "! = %d", did, ret);
 	return ret;
 }
 
@@ -176,7 +176,6 @@ static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 	ior->port = ioport;
 	ior->val = val;
 
-	printf("uid: %d, gid %d\n", th->euid, th->egid);
 	ior->uid = th->euid;
 	ior->gid = th->egid;
 
@@ -375,7 +374,6 @@ retry:
 	poll->uid = ior->uid;
 	id = ior->id;
 	structs_free(ior);
-	printf("poll: returning %d\n", id);
 	return id;
 }
 
