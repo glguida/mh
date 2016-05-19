@@ -21,11 +21,17 @@ include $(MAKEDIR)/subdir.mk
 LIBS+= -lkacpica
 LDFLAGS+= -Lacpica
 
+ifneq ($(TESTS)z,z)
+INIT_BINARY= $(SRCROOT)/tests/test
+else
+INIT_BINARY=$(INSTALLDIR)/sys/bootstrap
+endif
+
 
 ukern: $(OBJS)
 	$(OBJCOPY) -I elf32-i386 -O elf32-i386 \
 		--remove-section .init.elf \
-		--add-section .init.elf=$(INSTALLDIR)/sys/bootstrap \
+		--add-section .init.elf=$(INIT_BINARY) \
 		--set-section-flags .init.elf=alloc,load,data \
 		$(OBJDIR)/empty.o 
 	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(LIBS) $(LDADD)
