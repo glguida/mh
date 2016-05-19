@@ -78,7 +78,7 @@ int sys_rdcfg(unsigned ddno, struct sys_rdcfg_cfg *cfg);
 int sys_export(unsigned ddno, u_long va, unsigned iopfn);
 int sys_mapirq(unsigned ddno, unsigned id, unsigned sig);
 int sys_in(unsigned ddno, u_long port, uint64_t * val);
-int sys_out(unsigned ddno, u_long port, u_long val);
+int sys_out(unsigned ddno, uint32_t port, uint64_t val);
 int sys_close(unsigned ddno);
 
 int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
