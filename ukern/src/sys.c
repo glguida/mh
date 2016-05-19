@@ -213,6 +213,13 @@ static int sys_in(unsigned ddno, uint32_t port, uaddr_t valptr)
 	return ret;
 }
 
+static int sys_out32(unsigned ddno, uint32_t port, uint32_t hival, uint32_t loval)
+{
+	uint64_t val = ((uint64_t)hival << 32) | loval;
+
+	return devout(ddno, port, val);
+}
+
 static int sys_out(unsigned ddno, uint32_t port, uint64_t val)
 {
 
@@ -403,7 +410,9 @@ int sys_setegid(gid_t gid)
 	return 0;
 }
 
-int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
+int sys_call(int sc,
+	     unsigned long a1, unsigned long a2,
+	     unsigned long a3, u_long a4, u_long a5)
 {
 	switch (sc) {
 	case SYS_PUTC:
@@ -453,6 +462,8 @@ int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3)
 		return sys_mapirq(a1, a2, a3);
 	case SYS_IN:
 		return sys_in(a1, a2, a3);
+	case SYS_OUT32:
+		return sys_out32(a1, a2, a3, a4);
 	case SYS_OUT:
 		return sys_out(a1, a2, a3);
 	case SYS_IOMAP:

@@ -108,6 +108,7 @@ struct sys_rdcfg_cfg {
 #define SYS_IOMAP  0x26
 #define SYS_IOUNMAP 0x27
 #define SYS_OPEN32 0x28
+#define SYS_OUT32  0x29
 
 #define SYS_CLOSE  0x2F
 
@@ -200,7 +201,8 @@ struct sys_hwcreat_cfg {
 
 
 #ifdef _UKERNEL
-int sys_call(int sc, unsigned long a1, unsigned long a2, unsigned long a3);
+int sys_call(int sc, unsigned long a1, unsigned long a2,
+	     unsigned long a3, unsigned long a4, unsigned long a5);
 #endif
 #ifndef _ASSEMBLER
 #include <uk/exttypes.h>

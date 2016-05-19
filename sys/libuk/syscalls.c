@@ -185,12 +185,17 @@ int sys_in(unsigned ddno, u_long port, uint64_t * val)
 	return ret;
 }
 
-int sys_out(unsigned ddno, u_long port, u_long val)
+int sys_out(unsigned ddno, uint32_t  port, uint64_t val)
 {
 	int ret;
 
+#if _LP64
 	__syscall3(SYS_OUT, (unsigned long) ddno, (unsigned long) port,
 		   (unsigned long) val, ret);
+#else
+	__syscall4(SYS_OUT32, (unsigned long) ddno, (unsigned long) port,
+		   (unsigned long) (val >> 32), (unsigned long) val, ret);
+#endif
 	return ret;
 }
 

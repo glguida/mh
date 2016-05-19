@@ -180,7 +180,7 @@ int syscall_entry(struct usrframe *f)
 
 	assert(f->cs == UCS);
 	th->frame = f;
-	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx);
+	f->eax = sys_call(f->eax, f->edi, f->esi, f->ecx, f->edx, f->ebx);
 	do_softirq();
 	th->frame = NULL;
 	return 0;
