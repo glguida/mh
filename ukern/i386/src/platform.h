@@ -68,10 +68,10 @@ static inline void platform_outl(unsigned port, int val)
 	outl(port, val);
 }
 
-static inline void platform_wait(void)
+static inline void platform_idle(void)
 {
 
-	asm volatile ("sti\n\thlt");
+	asm volatile ("sti\n1: hlt\n jmp 1b\n");
 }
 
 static inline void platform_irqon(unsigned irq)

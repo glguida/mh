@@ -510,11 +510,9 @@ __dead void die(void)
 
 static void idle(void)
 {
-	while (1) {
-		do_softirq();
-		schedule(THST_STOPPED);
-		platform_wait();
-	}
+	do_softirq();
+	schedule(THST_STOPPED);
+	platform_idle();
 }
 
 int iomap(vaddr_t vaddr, pfn_t mmiopfn, pmap_prot_t prot)
