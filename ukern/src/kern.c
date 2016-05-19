@@ -343,28 +343,32 @@ static void do_resched(void)
 {
 	struct thread *th, *tmp;
 
-	spinlock(&sched_lock);
 	TAILQ_FOREACH_SAFE(th, &current_cpu()->resched, sched_list, tmp) {
 		TAILQ_REMOVE(&current_cpu()->resched, th, sched_list);
 		switch (th->status) {
 		case THST_RUNNABLE:
+			spinlock(&sched_lock);
 			TAILQ_INSERT_TAIL(&running_threads, th,
 					  sched_list);
 			once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
+			spinunlock(&sched_lock);
 			break;
 		case THST_STOPPED:
+			spinlock(&sched_lock);
 			TAILQ_INSERT_TAIL(&stopped_threads, th,
 					  sched_list);
+			spinunlock(&sched_lock);
 			break;
 		case THST_ZOMBIE:
+			spinlock(&th->parent->children_lock);
 			LIST_REMOVE(th, child_list);
 			LIST_INSERT_HEAD(&th->parent->zombie_children, th,
 					 child_list);
+			spinunlock(&th->parent->children_lock);
 			thraise(th->parent, INTR_CHILD);
 			break;
 		}
 	}
-	spinunlock(&sched_lock);
 }
 
 void wake(struct thread *th)
