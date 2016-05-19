@@ -25,4 +25,6 @@ int pltpci_init(void);
 /* device management */
 void devadd(struct sys_hwcreat_cfg *cfg);
 
+int pltconsole_process(void);
+
 #endif
