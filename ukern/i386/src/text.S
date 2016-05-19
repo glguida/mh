@@ -46,7 +46,7 @@ ENTRY(vptrscrdst)
 END(vptrscrdst)
 
 ENTRY(vptr)
-	.long 0xb8000 + 80 * 24 + 2
+	.long 0xb8000 + 80 * 24 * 2
 END(vptr)
 
 ENTRY(vptrmax)
@@ -106,7 +106,24 @@ ENTRY(b800_putc)
 	jge   2f
 1:
 	xor   %eax, %eax
-	mov   %ecx, vptr 
+	mov   %ecx, vptr
+
+	/* Set cursor */
+	sub   vptrscrdst, %ecx
+	shr   $1, %ecx
+	mov   $0xe, %al
+	mov   $0x3d4, %dx
+	outb  %al, %dx /* CRT_ADDR <- CRSHI */
+	mov   %ch, %al
+	mov   $0x3d5, %dx
+	outb  %al, %dx
+
+	mov   $0xf, %al
+	mov   $0x3d4, %dx
+	out   %al, %dx  /* CRT_ADDR <- CRSLO */
+	mov   %cl, %al
+	mov   $0x3d5, %dx
+	outb  %al, %dx
 	pop   %ebp
 	ret
 2:	/* scroll */
