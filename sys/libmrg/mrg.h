@@ -109,6 +109,7 @@ void dclose(DEVICE *d);
 
 int devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt);
 int devpoll(struct sys_poll_ior *ior);
-int deveio(int req);
+int devwriospace(unsigned id, uint32_t port, uint64_t val)
+int devraiseirq(unsigned id, unsigned irq)
 
 #endif

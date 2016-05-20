@@ -37,3 +37,16 @@ devpoll(struct sys_poll_ior *ior)
 	return sys_poll(ior);
 }
 
+int
+devwriospace(unsigned id, uint32_t port, uint64_t val)
+{
+
+	return sys_wriospc(id, port, val);
+}
+
+int
+devraiseirq(unsigned id, unsigned irq)
+{
+
+	return sys_irq(id, irq);
+}
