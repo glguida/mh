@@ -322,6 +322,9 @@ void do_softirq(void)
 	struct thread *th = current_thread();
 	uint64_t si;
 
+	if (thread_is_idle(th))
+		schedule(THST_STOPPED);
+
 	if (th->userfl & THFL_INTR) {
 		si = __sync_fetch_and_and(&th->softintrs, 0);
 		if (si)

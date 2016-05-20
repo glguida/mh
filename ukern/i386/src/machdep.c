@@ -109,7 +109,7 @@ int nmi_entry(uint32_t vect, struct usrframe *f)
 	__flush_tlbs_on_nmi();
 
 	/* Process softirqs if returning to userspace */
-	if (f->cs == UCS) {
+	if (f->cs == UCS || thread_is_idle(current_thread())) {
 		current_thread()->frame = f;
 		do_softirq();
 		current_thread()->frame = NULL;
