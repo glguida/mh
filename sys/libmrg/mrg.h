@@ -82,6 +82,7 @@ void inthandler(unsigned, void (*)(int, void *), void *);
 int evtalloc(void);
 void evtwait(int evt);
 void evtclear(int evt);
+void evtast(int evt, void (*func)(void));
 void __evtset(int evt);
 
 
@@ -97,9 +98,10 @@ enum dio_op {
 	PORT_OUT,
 };
 
-DEVICE *dopen(char *devname, devmode_t mode);
+DEVICE *dopen(char *devname);
 int din(DEVICE *d, uint32_t port, uint64_t *val);
 int dout(DEVICE *d, uint32_t port, uint64_t val);
+int dirq(DEVICE *d, unsigned irq, int evt);
 void dclose(DEVICE *d);
 
 

@@ -27,4 +27,7 @@ void devadd(struct sys_hwcreat_cfg *cfg);
 
 int pltconsole_process(void);
 
+void kbdbuf_add(int id, uint8_t c);
+int console_kbd_init(void);
+
 #endif

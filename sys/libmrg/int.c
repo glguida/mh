@@ -31,7 +31,6 @@ int __sys_inthandler(int prio, uint64_t si, struct intframe *f)
 		intr = ffs64(si) - 1;
 		si &= ~((uint64_t) 1 << intr);
 
-		printf("Sending event to INT %d\n", intr);
 		assert(intr < MAX_EXTINTRS);
 		fn = handlers[intr];
 		opq = opaques[intr];

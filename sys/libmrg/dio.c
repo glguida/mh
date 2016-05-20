@@ -14,9 +14,15 @@ struct _DEVICE {
 	struct sys_rdcfg_cfg cfg;
 };
 
+static void __irq_handler(int irqint, void *arg)
+{
+	int irqevt = (int)(uintptr_t)arg;
+
+	__evtset(irqevt);
+}
 
 DEVICE *
-dopen(char *devname, devmode_t mode)
+dopen(char *devname)
 {
 	DEVICE *d;
 	int ret, dd;
@@ -78,6 +84,21 @@ dout(DEVICE *d, uint32_t port, uint64_t val)
 	return sys_out(d->dd, port, val);
 }
 
+int
+dirq(DEVICE *d, unsigned irq, int evt)
+{
+	int ret, irqint;
+
+	irqint = intalloc();
+	ret = sys_mapirq(d->dd, irq, irqint);
+	if (ret != 0) {
+		intfree(irqint);
+		return ret;
+	}
+
+	inthandler(irqint, __irq_handler, (void *)(uintptr_t)evt);
+	return 0;
+}
 
 void
 dclose(DEVICE *d)

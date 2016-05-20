@@ -82,7 +82,7 @@ void evtast(int evt, void (*func)(void))
 	lwt = lwt_create(__astfunc, (void *)func, 1024);
 
 	/* XXX: add to queue */
-	assert(wait_evts[MAXEVT] == NULL);
+	// * XXX: GIANLUCA PREFORK	assert(wait_evts[MAXEVT] == NULL);
 	wait_evts[evt] = lwt;
 	preempt_enable();
 }

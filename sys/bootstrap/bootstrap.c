@@ -62,11 +62,11 @@ main()
 	/* Become SIGCHILD handler */
 
 	/* open console */
-	console = dopen("console", 0111);
+	console = dopen("console");
 	while (console == NULL) {
 		printf("(%d)...", ret);
 		lwt_pause();
-		console = dopen("console", 0111);
+		console = dopen("console");
 	}
 
 	uint64_t val = 0x4141414141414141LL;

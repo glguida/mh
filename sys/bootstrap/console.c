@@ -1,26 +1,62 @@
 #include <microkernel.h>
 #include <sys/param.h> /* MIN,MAX */
 #include <stdlib.h>
+#include <string.h>
 
 #include <stdio.h>
 #include <mrg.h>
 #include <mrg/consio.h>
 
+#include "internal.h"
+
 #define CONSOLE_NAMEID squoze("console")
+#define KBDBUF_SIZE 16
 
 #define mrg_panic(...) do { printf("UUH"); while(1); } while(0)
 
 static int reqevt = -1;
+
+
+static int kbdbuf_fpos = 0;
+static int kbdbuf_wpos = 0;
+static uint8_t kbdbuf[KBDBUF_SIZE];
 
 static void consdev_putchar(uint8_t v)
 {
 	printf("%c", v);
 }
 
+void
+kbdbuf_add(int id, uint8_t c)
+{
+	if (((kbdbuf_wpos + 1) % KBDBUF_SIZE) == kbdbuf_fpos) {
+		/* OVERFLOW */
+		return;
+	}
+	printf("Adding %d\n", c);
+	kbdbuf[kbdbuf_wpos++] = c;
+}
+
 static uint64_t
 kbdfetch(int id)
 {
-	return 0;
+	int i, len;
+	uint64_t val = 0;
+
+	len = kbdbuf_wpos - kbdbuf_fpos;
+	if (len == 0)
+		return 0;
+	if (len < 0)
+		len += KBDBUF_SIZE;
+
+	len = MIN(sizeof(uint64_t), len);
+	for (i = 0; i < len; i++) {
+		val << 8;
+		val |= kbdbuf[(kbdbuf_fpos + i) % KBDBUF_SIZE];
+	}
+	kbdbuf_fpos = (kbdbuf_fpos + len) % KBDBUF_SIZE;
+
+	return val;
 }
 
 static void console_io_out(int id, uint32_t port, uint64_t val, uint8_t size);
@@ -69,7 +105,7 @@ devsts_kbdata_update(int id)
 	ret = devwriospace(id, CONSIO_KBDATA, val);
 	if (ret != 0) {
 		printf("error on devwriospace(%d)", id);
-		return ret;
+		return;
 	}
 
 	ret = devwriospace(id, CONSIO_DEVSTS, CONSIO_DEVSTS_KBDVAL);
@@ -110,6 +146,8 @@ static void pltconsole()
 	ret = devcreat(&cfg, 0111, reqevt);
 	if (ret < 0)
 		mrg_panic("Cannot create console: devcreat() [%d]", ret);
+
+	console_kbd_init();
 
 	lwt_sleep();
 }
