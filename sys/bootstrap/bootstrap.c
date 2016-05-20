@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <sys/param.h>
 #include <mrg.h>
+#include <mrg/consio.h>
 #include "internal.h"
 
 struct device_list devices = SLIST_HEAD_INITIALIZER(devices);
@@ -69,15 +70,19 @@ main()
 	}
 
 	uint64_t val = 0x4141414141414141LL;
-	ret = dout(console, 4, val);
+	ret = dout(console, CONSIO_OUTDATA, val);
 	printf("ret = %d\n", ret);
 	if (ret < 0)
 		return ret;
 
-	ret = dout(console, 4, val);
-	ret = dout(console, 4, val);
-	ret = dout(console, 4, val);
-	ret = dout(console, 4|3, val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), '\n');
+	ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
 	sys_wait();
 
 	ret = din(console, 1, &val);
@@ -85,6 +90,5 @@ main()
 
 	/* start command loop
 	 * ret = pltcommand_setup(); */
-
 	lwt_sleep();
 }

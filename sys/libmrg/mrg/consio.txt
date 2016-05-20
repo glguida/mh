@@ -1,0 +1,38 @@
+CONSOLE I/O Specification
+
+List of I/O ports:
+
+ - DEVSTS(0): Device status port R/W
+
+   Bit 0: Keyboard Data Valid. - R/W
+
+       	  On read, 1 indicates that there is data available in the
+       	  Keyboard Data Port (KBDATA). 0 indicates that data in the
+       	  KBDATA port should NOT be considered valid input
+
+	  Writing  0 to  this port  is ignored,  writing 1  forces the
+	  device  to update  the  value  of KBDATA.   If  new data  is
+	  available,    this   bit    is    set,    and   KBDATA    is
+	  updated. Otherwhise KBDATA is unchanged  and this bit is set
+	  to 0.
+
+ - KBDATA(1): Keyboard Data Port - RO
+
+   	  When DEVSTS:0 is set, this register contains valid data from
+   	  the keyboard.
+	  Writes to this device are ignored.
+
+
+ - OUTDATA(32): Console Output Data Port - WR
+
+          Writes to this device will be send to the console output.
+
+    
+
+
+List of Interrupts:
+
+ - IRQ0
+
+	Raised when DEVSTS.KBDVAL is set
+

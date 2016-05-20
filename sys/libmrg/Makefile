@@ -7,6 +7,7 @@ LIBNAME=mrg
 LIBDIR=/lib
 SRCS+= vm.c vmap.c lwt.c int.c evt.c dio.c dev.c
 
+INCSUBDIRS= mrg
 INCS= mrg.h mrg_lwt.h mrg_preempt.h
 INCDIR= 
 
