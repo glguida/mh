@@ -230,7 +230,7 @@ lwt_create(void (*start)(void *), void *arg, size_t stack_size)
 {
 	lwt_t *lwt;
 
-	lwt = malloc(sizeof(stack_size) + sizeof(lwt_t));
+	lwt = malloc(stack_size + sizeof(lwt_t));
 	if (lwt == NULL)
 		return NULL;
 

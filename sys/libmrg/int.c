@@ -36,7 +36,7 @@ int __sys_inthandler(int prio, uint64_t si, struct intframe *f)
 		opq = opaques[intr];
 
 		if (fn == NULL)
-			printf("INT%d: ignored\n");
+			printf("INT%d: ignored\n", intr);
 		else
 			fn(intr, opq);
 	}
