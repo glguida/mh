@@ -102,6 +102,7 @@ DEVICE *dopen(char *devname);
 int din(DEVICE *d, uint32_t port, uint64_t *val);
 int dout(DEVICE *d, uint32_t port, uint64_t val);
 int dirq(DEVICE *d, unsigned irq, int evt);
+int drdcfg(DEVICE *d, struct sys_rdcfg_cfg *cfg);
 void dclose(DEVICE *d);
 
 

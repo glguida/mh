@@ -100,6 +100,13 @@ dirq(DEVICE *d, unsigned irq, int evt)
 	return 0;
 }
 
+int
+drdcfg(DEVICE *d, struct sys_rdcfg_cfg *cfg)
+{
+
+	return sys_rdcfg(d->dd, cfg);
+}
+
 void
 dclose(DEVICE *d)
 {
