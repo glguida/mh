@@ -288,8 +288,6 @@ static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	cfg->npiosegs = hdcfg->npiosegs;
 	cfg->nmemsegs = hdcfg->nmemsegs;
 
-	cfg->eio = (uint8_t)-1;
-
 	for (i = 0; i < hdcfg->nirqsegs + cfg->npiosegs; i++) {
 		cfg->segs[i].base = hdcfg->segs[i].base;
 		cfg->segs[i].len = hdcfg->segs[i].len;
