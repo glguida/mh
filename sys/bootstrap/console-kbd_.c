@@ -133,20 +133,32 @@ static void __kbd_ast(void)
 int
 console_kbd_init(void)
 {
-	int kbdevt;
+	int ret, irq, kbdevt;
+	struct sys_rdcfg_cfg cfg;
 
 	kbdd = dopen("KBD_");
 	if (kbdd == NULL)
 		return -ENOENT;
 
+
+	ret = drdcfg(kbdd, &cfg);
+	if (ret)
+		return ret;
+
+	/* Get the first IRQ. We require one. */
+	if (cfg.nirqsegs == 0)
+		return -ENOENT;
+	irq = SYS_RDCFG_IRQSEG(&cfg, 0).base;
+
 	kbdevt = evtalloc();
 	evtast(kbdevt, __kbd_ast);
 
+	ret = dirq(kbdd, irq, kbdevt);
+	if (ret)
+		return ret;
+
 	dout(kbdd, IOPORT_BYTE(0x64), 0xad);
 	dout(kbdd, IOPORT_BYTE(0x64), 0xae);
-
-	/* XXX: CHECK FROM DEVICE */
-	printf("%d = dirq\n", dirq(kbdd, 1, kbdevt));
 
 	return 0;
 }
