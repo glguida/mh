@@ -51,6 +51,8 @@ struct sys_childstat {
 };
 #endif
 #define SYS_CHILDSTAT 8
+#define SYS_GETPID 9
+
 #ifndef _ASSEMBLER
 typedef enum {
 	MAP_NEW = 0x100,

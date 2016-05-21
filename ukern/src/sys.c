@@ -96,6 +96,13 @@ static int sys_fork(void)
 	return th == NULL ? 0 : th->pid;
 }
 
+static int sys_getpid(void)
+{
+	struct thread *th = current_thread();
+
+	return th->pid;
+}
+
 static int sys_hwcreat(uaddr_t ucfg, devmode_t mode)
 {
 	struct thread *th = current_thread();
@@ -435,6 +442,8 @@ int sys_call(int sc,
 		return sys_map(a1, a2);
 	case SYS_MOVE:
 		return sys_move(a1, a2);
+	case SYS_GETPID:
+		return sys_getpid();
 	case SYS_FORK:
 		return sys_fork();
 	case SYS_DIE:

@@ -99,6 +99,14 @@ int sys_fork(void)
 	return ret;
 }
 
+int sys_getpid(void)
+{
+	int ret;
+
+	__syscall0(SYS_GETPID, ret);
+	return ret;
+}
+
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int ret;
