@@ -2,6 +2,23 @@
 #include <sys/bitops.h>
 
 
+/*
+ * The plan:
+ * 
+ * Pretty much VMS
+ *
+ * an event can set up any of:
+ *
+ * - AST. an AST is an softirq that can be raised (need raise
+ *   syscall).  an AST will occupy only on interrupt line, and be
+ *   handled in software.
+ *
+ * - ECB. A control block (size decided by the creator of the event,
+ *   event filled by the setter).
+ *
+ * - Wake list. LWTs will wait on an event.
+ */
+
 #define MAXEVTQWORD 3
 #define MAXEVT (64 * MAXEVTQWORD)
 static uint64_t alloc_evts[MAXEVTQWORD] = { 0, }; 

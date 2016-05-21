@@ -134,26 +134,26 @@ int
 console_kbd_init(void)
 {
 	int ret, irq, kbdevt;
-	struct sys_rdcfg_cfg cfg;
+	struct dinfo info;
 
 	kbdd = dopen("KBD_");
 	if (kbdd == NULL)
 		return -ENOENT;
 
-
-	ret = drdcfg(kbdd, &cfg);
+	ret = dgetinfo(kbdd, &info);
 	if (ret)
 		return ret;
 
 	/* Get the first IRQ. We require one. */
-	if (cfg.nirqsegs == 0)
-		return -ENOENT;
-	irq = SYS_RDCFG_IRQSEG(&cfg, 0).base;
+	if (info.nirqs == 0)
+		return -EINVAL;
+	irq = dgetirq(kbdd, 0);
+	assert(irq >= 0);
 
 	kbdevt = evtalloc();
 	evtast(kbdevt, __kbd_ast);
 
-	ret = dirq(kbdd, irq, kbdevt);
+	ret = dmapirq(kbdd, irq, kbdevt);
 	if (ret)
 		return ret;
 

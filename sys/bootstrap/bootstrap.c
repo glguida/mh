@@ -76,7 +76,7 @@ main()
 	}
 
 	consevt = evtalloc();
-	dirq(console, CONSIO_IRQ_KBDATA, consevt);
+	dmapirq(console, CONSIO_IRQ_KBDATA, consevt);
 
 	uint64_t val = 0x4141414141414141LL;
 	ret = dout(console, CONSIO_OUTDATA, val);

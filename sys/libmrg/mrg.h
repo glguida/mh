@@ -93,6 +93,16 @@ void __evtset(int evt);
 struct _DEVICE;
 typedef struct _DEVICE DEVICE;
 
+struct dinfo {
+	uint64_t nameid;
+	uint64_t vendorid;
+
+	unsigned ndevids;
+	unsigned nirqs;
+	unsigned npios;
+	unsigned nmemsegs;
+};
+
 enum dio_op {
 	PORT_IN,
 	PORT_OUT,
@@ -101,8 +111,11 @@ enum dio_op {
 DEVICE *dopen(char *devname);
 int din(DEVICE *d, uint32_t port, uint64_t *val);
 int dout(DEVICE *d, uint32_t port, uint64_t val);
-int dirq(DEVICE *d, unsigned irq, int evt);
-int drdcfg(DEVICE *d, struct sys_rdcfg_cfg *cfg);
+int dmapirq(DEVICE *d, unsigned irq, int evt);
+int dgetirq(DEVICE *d, int irqno);
+int dgetpio(DEVICE *d, int piono);
+ssize_t dgetmemrange(DEVICE *d, unsigned rangeno, uint64_t *base);
+int dgetinfo(DEVICE *d, struct dinfo *i);
 void dclose(DEVICE *d);
 
 
