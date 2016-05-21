@@ -8,4 +8,6 @@
 
 #define CONSIO_OUTDATA 32
 
+#define CONSIO_IRQ_KBDATA 0
+
 #endif

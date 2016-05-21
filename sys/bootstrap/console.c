@@ -17,6 +17,7 @@
 static int reqevt = -1;
 
 
+static int kbdval_req = 0;
 static int kbdbuf_fpos = 0;
 static int kbdbuf_wpos = 0;
 static uint8_t kbdbuf[KBDBUF_SIZE];
@@ -26,6 +27,8 @@ static void consdev_putchar(uint8_t v)
 	printf("%c", v);
 }
 
+static void devsts_kbdata_update(int id);
+
 void
 kbdbuf_add(int id, uint8_t c)
 {
@@ -33,8 +36,13 @@ kbdbuf_add(int id, uint8_t c)
 		/* OVERFLOW */
 		return;
 	}
-	printf("Adding %d\n", c);
 	kbdbuf[kbdbuf_wpos++] = c;
+	kbdbuf_wpos %= KBDBUF_SIZE;
+
+	if (kbdval_req) {
+		kbdval_req = 0;
+		devsts_kbdata_update(id);
+	}
 }
 
 static uint64_t
@@ -97,22 +105,22 @@ devsts_kbdata_update(int id)
 	uint64_t val;
 
 	val = kbdfetch(id);
-	if (val == 0) {
-		devwriospace(id, CONSIO_KBDATA, 0);
-		return;
-	}
-
-	ret = devwriospace(id, CONSIO_KBDATA, val);
+	ret = devwriospace(id, IOPORT_QWORD(CONSIO_KBDATA), val);
 	if (ret != 0) {
 		printf("error on devwriospace(%d)", id);
 		return;
 	}
 
-	ret = devwriospace(id, CONSIO_DEVSTS, CONSIO_DEVSTS_KBDVAL);
+	if (val == 0) {
+		kbdval_req = 1;
+		return;
+	}
+
+	ret = devwriospace(id, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
 	if (ret != 0)
 		printf("error on devwriospace(%d)", id);
 
-	ret = devraiseirq(id, 0);
+	ret = devraiseirq(id, CONSIO_IRQ_KBDATA);
 	if (ret != 0)
 		printf("error raising irq(%d)", id);
 }
@@ -163,10 +171,8 @@ pltconsole_process(void)
 	if (pid < 0)
 		return pid;
 
-	if (pid == 0) {
+	if (pid == 0)
 		pltconsole();
-	} else {
-		printf("Created console process with pid %d.", pid);
-	}
+
 	return pid;
 }

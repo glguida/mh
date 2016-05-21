@@ -37,6 +37,7 @@ int
 main()
 {
 	int ret;
+	int consevt = -1;
 	DEVICE *console;
 
 	printf("MRG bootstrap initiated.\n");
@@ -55,6 +56,11 @@ main()
 
 	/* fork and create console device. */
 	ret = pltconsole_process();
+	if (ret < 0) {
+		printf("console process couldn't start: %d\n", ret);
+		return ret;
+	}
+	printf("Console process started as pid %d\n", ret);
 
 	/* fork and create kloggerd.
 	 * ret = kloggerd_process(); */
@@ -69,9 +75,11 @@ main()
 		console = dopen("console");
 	}
 
+	consevt = evtalloc();
+	dirq(console, CONSIO_IRQ_KBDATA, consevt);
+
 	uint64_t val = 0x4141414141414141LL;
 	ret = dout(console, CONSIO_OUTDATA, val);
-	printf("ret = %d\n", ret);
 	if (ret < 0)
 		return ret;
 
@@ -83,7 +91,15 @@ main()
 	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
 	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
 	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	sys_wait();
+
+	while (1) {
+		/* Request data */
+		dout(console, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
+		evtwait(consevt);
+		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
+		printf("%c", (char)val);
+		evtclear(consevt);
+	}
 
 	ret = din(console, 1, &val);
 	printf("val = %llx\n", val);
