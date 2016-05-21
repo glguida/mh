@@ -141,17 +141,15 @@ static int _usrdev_in(void *devopq, unsigned id, uint32_t port,
 	start = MIN(ioport, IOSPACESZ);
 	end = MIN(start + iosize, IOSPACESZ);
 
-	printf("Reading space (%d): port %d (%d)\n", port, start, iosize);
+	dprintf("Reading space (%d): port %d (%d)\n", port, start, iosize);
 	ioval = -1;
-	printf("ioval = %llx\n", ioval);
 	ptr = (uint8_t *)&ioval;
 	spinlock(&ud->lock);
 	for (i = start; i < end; i++) {
-		printf("ptr[%d] = %d\n", i - start, ud->remths[id].iospace[i]);
 		ptr[i - start] = ud->remths[id].iospace[i];
 	}
 	spinunlock(&ud->lock);
-	printf("ioval = %llx\n", ioval);
+	dprintf("ioval = %llx\n", ioval);
 	*val = ioval;
 	return 0;
 }
@@ -221,7 +219,7 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 		assert(!ret);
 
 		if (pfn != PFN_INVALID) {
-			printf("Freeing where imported %x\n", pfn);
+			dprintf("Freeing where imported %x\n", pfn);
 			__freepage(pfn);
 			ret++;
 		}
@@ -286,12 +284,12 @@ static void _usrdev_close(void *devopq, unsigned id)
 			continue;
 		if (devva) {
 			assert(procva);
-			printf("canceling dev %lx\n", devva);
+			dprintf("canceling dev %lx\n", devva);
 			ret = pmap_uimport_cancel(ud->th->pmap, devva);
 			assert(!ret);
 		}
 		if (procva) {
-			printf("canceling prog %lx\n", procva);
+			dprintf("canceling prog %lx\n", procva);
 			ret = pmap_uexport_cancel(ud->remths[id].th->pmap,
 						  procva);
 			assert(!ret);
@@ -304,7 +302,7 @@ static void _usrdev_close(void *devopq, unsigned id)
 	spinunlock(&ud->lock);
 	pmap_commit(ud->remths[id].th->pmap);
 	pmap_commit(ud->th->pmap);
-	printf("close(%d)!\n", id);
+	dprintf("close(%d)!\n", id);
 }
 
 static struct devops usrdev_ops = {
@@ -388,7 +386,7 @@ int usrdev_wriospace(struct usrdev *ud, unsigned id, uint32_t port,
 	start = MIN(ioport, IOSPACESZ);
 	end = MIN(start + iosize, IOSPACESZ);
 
-	printf("Writing space %lld at port %d:  %d (%d)\n", val, port, start, iosize);
+	dprintf("Writing space %lld at port %d:  %d (%d)\n", val, port, start, iosize);
 	ptr = (uint8_t *)&val;
 	spinlock(&ud->lock);
 	for (i = start; i < end; i++)
@@ -406,9 +404,9 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 		return -EINVAL;
 	spinlock(&ud->lock);
 	sig = ud->remths[id].irqmap[irq] - 1;
-	printf("-> %d, %d\n", ud->remths[id].use, sig);
+	dprintf("-> %d, %d\n", ud->remths[id].use, sig);
 	if ((sig != -1) && ud->remths[id].use) {
-		printf("raising");
+		dprintf("raising");
 		thraise(ud->remths[id].th, sig);
 	}
 	spinunlock(&ud->lock);
@@ -440,7 +438,7 @@ int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 	spinunlock(&ud->lock);
 
 	if (pfn != PFN_INVALID) {
-		printf("freeing where imported %x\n", pfn);
+		dprintf("freeing where imported %x\n", pfn);
 		__freepage(pfn);
 		ret++;
 	}

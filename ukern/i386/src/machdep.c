@@ -196,12 +196,12 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	th->frame = f;
 
 	if (vect == VECT_NOP) {
-		printf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
+		dprintf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
 		lapic_write(L_EOI, 0);
 	} else if (vect >= VECT_IRQ0) {
 		unsigned irq = vect - VECT_IRQ0;
 
-		printf("IRQ%d\n", irq);
+		dprintf("IRQ%d\n", irq);
 		irqsignal(irq);
 		lapic_write(L_EOI, 0);
 	}
