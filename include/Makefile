@@ -13,7 +13,8 @@ INCSUBDIRS= \
 	$(SRCROOT)/ukern/$(MACHINE)/src \
 	$(SRCROOT)/sys/sys \
 	$(SRCROOT)/sys/$(MACHINE)/include \
-	$(SRCROOT)/sys/libmrg
+	$(SRCROOT)/sys/libmrg \
+	$(SRCROOT)/lib/libsquoze
 
 include $(MAKEDIR)/inc.mk
 include $(MAKEDIR)/def.mk
