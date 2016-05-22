@@ -34,9 +34,9 @@ ENTRY(spinlock)
 	mov %esp, %ebp
 
 	mov 8(%ebp), %edx
-	movl $0, %eax
 	movl $1, %ecx
-1:	lock cmpxchg %ecx, (%edx)
+1:	movl $0, %eax
+	lock cmpxchg %ecx, (%edx)
 	jnz 2f
 	pop %ebp
 	ret
