@@ -251,10 +251,9 @@ void gsi_setup_done(void)
 	unsigned i;
 	uint32_t hi, lo;
 
-	lo = 0;			/* No vector */
-	lo |= 1L << 8;		/* Lowest Priority */
-	lo |= 1L << 16;		/* Masked */
-	hi = 0xffL << 24;	/* All Processors */
+	lo = 0;				/* No vector, fixed destination */
+	lo |= 1L << 16;			/* Masked */
+	hi = lapic_getcurrent() << 24;	/* Current Processor */
 
 	for (i = 0; i < gsis_no; i++) {
 		/* Now that we have the proper GSI to IRQ mapping, resolve the
