@@ -60,7 +60,7 @@ TAILQ_HEAD_INITIALIZER(stopped_threads);
 
 lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
-#define SOFTIRQ_RESCHED (1 << 0)
+#define SOFTIRQ_ZOMBIE (1 << 0)
 
 static lock_t irqsigs_lock;
 LIST_HEAD(, irqsig) irqsigs[MAXIRQS];
@@ -240,10 +240,11 @@ struct thread *thfork(void)
 	LIST_INSERT_HEAD(&cth->active_children, nth, child_list);
 	spinunlock(&cth->children_lock);
 
-	/* No need to flash nth->pmap, not used yet */
+	/* No need to flush nth->pmap, not used yet */
 	nth->status = THST_RUNNABLE;
-	TAILQ_INSERT_TAIL(&current_cpu()->resched, nth, sched_list);
-	cpu_softirq_raise(SOFTIRQ_RESCHED);
+	spinlock(&sched_lock);
+	TAILQ_INSERT_TAIL(&running_threads, nth, sched_list);
+	spinunlock(&sched_lock);
 
 	return nth;
 }
@@ -286,16 +287,12 @@ static void thfree(struct thread *th)
 
 static void thswitch(struct thread *th)
 {
-	if (!_setjmp(current_thread()->ctx)) {
-		pmap_switch(th->pmap);
-		set_current_thread(th);
-		if (thread_is_idle(th))
-			__sync_or_and_fetch(&cpu_idlemap,
-					    (1L << cpu_number()));
-		usrframe_switch();
-		_longjmp(th->ctx, 1);
-		panic("WTF.");
-	}
+	pmap_switch(th->pmap);
+	set_current_thread(th);
+	if (thread_is_idle(th))
+		__sync_or_and_fetch(&cpu_idlemap,
+				    (1L << cpu_number()));
+	usrframe_switch();
 }
 
 struct cpu *cpu_setup(int id)
@@ -315,15 +312,19 @@ void cpu_softirq_raise(int id)
 	current_cpu()->softirq |= id;
 }
 
-static void do_resched(void);
+void cpu_kick(void)
+{
+
+	if (thread_is_idle(current_thread()))
+		schedule(THST_STOPPED);
+}
+
+static void do_zombie(void);
 
 void do_softirq(void)
 {
 	struct thread *th = current_thread();
 	uint64_t si;
-
-	if (thread_is_idle(th))
-		schedule(THST_STOPPED);
 
 	if (th->userfl & THFL_INTR) {
 		si = __sync_fetch_and_and(&th->softintrs, 0);
@@ -335,42 +336,27 @@ void do_softirq(void)
 		si = current_cpu()->softirq;
 		current_cpu()->softirq = 0;
 
-		if (si & SOFTIRQ_RESCHED) {
-			do_resched();
-			si &= ~SOFTIRQ_RESCHED;
+		if (si & SOFTIRQ_ZOMBIE) {
+			do_zombie();
+			si &= ~SOFTIRQ_ZOMBIE;
 		}
 	}
 }
 
-static void do_resched(void)
+static void do_zombie(void)
 {
 	struct thread *th, *tmp;
 
 	TAILQ_FOREACH_SAFE(th, &current_cpu()->resched, sched_list, tmp) {
 		TAILQ_REMOVE(&current_cpu()->resched, th, sched_list);
-		switch (th->status) {
-		case THST_RUNNABLE:
-			spinlock(&sched_lock);
-			TAILQ_INSERT_TAIL(&running_threads, th,
-					  sched_list);
-			once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
-			spinunlock(&sched_lock);
-			break;
-		case THST_STOPPED:
-			spinlock(&sched_lock);
-			TAILQ_INSERT_TAIL(&stopped_threads, th,
-					  sched_list);
-			spinunlock(&sched_lock);
-			break;
-		case THST_ZOMBIE:
-			spinlock(&th->parent->children_lock);
-			LIST_REMOVE(th, child_list);
-			LIST_INSERT_HEAD(&th->parent->zombie_children, th,
-					 child_list);
-			spinunlock(&th->parent->children_lock);
-			thraise(th->parent, INTR_CHILD);
-			break;
-		}
+		assert (th->status == THST_ZOMBIE);
+		spinlock(&th->parent->children_lock);
+		LIST_REMOVE(th, child_list);
+		LIST_INSERT_HEAD(&th->parent->zombie_children, th,
+				 child_list);
+		spinunlock(&th->parent->children_lock);
+		thraise(th->parent, INTR_CHILD);
+		break;
 	}
 }
 
@@ -383,13 +369,13 @@ void wake(struct thread *th)
 	case THST_RUNNABLE:
 		break;
 	case THST_RUNNING:
-		cpu_ipi(th->cpu, VECT_NOP);
+		cpu_ipi(th->cpu, VECT_KICK);
 		break;
 	case THST_STOPPED:
 		TAILQ_REMOVE(&stopped_threads, th, sched_list);
 		th->status = THST_RUNNABLE;
 		TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
-		once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_NOP));
+		once_cpumask(cpu_idlemap, cpu_ipi(i, VECT_KICK));
 		break;
 	}
 	spinunlock(&sched_lock);
@@ -397,52 +383,76 @@ void wake(struct thread *th)
 
 void schedule(int newst)
 {
-	struct thread *th = NULL, *oldth = current_thread();
+	struct thread *th = NULL;
+	struct thread *oldth;
 
 	/* Nothing to do */
 	if (newst == THST_RUNNING)
 		return;
 
-	if (oldth == current_cpu()->idle_thread) {
-		__sync_and_and_fetch(&cpu_idlemap, ~(1L << cpu_number()));
-		oldth = NULL;
-		goto _skip_resched;
-	}
+	/* Volatile: changes in this function. */
+	oldth = (volatile struct thread *)current_thread();
 
 	/* Do not sleep if active signals */
 	if ((newst == THST_STOPPED) && thread_has_interrupts(oldth))
 		return;
 
-	spinlock(&sched_lock);
-	oldth->status = newst;
-	switch (oldth->status) {
-	case THST_RUNNABLE:
-		TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
-		break;
-	case THST_STOPPED:
-		TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
-		break;
-	case THST_ZOMBIE:
-		TAILQ_INSERT_TAIL(&current_cpu()->resched, oldth,
-				  sched_list);
-		cpu_softirq_raise(SOFTIRQ_RESCHED);
-		break;
-	}
-	spinunlock(&sched_lock);
+	if (!_setjmp(oldth->ctx)) {
 
-      _skip_resched:
-	/* Schedule per-cpu? Actually simpler */
-	spinlock(&sched_lock);
-	if (!TAILQ_EMPTY(&running_threads)) {
-		th = TAILQ_FIRST(&running_threads);
-		TAILQ_REMOVE(&running_threads, th, sched_list);
-		th->status = THST_RUNNING;
-		th->cpu = cpu_number();
-	} else {
-		th = current_cpu()->idle_thread;
+		/* Default new  thread. If  we are just  yielding (our
+		 * next status is RUNNABLE), don't go idle. */
+		if (newst == THST_RUNNABLE)
+			th = oldth;
+		else
+			th = current_cpu()->idle_thread;
+
+		spinlock(&sched_lock);
+		/* Schedule per-cpu? Actually simpler */
+		if (!TAILQ_EMPTY(&running_threads)) {
+			th = TAILQ_FIRST(&running_threads);
+			TAILQ_REMOVE(&running_threads, th, sched_list);
+			th->status = THST_RUNNING;
+			th->cpu = cpu_number();
+		}
+		spinunlock(&sched_lock);
+
+		if (th == oldth)
+			goto _skip_resched;
+
+		thswitch(th); /* SWITCH current_thread() here. */
+
+		if (thread_is_idle(oldth))
+			goto _skip_resched;
+
+		/* resched old thread */
+		oldth->status = newst;
+		switch (oldth->status) {
+		case THST_RUNNABLE:
+			spinlock(&sched_lock);
+			TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
+			spinunlock(&sched_lock);
+			break;
+		case THST_STOPPED:
+			spinlock(&sched_lock);
+			TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
+			spinunlock(&sched_lock);
+			break;
+		case THST_ZOMBIE:
+			spinlock(&sched_lock);
+			TAILQ_INSERT_TAIL(&current_cpu()->resched, oldth,
+					  sched_list);
+			spinunlock(&sched_lock);
+			cpu_softirq_raise(SOFTIRQ_ZOMBIE);
+			break;
+		default:
+			panic("Uknown schedule state %d\n", oldth->status);
+		}
+
+	_skip_resched:
+
+		_longjmp(th->ctx, 1);
+		panic("WTF.");
 	}
-	spinunlock(&sched_lock);
-	thswitch(th);
 }
 
 int childstat(struct sys_childstat *cs)
@@ -513,8 +523,8 @@ __dead void die(void)
 
 static void idle(void)
 {
-	do_softirq();
 	schedule(THST_STOPPED);
+	do_softirq();
 	platform_idle();
 }
 
@@ -951,10 +961,12 @@ void kern_boot(void)
 	th->children_lock = 0;
 	LIST_INIT(&th->active_children);
 	LIST_INIT(&th->zombie_children);
+
+	__kern_init = th;
+
 	spinlock(&sched_lock);
 	TAILQ_INSERT_TAIL(&running_threads, th, sched_list);
 	spinunlock(&sched_lock);
-	__kern_init = th;
 	idle();
 }
 

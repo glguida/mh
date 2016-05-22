@@ -195,9 +195,10 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 	assert(f->cs == UCS || thread_is_idle(th));
 	th->frame = f;
 
-	if (vect == VECT_NOP) {
+	if (vect == VECT_KICK) {
 		dprintf("%d: nop (%d)\n", cpu_number(), thread_is_idle(th));
 		lapic_write(L_EOI, 0);
+		cpu_kick();
 	} else if (vect >= VECT_IRQ0) {
 		unsigned irq = vect - VECT_IRQ0;
 

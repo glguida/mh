@@ -109,6 +109,7 @@ void kern_bootap(void);
 
 struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
+void cpu_kick(void);
 void do_softirq(void);
 
 struct thread *thfork(void);
