@@ -84,6 +84,8 @@ size_t unsquozelen(uint64_t enc, size_t len, char *string)
 	        *ptr++ = chdec((enc / cut) % 40);
 		cut /= 40;
 	}
+	if (len)
+		memset(ptr, 0, len);
 	return ptr - string;
 }
 
