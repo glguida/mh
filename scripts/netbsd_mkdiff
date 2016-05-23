@@ -5,17 +5,17 @@
 # - to be run from source root
 # - nbsd/ is link to netbsd /usr/src
 #
-# tools/netbsd_mkdiff
+# scripts/netbsd_mkdiff
 
 #create /tmp/a with original netbsd file in mh tree form
-awk '{ system("bash -c \" install -d /tmp/a/`dirname "$2"`; install nbsd/"$1" /tmp/a/"$2" \" "); }' tools/netbsd_imports
+awk '{ system("bash -c \" install -d /tmp/a/`dirname "$2"`; install nbsd/"$1" /tmp/a/"$2" \" "); }' scripts/netbsd_imports
 
 # copy from mh the modified files. remove "Imported from NetBSD"
 # lines. They usually include the CVS commit version, which makes the
 # patch bad.
-awk '{ system("bash -c \" install -d /tmp/b/`dirname "$2"`; cat "$2" | grep -v MHDIFFIGNORE > /tmp/b/"$2" \" "); }' tools/netbsd_imports
+awk '{ system("bash -c \" install -d /tmp/b/`dirname "$2"`; cat "$2" | grep -v MHDIFFIGNORE > /tmp/b/"$2" \" "); }' scripts/netbsd_imports
 
 (cd /tmp; diff -ru a b > netbsd.patch)
-cp /tmp/netbsd.patch tools/netbsd.patch
+cp /tmp/netbsd.patch scripts/netbsd.patch
 
 rm -rf /tmp/a /tmp/b /tmp/netbsd.patch

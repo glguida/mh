@@ -8,5 +8,5 @@
 
 TMPFILE=`mktemp`
 
-cat tools/license_header $1 > ${TMPFILE}
+cat scripts/license_header $1 > ${TMPFILE}
 cp ${TMPFILE} $1
