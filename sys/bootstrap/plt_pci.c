@@ -9,9 +9,18 @@
 #define perror(...) printf(__VA_ARGS__)
 #warning add perror
 
+
 /*
  * PCI bus.
  */
+
+
+#define PCI_VENDOR(reg)		((reg) & 0xFFFF)
+#define PCI_DEVICE(reg)		(((reg) >> 16) & 0xFFFF)
+#define PCI_VENDOR_INVALID	0xFFFF
+#define PCI_VENDOR_ID		0x00
+
+#define PCI_HDRTYPE		0x0E
 
 static DEVICE *rootdev = NULL;
 
@@ -103,7 +112,7 @@ pltpci_rdcfg(unsigned bus, unsigned dev, unsigned func,
 
 	switch(pci_cfg_method) {
 	case IO:
-		return pltpci_rdcfg(bus, dev, func, reg, width, value);
+		return pltpci_rdcfg_io(bus, dev, func, reg, width, value);
 	default:
 	case UNKNOWN:
 		return -ENOTSUP;
@@ -117,17 +126,31 @@ pltpci_wrcfg(unsigned bus, unsigned dev, unsigned func,
 
 	switch(pci_cfg_method) {
 	case IO:
-		return pltpci_wrcfg(bus, dev, func, reg, width, value);
+		return pltpci_wrcfg_io(bus, dev, func, reg, width, value);
 	default:
 	case UNKNOWN:
 		return -ENOTSUP;
 	}
 }
 
+static int
+getnfuncs(int bus, int dev)
+{
+	int ret;
+	uint32_t hdr;
+
+	ret = pltpci_rdcfg(bus, dev, 0, PCI_HDRTYPE, 8, &hdr);
+	if (ret)
+		return ret;
+	return hdr & 0x80 ? 8 : 1;
+}
+
+
 int
 pltpci_init(void)
 {
-	int i, ret;
+	uint32_t reg;
+	int i, nfuncs, ret, bus, dev, ndevs, func;
 	char name[13];
 	struct dinfo info;
 	struct device *tmp, *d = NULL;
@@ -190,7 +213,23 @@ pltpci_init(void)
 	 * Scan PCI bus
 	 */
 scan:
+	ndevs = 0;
+	for (bus = 0; bus < 256; bus++) {
+		for (dev = 0; dev < 32; dev++) {
+			nfuncs = getnfuncs(bus, dev);
+			for (func = 0; func < nfuncs; func++) {
+				if (pltpci_rdcfg(bus, dev, func,
+						 PCI_VENDOR_ID, 32, &reg))
+					continue;
+				if (PCI_VENDOR(reg) == PCI_VENDOR_INVALID ||
+				    PCI_VENDOR(reg) == 0)
+					continue;
+				printf("%02x:%02x.%d\n", bus, dev, func);
+				ndevs++;
+			}
+		}
+	}
+	printf("Found %d PCI devices/funcs\n", ndevs);
 	
-
 	return 0;
 }
