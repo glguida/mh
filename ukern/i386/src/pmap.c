@@ -229,6 +229,30 @@ int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return 0;
 }
 
+int pmap_phys(struct pmap *pmap, vaddr_t va, pfn_t *pfn)
+{
+	int ret;
+	l1e_t *l1p, l1e;
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		panic("phys() of different pmap voluntarily not supported.");
+
+	ret = -EFAULT;
+	spinlock(&pmap->lock);
+	l1e = *l1p;
+	if (l1e_present(l1e)) {
+		*pfn = l1epfn(l1e);
+		ret = 0;
+	}
+	spinunlock(&pmap->lock);
+
+	return ret;
+}
+
 /* Enter a new user page (or an non-present entry) in the pmap */
 int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn)
