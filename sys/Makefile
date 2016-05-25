@@ -1,6 +1,6 @@
 SRCROOT=..
 MKDIR=$(SRCROOT)/mk
-SUBDIRS+= libuk libmrg libacpi bootstrap
+SUBDIRS+= bootstrap
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk

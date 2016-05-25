@@ -1,4 +1,4 @@
-SRCROOT=../../../
+SRCROOT=../../
 include $(SRCROOT)/mk/mk.conf
 
 INCS= ansi.h asm.h bswap.h byte_swap.h cdefs.h endian.h		\
