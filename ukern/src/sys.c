@@ -177,11 +177,27 @@ static int sys_open(uint64_t id)
 	return devopen(id);
 }
 
-static int sys_export(unsigned ddno, u_long va, unsigned iopfn)
+static int sys_export(unsigned ddno, u_long va, u_long uiopfnptr)
 {
+	int ret;
+	unsigned long iopfn, orig;
+
 	if (!__chkuaddr(va, PAGE_SIZE))
 		return -EINVAL;
-	return devexport(ddno, va, iopfn);
+
+	ret = copy_from_user(&iopfn, uiopfnptr, sizeof(iopfn));
+	if (ret)
+		return ret;
+
+        orig = iopfn;
+	ret = devexport(ddno, va, &iopfn);
+
+	if (orig != iopfn)
+		ret = copy_to_user(uiopfnptr, iopfn, sizeof(iopfn));
+	if (ret)
+		printf("Warning: error on final copy to user\n");
+
+	return ret;
 }
 
 static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)

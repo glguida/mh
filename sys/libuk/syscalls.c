@@ -165,7 +165,7 @@ int sys_iounmap(unsigned ddno, u_long va)
 	return ret;
 }
 
-int sys_export(unsigned ddno, u_long va, unsigned iopfn)
+int sys_export(unsigned ddno, u_long va, unsigned long *iopfn)
 {
 	int ret;
 

@@ -185,12 +185,13 @@ static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 }
 
 static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
-			  unsigned iopfn)
+			  unsigned long *iopfnptr)
 {
 	/* Current thread: Process */
 	int ret;
 	l1e_t expl1e;
 	struct apert *apt;
+	unsigned long iopfn = *iopfnptr;
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	assert(__isuaddr(va));

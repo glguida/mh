@@ -138,7 +138,7 @@ int deviounmap(unsigned dd, vaddr_t va);
 void devremove(void);
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);
-int devexport(unsigned dd, vaddr_t va, unsigned iopfn);
+int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn);
 int devin(unsigned dd, uint32_t port, uint64_t * valptr);
 int devout(unsigned dd, uint32_t port, uint64_t val);
 int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg);

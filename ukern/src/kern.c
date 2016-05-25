@@ -750,7 +750,7 @@ int devopen(uint64_t id)
 	return dd;
 }
 
-int devexport(unsigned dd, vaddr_t va, unsigned iopfn)
+int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn)
 {
 	struct thread *th = current_thread();
 

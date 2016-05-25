@@ -198,9 +198,16 @@ static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 }
 
 static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
-			  unsigned iopfn)
+			 unsigned long *iopfn)
 {
-	return -ENODEV;
+	int ret;
+	pfn_t pfn;
+
+	/* XXX: IOMMU-less, also didn't check DMA is possible */
+	ret = pmap_phys(NULL, va, &pfn);
+
+	*iopfn = pfn;
+	return ret;
 }
 
 static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
