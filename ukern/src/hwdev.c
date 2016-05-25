@@ -284,6 +284,8 @@ static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	cfg->vendorid = hdcfg->vid;
 	for (i = 0; i < MAXHWDEVIDS; i++)
 		cfg->deviceids[i] = hdcfg->did[i];
+
+	cfg->niopfns = -1;
 	cfg->nirqsegs = hdcfg->nirqsegs;
 	cfg->npiosegs = hdcfg->npiosegs;
 	cfg->nmemsegs = hdcfg->nmemsegs;

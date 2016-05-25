@@ -77,6 +77,7 @@ struct sys_rdcfg_cfg {
 	uint64_t vendorid;
 	uint64_t deviceids[SYS_RDCFG_MAX_DEVIDS];
 
+	uint8_t niopfns;
 	uint8_t nirqsegs;
 	uint8_t npiosegs;
 	uint8_t nmemsegs;

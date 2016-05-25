@@ -190,7 +190,7 @@ static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)
 	struct sys_rdcfg_cfg cfg;
 
 	if (!__chkuaddr(ucfg, sizeof(cfg)))
-		return -EINVAL;
+		return -EFAULT;
 
 	memset(&cfg, 0, sizeof(struct sys_rdcfg_cfg));
 	ret = devrdcfg(ddno, &cfg);
@@ -211,6 +211,9 @@ static int sys_in(unsigned ddno, uint32_t port, uaddr_t valptr)
 {
 	int ret;
 	uint64_t val;
+
+	if (!__chkuaddr(valptr, sizeof(val)))
+		return -EFAULT;
 
 	ret = devin(ddno, port, &val);
 	if (ret)

@@ -85,7 +85,8 @@ void __bad_thing(int user, const char *format, ...)
 int __usrcpy(uaddr_t uaddr, void *dst, void *src, size_t sz)
 {
 
-	assert(__chkuaddr(uaddr, sz));
+	if (!__chkuaddr(uaddr, sz))
+		return -EFAULT;
 
 	current_cpu()->usrpgfault = 1;
 	__insn_barrier();

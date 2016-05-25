@@ -37,6 +37,9 @@
 #include <uk/kern.h>
 #include <lib/lib.h>
 
+#define PLATFORM_NAMEID squoze("PLATFORM")
+#define PLATFORM_VENDORID squoze("MHSYS");
+
 #define MAXPLTSIGS 512
 
 struct pltsig {
@@ -185,7 +188,15 @@ static int _pltdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 static int _pltdev_rdcfg(void *devopq, unsigned id,
 			 struct sys_rdcfg_cfg *cfg)
 {
-	return -ENODEV;
+	cfg->nameid = PLATFORM_NAMEID;
+	cfg->vendorid = PLATFORM_VENDORID;
+
+	memset(cfg->deviceids, 0, sizeof(cfg->deviceids));
+	cfg->niopfns = -1;
+	cfg->nirqsegs = -1;
+	cfg->npiosegs = -1;
+	cfg->nmemsegs = -1;
+	return 0;
 }
 
 static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq,
@@ -244,6 +255,6 @@ static struct devops pltdev_ops = {
 void pltdev_init(void)
 {
 	memset(platform_rems, 0, sizeof(platform_rems));
-	dev_init(&platform_dev, 0, NULL, &pltdev_ops, 0, 0, 600);
+	dev_init(&platform_dev, PLATFORM_NAMEID, NULL, &pltdev_ops, 0, 0, 600);
 	dev_attach(&platform_dev);
 }

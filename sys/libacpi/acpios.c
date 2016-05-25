@@ -65,7 +65,7 @@ static void acpi_interrupt_handler(int intr, void *opq)
 #define acpi_init()					\
 	do {						\
 		if (acpi_pltfd < 0)			\
-			acpi_pltfd = sys_open(0);	\
+			acpi_pltfd = sys_open(squoze("PLATFORM"));	\
 		if (acpi_pltfd < 0)			\
 			return AE_ERROR;		\
 	} while(0)

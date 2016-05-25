@@ -241,6 +241,7 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 	assert(id < MAXUSRDEVREMS);
 
 	spinlock(&ud->lock);
+	cfg->niopfns = IOSPACESZ;
 	cfg->vendorid = ud->cfg.vid;
 	cfg->deviceids[0] = ud->cfg.did;
 	cfg->segs[0].len = ud->cfg.nirqs;
