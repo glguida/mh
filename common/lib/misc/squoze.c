@@ -55,7 +55,7 @@ static char chdec(int s40)
 	if (s40 >= 036)
 		return '0' + s40 - 036;
 
-	return s40 == 033 ? '$' : s40 == 034 ? '.' : '?';
+	return s40 == 033 ? '$' : s40 == 034 ? '.' : '_';
 }
 
 uint64_t squoze(char *string)
