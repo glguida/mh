@@ -19,7 +19,18 @@ struct device {
 };
 
 /* platform devices */
-int pltacpi_init(void);
+int platform_init(void);
+void *platform_getdev(uint64_t name);
+uint64_t platform_getname(void *dev);
+void *platform_iterate_subdev(void *dev, void *last);
+
+int platform_getpcibusno(void *pciroot);
+void *platform_getpcisubdev(void *pciroot, int devno, int funcno);
+int platform_getpciaddr(void *dev, int *devno, int *funcno);
+int platform_getpciintrs(void *pciroot, int dev,
+			  int *inta, int *intb,
+			  int *intc, int *intd);
+
 int pltpci_init(void);
 
 /* device management */

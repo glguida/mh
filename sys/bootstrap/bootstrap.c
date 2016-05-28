@@ -42,17 +42,24 @@ main()
 
 	printf("MRG bootstrap initiated.\n");
 
-	ret = pltacpi_init();
+	ret = platform_init();
 	if (ret < 0) {
 		printf("ACPI platform initialization failed: %d\n", ret);
 		return -1;
 	}
 
-	ret = pltpci_init();
-	if (ret < 0)
-		printf("PCI bus scan failed: %d\n", ret);
 
 	/* ret = pltusb_init(); */
+
+	/* run sysconfig. Will get system configuration and inittab */
+
+	/* Become SIGCHILD handler */
+
+	/* fork and start init as configured in sysconfig */
+
+	/*
+	 * THE REST IS HIGHLY TEMPORARY.
+	 */
 
 	/* fork and create console device. */
 	ret = pltconsole_process();
@@ -65,8 +72,6 @@ main()
 	/* fork and create kloggerd.
 	 * ret = kloggerd_process(); */
 
-	/* Become SIGCHILD handler */
-
 	/* open console */
 	console = dopen("console");
 	while (console == NULL) {
@@ -76,33 +81,53 @@ main()
 	}
 
 	consevt = evtalloc();
-	dmapirq(console, CONSIO_IRQ_KBDATA, consevt);
+	ret = dmapirq(console, CONSIO_IRQ_KBDATA, consevt);
 
-	uint64_t val = 0x4141414141414141LL;
-	ret = dout(console, CONSIO_OUTDATA, val);
-	if (ret < 0)
-		return ret;
+	{
+		uint64_t val = 0x4141414141414141LL;
 
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), '\n');
-	ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-	ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, CONSIO_OUTDATA, val);
+		if (ret < 0)
+			return ret;
 
-	while (1) {
-		/* Request data */
-		dout(console, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
-		evtwait(consevt);
-		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
-		printf("%c", (char)val);
-		evtclear(consevt);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), '\n');
+		ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
+
+
+		/*
+		 * Read console.
+		 */
+		uint8_t kbdval = 0;
+
+		din(console, IOPORT_BYTE(CONSIO_DEVSTS), &kbdval);
+		if (kbdval & CONSIO_DEVSTS_KBDVAL) {
+			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
+			while ((val & 0xff) > 0) {
+				printf("%c", (char)val);
+				val >>= 8;
+			}
+		}
+
+		while (1) {
+			/* Request data */
+			dout(console, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
+			evtwait(consevt);
+			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
+			while ((val & 0xff) > 0) {
+				printf("%c", (char)val);
+				val >>= 8;
+			}
+			evtclear(consevt);
+		}
+		ret = din(console, 1, &val);
+		printf("val = %llx\n", val);
 	}
-
-	ret = din(console, 1, &val);
-	printf("val = %llx\n", val);
 
 	/* start command loop
 	 * ret = pltcommand_setup(); */
