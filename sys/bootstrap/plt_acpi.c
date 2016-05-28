@@ -672,15 +672,27 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 	platform_getpciintrs(root, dev, &inta, &intb, &intc, &intd);
 	if (inta) {
 		printf(",IRQ%d", inta);
+		hwcreat.segs[hwcreat.nirqsegs].base = inta;
+		hwcreat.segs[hwcreat.nirqsegs].len = 1;
+		hwcreat.nirqsegs++;
 	}
 	if (intb) {
 		printf(",IRQ%d", intb);
+		hwcreat.segs[hwcreat.nirqsegs].base = intb;
+		hwcreat.segs[hwcreat.nirqsegs].len = 1;
+		hwcreat.nirqsegs++;
 	}
 	if (intc) {
 		printf(",IRQ%d", intc);
+		hwcreat.segs[hwcreat.nirqsegs].base = intc;
+		hwcreat.segs[hwcreat.nirqsegs].len = 1;
+		hwcreat.nirqsegs++;
 	}
 	if (intd) {
 		printf(",IRQ%d", intd);
+		hwcreat.segs[hwcreat.nirqsegs].base = intd;
+		hwcreat.segs[hwcreat.nirqsegs].len = 1;
+		hwcreat.nirqsegs++;
 	}
 
 	AcpiOsReadPciConfiguration(&acpi_pciid, PCI_HDRTYPE_REG, &reg, 32);
@@ -706,6 +718,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 	/* PIO */
 	for (i = 0; i < nbars; i++) {
 		uint64_t orig, size = 0;
+		uint32_t iobase, iolen;
 
 		reg = 0;
 		if (AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BAR_REG(i), &reg, 32))
@@ -731,10 +744,13 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 		if (size == 0)
 			continue;
 
-		size = 1 << (ffs(size) - 1);
+		iobase = (uint32_t)(orig & ~(uint64_t)0x3LL);
+		iolen = 1 << (ffs(size) - 1);
 
-		printf(",IO%04x-%04x",
-		       (unsigned)(orig & ~(uint64_t)0x3LL), (unsigned)size);
+		printf(",IO%04x-%04x", iobase, iolen);
+		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].base = iobase;
+		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolen;
+		hwcreat.npiosegs++;
 	}
 
 	/* Populate PCI bridge I/O */
@@ -756,12 +772,16 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 
 		if (iobase < iolimit) {
 			printf(",IO%08x-%08x", iobase, iolimit);
+			hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].base = iobase;
+			hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolimit;
+			hwcreat.npiosegs++;
 		}
 	}
 
 	/* MEM */
 	for (i = 0; i < nbars; i++) {
 		uint64_t orig, size = 0;
+		uint64_t membase, memlen;
 
 		reg = 0;
 		if (AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BAR_REG(i), &reg, 32))
@@ -785,11 +805,14 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 		size &= ~(uint64_t)0xfLL;
 		if (size == 0)
 			continue;
-					  
-		size = 1 << (ffs(size) - 1);
+		
+		membase = (uint64_t)(orig & ~(uint64_t)0xfLL);
+		memlen = 1 << (ffs(size) - 1);
 
-		printf(",MEM%08x-%08x",
-		       (uint32_t)(orig & ~(uint64_t)0xfLL), (uint32_t)size);
+		printf(",MEM%08x-%08x", membase, memlen);
+		hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
+		hwcreat.memsegs[hwcreat.nmemsegs].len = memlen;
+		hwcreat.nmemsegs++;
 	}
 
 	/* Populate PCI bridge MEM */
@@ -813,11 +836,16 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 
 		if (membase < memlimit) {
 			printf(",MEM%08llx-%08llx", membase, memlimit);
+			hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
+			hwcreat.memsegs[hwcreat.nmemsegs].len = memlimit;
+			hwcreat.nmemsegs++;
 		}
 
 	}
 
 	printf("]\n");
+	/* Add device to system bus */
+	devadd(&hwcreat);
 }
 
 static int
