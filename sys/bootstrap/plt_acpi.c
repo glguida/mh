@@ -46,6 +46,15 @@ char *acpi_buffer;
 #define PCI_BRIDGE_PMEM_LIMITUPPER_REG 0x2c
 #define PCI_BRIDGE_IOUPPER_REG   0x30
 
+
+/*
+ * ACPI devices scan.
+ *
+ * This part scans for devices not enumerated by their buses and
+ * handled by ACPI. All devices that have a _CRS method are selected
+ * and registered in the kernel.
+ */
+
 static ACPI_STATUS
 acpi_set_int(ACPI_HANDLE handle, const char *path,
 	     ACPI_INTEGER val)
@@ -248,21 +257,10 @@ acpi_per_resource_mem(ACPI_RESOURCE *res, void *ctx)
 	return AE_OK;
 }
 
-/*
- * This is the bootstrap scan.
- * Add only devices with _CRS and devices on PCI bus.
- */
-
-struct acpiscanctx {
-	int lastlevel;
-	struct { int ispci; int bus } linfo[ACPI_SCAN_MAX_LEVELS];
-};
-
 static ACPI_STATUS
 acpi_per_device(ACPI_HANDLE devhandle, UINT32 level, void *ctx, void **retval)
 {
 	static uint64_t pci_pnpid = 0;
-	struct acpiscanctx *scanctx = (struct acpiscanctx *)ctx;
 	int ret, i, dids;
 	struct sys_hwcreat_cfg hwcreat = { 0, };
 	ACPI_HANDLE crshandle = NULL;
@@ -345,234 +343,15 @@ acpi_per_device(ACPI_HANDLE devhandle, UINT32 level, void *ctx, void **retval)
 }
 
 
-struct prtrsctx {
-	int idx;
-	int irq;
-};
-
-static ACPI_STATUS
-__prt_resource_irq(ACPI_RESOURCE *res, void *ctx)
-{
-	struct prtrsctx *prtrs = (struct prtrsctx *)ctx;
-	struct sys_hwcreat_cfg *cfg = (struct sys_hwcreat_cfg *)ctx;
-
-	switch (res->Type) {
-	case ACPI_RESOURCE_TYPE_IRQ: {
-		ACPI_RESOURCE_IRQ *p = &res->Data.Irq;
-
-		if (!p || !p->InterruptCount || !p->Interrupts[0])
-			return AE_OK;
-
-		prtrs->irq = p->Interrupts[prtrs->idx];
-		return -1;
-	}
-	case ACPI_RESOURCE_TYPE_EXTENDED_IRQ: {
-		ACPI_RESOURCE_EXTENDED_IRQ *p = &res->Data.ExtendedIrq;
-
-		if (!p || !p->InterruptCount || !p->Interrupts[0])
-			return AE_OK;
-
-		prtrs->irq = p->Interrupts[prtrs->idx];
-		return -1;
-	}
-	default:
-		prtrs->irq = 0;
-		return AE_OK;
-	}
-}
-
-int
-platform_getpciintrs(void *dev, int devno,
-		     int *inta, int *intb,
-		     int *intc, int *intd)
-{
-	int i;
-	void *lnkobj;
-	struct prtrsctx ctx;
-	char prtbuf[ACPI_BUFFER_SIZE];
-	ACPI_BUFFER buffer;
-	ACPI_STATUS status;
-	ACPI_PCI_ROUTING_TABLE *prt;
-
-	*inta = 0;
-	*intb = 0;
-	*intc = 0;
-	*intd = 0;
-
-
-	buffer.Pointer = prtbuf;
-	buffer.Length = ACPI_BUFFER_SIZE;
-
-	status = AcpiGetIrqRoutingTable(dev, &buffer);
-	if (ACPI_FAILURE(status)) {
-		printf("Could not acquire IRQ Routing table\n");
-		return -1;
-	}
-
-	prt = (ACPI_PCI_ROUTING_TABLE *)buffer.Pointer;
-	for (; prt->Length; prt = (ACPI_PCI_ROUTING_TABLE *)((uint8_t *)prt + prt->Length)) {
-		int pdev = prt->Address >> 16;
-		int irq = 0;
-
-		if (pdev != devno)
-			continue;
-
-		if (prt->Source[0] == 0) {
-			irq = prt->SourceIndex;
-			goto __setirq;
-		}
-
-		status = AcpiGetHandle(dev, prt->Source, &lnkobj);
-		if (ACPI_FAILURE(status)) {
-			printf("Couldn't get IRQ source '%s' for pin %d\n", prt->Source, prt->Pin);
-			continue;
-		}
-
-		ctx.irq = 0;
-		ctx.idx = prt->SourceIndex;
-		AcpiWalkResources(lnkobj, METHOD_NAME__CRS, __prt_resource_irq, &ctx);
-		irq = ctx.irq;
-
-	__setirq:
-		switch (prt->Pin) {
-		case 0:
-			*inta = irq;
-			break;
-		case 1:
-			*intb = irq;
-			break;
-		case 2:
-			*intc = irq;
-			break;
-		case 3:
-			*intd = irq;
-			break;
-		default:
-			printf("Invalid pin %d in _PRT");
-			break;
-		}
-	}
-
-	return 0;
-}
-
-int platform_getpcibusno(void *pciroot)
-{
-	uint64_t value;
-	ACPI_STATUS status;
-
-	status = AcpiUtEvaluateNumericObject(METHOD_NAME__BBN, pciroot, &value);
-	if (ACPI_FAILURE(status))
-		return -1;
-
-	return (int)value;
-}
-
-int platform_getpciaddr(void *dev, int *devno, int *funcno)
-{
-	uint64_t value;
-	ACPI_STATUS status;
-
-	status = AcpiUtEvaluateNumericObject(METHOD_NAME__ADR, dev, &value);
-	if (ACPI_FAILURE(status))
-		return -1;
-
-	*devno = ACPI_HIWORD(ACPI_LODWORD(value));
-	*funcno = ACPI_LOWORD(ACPI_LODWORD(value));
-	
-	return 0;
-}
-
-uint64_t platform_getname(void *dev)
-{
-	char name[16];
-	ACPI_BUFFER buffer;
-	ACPI_STATUS status;
-
-	buffer.Pointer = name;
-	buffer.Length = 16;
-	status = AcpiGetName(dev, ACPI_SINGLE_NAME, &buffer);
-	if (ACPI_FAILURE(status)) {
-		printf("AcpiGetName failed: %s",
-		       AcpiFormatException(status));
-		return 0;
-	}
-
-	return squoze(name);
-}
-
-void *platform_iterate_subdev(void *dev, void *last)
-{
-	ACPI_STATUS status;
-	void *next;
-
-	status = AcpiGetNextObject(ACPI_TYPE_DEVICE, dev, last, &next);
-
-	if (ACPI_FAILURE(status))
-		return NULL;
-	return next;
-}
-
-void *platform_getpcisubdev(void *pciroot, int devno, int funcno)
-{
-	void *last = NULL;
-	int ldev = -1, lfunc = -1;
-
-	while ((last = platform_iterate_subdev(pciroot, last)) != NULL) {
-		platform_getpciaddr(last, &ldev, &lfunc);
-
-		if ((ldev == devno) && (lfunc == funcno))
-			break;
-	}
-
-	return last;
-}
-
-struct findnamectx {
-	char *name;
-	void *dev;
-};
-
-static ACPI_STATUS
-__find_name(ACPI_HANDLE devhandle, UINT32 level, void *opq, void **retval)
-{
-	struct findnamectx *ctx = (struct findnamectx *)opq;
-	char name[16];
-	ACPI_BUFFER buffer;
-	ACPI_STATUS status;
-
-	buffer.Pointer = name;
-	buffer.Length = 16;
-	status = AcpiGetName(devhandle, ACPI_SINGLE_NAME, &buffer);
-	if (ACPI_FAILURE(status)) {
-		printf("AcpiGetName failed: %s",
-		       AcpiFormatException(status));
-		return status;
-	}
-
-	printf("name = %s\n", name);
-	if (!memcmp(name, ctx->name, sizeof(ctx->name))) {
-		ctx->dev = devhandle;
-		return -1;
-	}
-
-	return AE_OK;
-}
-
-void *platform_getdev(uint64_t name)
-{
-	ACPI_STATUS status;
-	struct findnamectx ctx;
-
-	ctx.name = unsquoze(name);
-	ctx.dev = NULL;
-
-	AcpiWalkNamespace(ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT, INT_MAX,
-			  __find_name, NULL, &ctx, NULL);
-
-	free(ctx.name);
-	return ctx.dev;
-}
+/*
+ * ACPI PCI Scan.
+ *
+ * The following code scans the PCI root bus and registers devices in
+ * the kernel. When a device is found, ACPI is queried for information
+ * about the device, specifically for interrupt information and a
+ * name, as many devices might be enumerated and given string
+ * identifiers by the platform BIOS.
+ */
 
 static int
 getnfuncs(int bus, int dev)
@@ -598,6 +377,7 @@ struct bridgeirqs {
 	int ints[4];
 };
 
+
 static int acpi_pci_scanbus(void *root, int bus, struct bridgeirqs *brirqs);
 
 static void
@@ -610,8 +390,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	uint64_t reg;
 	void *subdev;
 	char name[13];
-	int i, j, nbars, hdrtype;
-	int inta, intb, intc, intd;
+	int i, j, nbars, hdrtype, ints[4];
 	uint64_t nameid = 0;
 
 	acpi_pciid.Segment = 0;
@@ -677,35 +456,19 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		hwcreat.deviceids[j + i] = squoze(name);
 	}
 
+	/* Populate IRQs */
 	if (brirqs) {
-		inta = brirqs->ints[(dev + 0) % 4];
-		intb = brirqs->ints[(dev + 1) % 4];
-		intc = brirqs->ints[(dev + 2) % 4];
-		intd = brirqs->ints[(dev + 2) % 4];
+		for (i = 0; i < 4; i++)
+			ints[i] = brirqs->ints[(dev + i) % 4];
 	} else {
-		platform_getpciintrs(root, dev, &inta, &intb, &intc, &intd);
+		platform_getpciintrs(root, dev, ints);
 	}
-	if (inta) {
-		printf(",IRQ%d", inta);
-		hwcreat.segs[hwcreat.nirqsegs].base = inta;
-		hwcreat.segs[hwcreat.nirqsegs].len = 1;
-		hwcreat.nirqsegs++;
-	}
-	if (intb) {
-		printf(",IRQ%d", intb);
-		hwcreat.segs[hwcreat.nirqsegs].base = intb;
-		hwcreat.segs[hwcreat.nirqsegs].len = 1;
-		hwcreat.nirqsegs++;
-	}
-	if (intc) {
-		printf(",IRQ%d", intc);
-		hwcreat.segs[hwcreat.nirqsegs].base = intc;
-		hwcreat.segs[hwcreat.nirqsegs].len = 1;
-		hwcreat.nirqsegs++;
-	}
-	if (intd) {
-		printf(",IRQ%d", intd);
-		hwcreat.segs[hwcreat.nirqsegs].base = intd;
+	for (i = 0; i < 4; i++) {
+		if (ints[i] == 0)
+			continue;
+
+		printf(",IRQ%d", ints[i]);
+		hwcreat.segs[hwcreat.nirqsegs].base = ints[i];
 		hwcreat.segs[hwcreat.nirqsegs].len = 1;
 		hwcreat.nirqsegs++;
 	}
@@ -868,10 +631,8 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		int subbus;
 		struct bridgeirqs brirqs;
 
-		brirqs.ints[0] = inta;
-		brirqs.ints[1] = intb;
-		brirqs.ints[2] = intc;
-		brirqs.ints[3] = intd;
+		for (i = 0; i < 4; i++)
+			brirqs.ints[i] = ints[i];
 
 		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BRIDGE_BUSNO_REG, &reg, 32);
 		subbus = PCI_BRIDGE_SECONDBUS(reg);
@@ -938,9 +699,234 @@ acpi_pci_scan(void)
 	printf("PCI root device found at %s\n", pciname);
 
 	pciroot = platform_getdev(d->nameid);
-	printf("PCIROOT = %p\n", pciroot);
 	return acpi_pci_scanbus(pciroot, 0, NULL);
 }
+
+
+/*
+ * Platform Exported Functions.
+ */
+
+
+struct prtrsctx {
+	int idx;
+	int irq;
+};
+
+static ACPI_STATUS
+__prt_resource_irq(ACPI_RESOURCE *res, void *ctx)
+{
+	struct prtrsctx *prtrs = (struct prtrsctx *)ctx;
+	struct sys_hwcreat_cfg *cfg = (struct sys_hwcreat_cfg *)ctx;
+
+	switch (res->Type) {
+	case ACPI_RESOURCE_TYPE_IRQ: {
+		ACPI_RESOURCE_IRQ *p = &res->Data.Irq;
+
+		if (!p || !p->InterruptCount || !p->Interrupts[0])
+			return AE_OK;
+
+		prtrs->irq = p->Interrupts[prtrs->idx];
+		return -1;
+	}
+	case ACPI_RESOURCE_TYPE_EXTENDED_IRQ: {
+		ACPI_RESOURCE_EXTENDED_IRQ *p = &res->Data.ExtendedIrq;
+
+		if (!p || !p->InterruptCount || !p->Interrupts[0])
+			return AE_OK;
+
+		prtrs->irq = p->Interrupts[prtrs->idx];
+		return -1;
+	}
+	default:
+		prtrs->irq = 0;
+		return AE_OK;
+	}
+}
+
+int
+platform_getpciintrs(void *dev, int devno, int ints[4])
+{
+	int i;
+	void *lnkobj;
+	struct prtrsctx ctx;
+	char prtbuf[ACPI_BUFFER_SIZE];
+	ACPI_BUFFER buffer;
+	ACPI_STATUS status;
+	ACPI_PCI_ROUTING_TABLE *prt;
+
+	for (i = 0; i < 4; i++)
+		ints[i] = 0;
+
+	buffer.Pointer = prtbuf;
+	buffer.Length = ACPI_BUFFER_SIZE;
+
+	status = AcpiGetIrqRoutingTable(dev, &buffer);
+	if (ACPI_FAILURE(status)) {
+		printf("Could not acquire IRQ Routing table\n");
+		return -1;
+	}
+
+	prt = (ACPI_PCI_ROUTING_TABLE *)buffer.Pointer;
+	for (; prt->Length; prt = (ACPI_PCI_ROUTING_TABLE *)((uint8_t *)prt + prt->Length)) {
+		int pdev = prt->Address >> 16;
+		int irq = 0;
+
+		if (pdev != devno)
+			continue;
+
+		if (prt->Source[0] == 0) {
+			irq = prt->SourceIndex;
+			goto __setirq;
+		}
+
+		status = AcpiGetHandle(dev, prt->Source, &lnkobj);
+		if (ACPI_FAILURE(status)) {
+			printf("Couldn't get IRQ source '%s' for pin %d\n", prt->Source, prt->Pin);
+			continue;
+		}
+
+		ctx.irq = 0;
+		ctx.idx = prt->SourceIndex;
+		AcpiWalkResources(lnkobj, METHOD_NAME__CRS, __prt_resource_irq, &ctx);
+		irq = ctx.irq;
+
+	__setirq:
+		if (prt->Pin < 4)
+			ints[prt->Pin] = irq;
+		else
+			printf("Invalid pin %d in _PRT");
+	}
+
+	return 0;
+}
+
+
+int platform_getpcibusno(void *pciroot)
+{
+	uint64_t value;
+	ACPI_STATUS status;
+
+	status = AcpiUtEvaluateNumericObject(METHOD_NAME__BBN, pciroot, &value);
+	if (ACPI_FAILURE(status))
+		return -1;
+
+	return (int)value;
+}
+
+
+int platform_getpciaddr(void *dev, int *devno, int *funcno)
+{
+	uint64_t value;
+	ACPI_STATUS status;
+
+	status = AcpiUtEvaluateNumericObject(METHOD_NAME__ADR, dev, &value);
+	if (ACPI_FAILURE(status))
+		return -1;
+
+	*devno = ACPI_HIWORD(ACPI_LODWORD(value));
+	*funcno = ACPI_LOWORD(ACPI_LODWORD(value));
+	
+	return 0;
+}
+
+
+uint64_t platform_getname(void *dev)
+{
+	char name[16];
+	ACPI_BUFFER buffer;
+	ACPI_STATUS status;
+
+	memset(name, 0, 16);
+
+	buffer.Pointer = name;
+	buffer.Length = 16;
+	status = AcpiGetName(dev, ACPI_SINGLE_NAME, &buffer);
+	if (ACPI_FAILURE(status)) {
+		printf("AcpiGetName failed: %s",
+		       AcpiFormatException(status));
+		return 0;
+	}
+
+	return squoze(name);
+}
+
+
+void *platform_iterate_subdev(void *dev, void *last)
+{
+	ACPI_STATUS status;
+	void *next;
+
+	status = AcpiGetNextObject(ACPI_TYPE_DEVICE, dev, last, &next);
+
+	if (ACPI_FAILURE(status))
+		return NULL;
+	return next;
+}
+
+
+void *platform_getpcisubdev(void *pciroot, int devno, int funcno)
+{
+	void *last = NULL;
+	int ldev = -1, lfunc = -1;
+
+	while ((last = platform_iterate_subdev(pciroot, last)) != NULL) {
+		platform_getpciaddr(last, &ldev, &lfunc);
+
+		if ((ldev == devno) && (lfunc == funcno))
+			break;
+	}
+
+	return last;
+}
+
+
+struct findnamectx {
+	char *name;
+	void *dev;
+};
+
+static ACPI_STATUS
+__find_name(ACPI_HANDLE devhandle, UINT32 level, void *opq, void **retval)
+{
+	struct findnamectx *ctx = (struct findnamectx *)opq;
+	char name[16];
+	ACPI_BUFFER buffer;
+	ACPI_STATUS status;
+
+	buffer.Pointer = name;
+	buffer.Length = 16;
+	status = AcpiGetName(devhandle, ACPI_SINGLE_NAME, &buffer);
+	if (ACPI_FAILURE(status)) {
+		printf("AcpiGetName failed: %s",
+		       AcpiFormatException(status));
+		return status;
+	}
+
+	if (!memcmp(name, ctx->name, sizeof(ctx->name))) {
+		ctx->dev = devhandle;
+		return -1;
+	}
+
+	return AE_OK;
+}
+
+
+void *platform_getdev(uint64_t name)
+{
+	ACPI_STATUS status;
+	struct findnamectx ctx;
+
+	ctx.name = unsquoze(name);
+	ctx.dev = NULL;
+
+	AcpiWalkNamespace(ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT, INT_MAX,
+			  __find_name, NULL, &ctx, NULL);
+
+	free(ctx.name);
+	return ctx.dev;
+}
+
 
 int
 platform_init(void)
@@ -949,7 +935,7 @@ platform_init(void)
 	ACPI_STATUS as;
 	unsigned int ptr;
 	char pciroot[13];
-	struct acpiscanctx scanctx;
+
 
 	/*
 	 * Initialize ACPI
@@ -996,10 +982,9 @@ platform_init(void)
 	 * recognizable by the _CRS field.
 	 */
 
-	memset(&scanctx, 0, sizeof(scanctx));
 	printf("ACPI Platform devices:\n");
 	AcpiWalkNamespace(ACPI_TYPE_DEVICE, ACPI_ROOT_OBJECT, INT_MAX,
-			  acpi_per_device, NULL, &scanctx, NULL);
+			  acpi_per_device, NULL, NULL, NULL);
 
 	/*
 	 * Find PCI root among all devices installed and scan the ACPI namespace.

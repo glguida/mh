@@ -27,9 +27,7 @@ void *platform_iterate_subdev(void *dev, void *last);
 int platform_getpcibusno(void *pciroot);
 void *platform_getpcisubdev(void *pciroot, int devno, int funcno);
 int platform_getpciaddr(void *dev, int *devno, int *funcno);
-int platform_getpciintrs(void *pciroot, int dev,
-			  int *inta, int *intb,
-			  int *intc, int *intd);
+int platform_getpciintrs(void *pciroot, int dev, int ints[4]);
 
 int pltpci_init(void);
 
