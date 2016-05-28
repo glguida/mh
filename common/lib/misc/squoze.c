@@ -80,9 +80,9 @@ size_t unsquozelen(uint64_t enc, size_t len, char *string)
 	uint64_t cut = 1LL*40*40 * 40*40*40 * 40*40*40 * 40*40*40 ;
 	char *ptr = string;
 
-	while (cut && len-- > 0) {
+	while (enc && len-- > 0) {
 	        *ptr++ = chdec((enc / cut) % 40);
-		cut /= 40;
+		enc = (enc % cut) * 40;
 	}
 	if (len)
 		memset(ptr, 0, len);
