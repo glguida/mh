@@ -627,12 +627,11 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 			memlimit |= (uint64_t)reg << 32;
 
 		if (membase < memlimit) {
-			printf(",PMEM%08"PRIx64"-%08"PRIx64, membase, memlimit);
+			printf(",MEM%08"PRIx64"-%08"PRIx64, membase, memlimit);
 			hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
 			hwcreat.memsegs[hwcreat.nmemsegs].len = memlimit - membase;
 			hwcreat.nmemsegs++;
 		}
-
 	}
 
 	printf("]\n");
