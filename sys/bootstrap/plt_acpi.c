@@ -158,7 +158,7 @@ acpi_per_resource_pio(ACPI_RESOURCE *res, void *ctx)
 		return AE_CTRL_TERMINATE;
 	}
 
-	printf(",IO%02x", start);
+	printf(",IO%02x(%d)", start, len);
 	cfg->segs[cfg->nirqsegs + cfg->npiosegs].base = start;
 	cfg->segs[cfg->nirqsegs + cfg->npiosegs].len = len;
 	cfg->npiosegs++;
@@ -250,7 +250,7 @@ acpi_per_resource_mem(ACPI_RESOURCE *res, void *ctx)
 		return AE_CTRL_TERMINATE;
 	}
 
-	printf(",MEM%08l"PRIx64"-%08l"PRIx64, start, start + len);
+	printf(",MEM%08"PRIx64"-%08"PRIx64, start, start + len);
 	cfg->memsegs[cfg->nmemsegs].base = start;
 	cfg->memsegs[cfg->nmemsegs].len = len;
 	cfg->nmemsegs++;
@@ -530,7 +530,10 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		iobase = (uint32_t)(orig & ~(uint64_t)0x3LL);
 		iolen = 1 << (ffs(size) - 1);
 
-		printf(",IO%04x-%04x", iobase, iolen);
+		if (iobase == 0)
+			continue;
+
+		printf(",IO%04x(%d)", iobase, iolen);
 		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].base = iobase;
 		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolen;
 		hwcreat.npiosegs++;
@@ -554,9 +557,9 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		}
 
 		if (iobase < iolimit) {
-			printf(",IO%08x-%08x", iobase, iolimit);
+			printf(",IO%04x(%d)", iobase, iolimit - iobase);
 			hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].base = iobase;
-			hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolimit;
+			hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolimit - iobase;
 			hwcreat.npiosegs++;
 		}
 	}
@@ -592,7 +595,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		membase = (uint64_t)(orig & ~(uint64_t)0xfLL);
 		memlen = 1 << (ffs(size) - 1);
 
-		printf(",MEM%08x-%08x", membase, memlen);
+		printf(",MEM%08x-%08x", (uint32_t)membase, (uint32_t)(membase + memlen));
 		hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
 		hwcreat.memsegs[hwcreat.nmemsegs].len = memlen;
 		hwcreat.nmemsegs++;
@@ -606,7 +609,10 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		membase = (PCI_BRIDGE_MEMBASE(reg) & 0xfff0) << 20;
 		memlimit = ((PCI_BRIDGE_MEMLIMIT(reg) & 0xfff0) << 20) + 0xfffff;
 		if (membase < memlimit) {
-			printf(",MEM%08llx-%08llx", membase, memlimit);
+			printf(",MEM%08"PRIx64"-%08"PRIx64, membase, memlimit);
+			hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
+			hwcreat.memsegs[hwcreat.nmemsegs].len = memlimit - membase;
+			hwcreat.nmemsegs++;
 		}
 
 
@@ -614,13 +620,16 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		membase = (PCI_BRIDGE_PMEMBASE(reg) & 0xfff0) << 20;
 		memlimit = ((PCI_BRIDGE_PMEMLIMIT(reg) & 0xfff0) << 20) + 0xfffff;
 		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BRIDGE_PMEM_BASEUPPER_REG, &reg, 32);
-		membase |= (uint64_t)reg << 32;
-		memlimit |= (uint64_t)reg << 32;
+		if (reg != (uint32_t)-1)
+			membase |= (reg << 32);
+		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BRIDGE_PMEM_LIMITUPPER_REG, &reg, 32);
+		if (reg != (uint32_t)-1)
+			memlimit |= (uint64_t)reg << 32;
 
 		if (membase < memlimit) {
-			printf(",MEM%08llx-%08llx", membase, memlimit);
+			printf(",PMEM%08"PRIx64"-%08"PRIx64, membase, memlimit);
 			hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
-			hwcreat.memsegs[hwcreat.nmemsegs].len = memlimit;
+			hwcreat.memsegs[hwcreat.nmemsegs].len = memlimit - membase;
 			hwcreat.nmemsegs++;
 		}
 
@@ -711,7 +720,6 @@ acpi_pci_scan(void)
 /*
  * Platform Exported Functions.
  */
-
 
 struct prtrsctx {
 	int idx;
