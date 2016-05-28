@@ -420,6 +420,11 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	i = 0;
 	j = 0;
 
+	snprintf(name, 13, "PCIA%02x.%02x.%1d", bus, dev, func);
+	hwcreat.deviceids[j++] = squoze(name);
+
+	printf(",%s", name);
+
 	AcpiOsReadPciConfiguration(&acpi_pciid, PCI_VENDOR_REG, &reg, 32);
 	snprintf(name, 13, "PCI%04x.%04x",
 		 (uint16_t)PCI_VENDOR(reg), (uint16_t)PCI_DEVICE(reg));
