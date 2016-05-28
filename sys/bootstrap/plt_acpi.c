@@ -32,11 +32,13 @@ char *acpi_buffer;
 #define PCI_BRIDGE_MEMLIMIT(reg) (((reg) >> 16) & 0xFFFF)
 #define PCI_BRIDGE_PMEMBASE(reg) ((reg) & 0xFFFF)
 #define PCI_BRIDGE_PMEMLIMIT(reg) (((reg) >> 16) & 0xFFFF)
+#define PCI_BRIDGE_SECONDBUS(reg) (((reg) >> 8) & 0xff)
 
 #define PCI_VENDOR_REG		0x00
 #define PCI_CLASS_REG 		0x08
 #define PCI_HDRTYPE_REG		0x0c
 #define PCI_BAR_REG(_x)		(0x10 + (_x) * 4)
+#define PCI_BRIDGE_BUSNO_REG    0x18
 #define PCI_BRIDGE_IO_REG	0x1c
 #define PCI_BRIDGE_MEM_REG	0x20
 #define PCI_BRIDGE_PMEM_REG	0x24
@@ -592,8 +594,14 @@ getnfuncs(int bus, int dev)
 	return (PCI_HDRTYPE(reg) & 0x80) ? 8 : 1;
 }
 
+struct bridgeirqs {
+	int ints[4];
+};
+
+static int acpi_pci_scanbus(void *root, int bus, struct bridgeirqs *brirqs);
+
 static void
-acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
+acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *brirqs)
 {
 	struct sys_hwcreat_cfg hwcreat;
 	ACPI_STATUS as;
@@ -603,6 +611,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 	void *subdev;
 	char name[13];
 	int i, j, nbars, hdrtype;
+	int inta, intb, intc, intd;
 	uint64_t nameid = 0;
 
 	acpi_pciid.Segment = 0;
@@ -668,8 +677,14 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 		hwcreat.deviceids[j + i] = squoze(name);
 	}
 
-	int inta, intb, intc, intd;
-	platform_getpciintrs(root, dev, &inta, &intb, &intc, &intd);
+	if (brirqs) {
+		inta = brirqs->ints[(dev + 0) % 4];
+		intb = brirqs->ints[(dev + 1) % 4];
+		intc = brirqs->ints[(dev + 2) % 4];
+		intd = brirqs->ints[(dev + 2) % 4];
+	} else {
+		platform_getpciintrs(root, dev, &inta, &intb, &intc, &intd);
+	}
 	if (inta) {
 		printf(",IRQ%d", inta);
 		hwcreat.segs[hwcreat.nirqsegs].base = inta;
@@ -844,12 +859,30 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, int pltirq)
 	}
 
 	printf("]\n");
+
 	/* Add device to system bus */
 	devadd(&hwcreat);
+
+	/* If it is a bridge, scan sub-device. */
+	if (hdrtype == 1) {
+		int subbus;
+		struct bridgeirqs brirqs;
+
+		brirqs.ints[0] = inta;
+		brirqs.ints[1] = intb;
+		brirqs.ints[2] = intc;
+		brirqs.ints[3] = intd;
+
+		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_BRIDGE_BUSNO_REG, &reg, 32);
+		subbus = PCI_BRIDGE_SECONDBUS(reg);
+
+		acpi_pci_scanbus(subdev, subbus, &brirqs);
+	}
+	
 }
 
 static int
-acpi_pci_scanbus(void *root, int bus)
+acpi_pci_scanbus(void *root, int bus, struct bridgeirqs *brirqs)
 {
 	uint64_t reg;
 	ACPI_PCI_ID acpi_pciid;
@@ -868,7 +901,7 @@ acpi_pci_scanbus(void *root, int bus)
 				continue;
 			}
 
-			acpi_pci_scandevice(root, bus, dev, func, 0);
+			acpi_pci_scandevice(root, bus, dev, func, brirqs);
 		}
 	}
 	return 0;
@@ -906,7 +939,7 @@ acpi_pci_scan(void)
 
 	pciroot = platform_getdev(d->nameid);
 	printf("PCIROOT = %p\n", pciroot);
-	return acpi_pci_scanbus(pciroot, 0);
+	return acpi_pci_scanbus(pciroot, 0, NULL);
 }
 
 int
