@@ -176,6 +176,9 @@ int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr)
 	}
 	assert(d != NULL);
 
+	if (d->ops->in == NULL)
+		return -ENODEV;
+
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
@@ -204,6 +207,9 @@ int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val)
 		goto out_io_out;
 	}
 	assert(d != NULL);
+
+	if (d->ops->out == NULL)
+		return -ENODEV;
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -234,6 +240,10 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iopfn)
 		goto out_io;
 	}
 	assert(d != NULL);
+
+	if (d->ops->export == NULL)
+		return -ENODEV;
+
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
@@ -262,6 +272,9 @@ int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 		goto out_iomap;
 	}
 	assert(d != NULL);
+
+	if (d->ops->iomap == NULL)
+		return -ENODEV;
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -293,6 +306,9 @@ int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
 	}
 	assert(d != NULL);
 
+	if (d->ops->iounmap == NULL)
+		return -ENODEV;
+
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
@@ -322,6 +338,10 @@ int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg)
 		goto out_rdcfg;
 	}
 	assert(d != NULL);
+
+	if (d->ops->rdcfg == NULL)
+		return -ENODEV;
+
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
@@ -351,6 +371,9 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 		goto out_io;
 	}
 	assert(d != NULL);
+
+	if (d->ops->irqmap == NULL)
+		return -ENODEV;
 
 	spinlock(&d->lock);
 	if (d->offline) {
