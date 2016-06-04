@@ -99,7 +99,7 @@ static int _hwdev_open(void *devopq, uint64_t did)
 
 	spinlock(&hd->lock);
 	for (i = 0; i < MAXHWDEVREMS; i++) {
-		if (!hd->remths[i].use);
+		if (!hd->remths[i].use)
 			break;
 	}
 	if (i >= MAXHWDEVREMS) {
@@ -116,12 +116,12 @@ static int _hwdev_open(void *devopq, uint64_t did)
 }
 
 static int _hwdev_in(void *devopq, unsigned id, uint32_t port,
-		      uint64_t * val)
+		     uint64_t * val)
 {
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
-	struct seg *ptr= cfg->segs + cfg->nirqsegs;
+	struct seg *ptr = cfg->segs + cfg->nirqsegs;
 	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
 	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 
@@ -150,19 +150,20 @@ static int _hwdev_in(void *devopq, unsigned id, uint32_t port,
 		*val = platform_inl(ioport);
 		break;
 	default:
-		printf("Unsupported I/O port size %d at port %llx\n", iosize, port);
+		printf("Unsupported I/O port size %d at port %llx\n",
+		       iosize, port);
 		return -EINVAL;
 	}
 	return 0;
 }
 
 static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
-		       uint64_t val)
+		      uint64_t val)
 {
 	int i, found;
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
-	struct seg *ptr= cfg->segs + cfg->nirqsegs;
+	struct seg *ptr = cfg->segs + cfg->nirqsegs;
 	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
 	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 
@@ -211,19 +212,19 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 }
 
 static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
-			 paddr_t mmioaddr, pmap_prot_t prot)
+			paddr_t mmioaddr, pmap_prot_t prot)
 {
 	struct hwdev *hd = (struct hwdev *) devopq;
-	pfn_t mmiopfn = (pfn_t)atop(mmioaddr);
+	pfn_t mmiopfn = (pfn_t) atop(mmioaddr);
 	struct hwdev_cfg *cfg = hd->cfg;
-	struct memseg *ptr= cfg->memsegptr;
+	struct memseg *ptr = cfg->memsegptr;
 	int i, found, ret;
 	struct hwmap *hwmap;
 
 	found = 0;
 	for (i = 0; i < cfg->nmemsegs; i++, ptr++) {
-		paddr_t start = ptr->base;
-		paddr_t end = ptr->base + ptr->len;
+		paddr_t start = trunc_page(ptr->base);
+		paddr_t end = round_page(ptr->base + ptr->len);
 
 		if (start <= mmioaddr && mmioaddr <= end) {
 			found = 1;
@@ -246,8 +247,8 @@ static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
 	if (!pfn_is_valid(mmiopfn))
 		return -EINVAL;
 
-	dprintf("mapping at addr %lx mmio %"PRIx64" (%d)\n",
-	       va, (uint64_t)mmioaddr, prot);
+	dprintf("mapping at addr %lx mmio %" PRIx64 " (%d)\n",
+		va, (uint64_t) mmioaddr, prot);
 
 	ret = iomap(va, mmiopfn, prot);
 	if (ret < 0)
@@ -282,7 +283,8 @@ static int _hwdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 }
 
 
-static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
+static int _hwdev_rdcfg(void *devopq, unsigned id,
+			struct sys_rdcfg_cfg *cfg)
 {
 	int i;
 	struct hwdev *hd = (struct hwdev *) devopq;
@@ -305,12 +307,12 @@ static int _hwdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 		cfg->memsegs[i].base = hdcfg->memsegptr[i].base;
 		cfg->memsegs[i].len = hdcfg->memsegptr[i].len;
 	}
-		
+
 	return 0;
 }
 
 static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
-			  unsigned sig)
+			 unsigned sig)
 {
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdev_cfg *cfg = hd->cfg;
@@ -331,10 +333,10 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	}
 	if (!found)
 		return -EPERM;
-	
+
 	hwsig = heap_alloc(sizeof(struct hwsig));
-	dprintf("hwdev: registering irq %d at thread %p with signal %d\n", irq, th,
-	       sig);
+	dprintf("hwdev: registering irq %d at thread %p with signal %d\n",
+		irq, th, sig);
 	ret = irqregister(&hwsig->irqsig, irq, th, sig,
 			  0 /* No filter */ );
 	if (ret < 0) {
@@ -376,6 +378,8 @@ static struct devops hwdev_ops = {
 	.in = _hwdev_in,
 	.out = _hwdev_out,
 	.export = _hwdev_export,
+	.iomap = _hwdev_iomap,
+	.iounmap = _hwdev_iounmap,
 	.rdcfg = _hwdev_rdcfg,
 	.irqmap = _hwdev_irqmap,
 };
@@ -399,7 +403,7 @@ struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 	hd->lock = 0;
 	hd->th = th;
 	memset(&hd->remths, 0, sizeof(hd->remths));
-	hd->cfg = (struct hwdev_cfg *)(hd+1);
+	hd->cfg = (struct hwdev_cfg *) (hd + 1);
 
 	hd->cfg->vid = syscfg->vendorid;
 	for (i = 0; i < MAXHWDEVIDS; i++)
@@ -412,13 +416,14 @@ struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 		hd->cfg->segs[i].base = syscfg->segs[i].base;
 		hd->cfg->segs[i].len = syscfg->segs[i].len;
 	}
-	hd->cfg->memsegptr = (struct memseg *)&hd->cfg->segs[i];
+	hd->cfg->memsegptr = (struct memseg *) &hd->cfg->segs[i];
 	for (i = 0; i < nmemsegs; i++) {
 		hd->cfg->memsegptr[i].base = syscfg->memsegs[i].base;
 		hd->cfg->memsegptr[i].len = syscfg->memsegs[i].len;
 	}
 
-	dev_init(&hd->dev, syscfg->nameid, (void *) hd, &hwdev_ops, th->euid, th->egid, mode);
+	dev_init(&hd->dev, syscfg->nameid, (void *) hd, &hwdev_ops,
+		 th->euid, th->egid, mode);
 	if (dev_attach(&hd->dev)) {
 		heap_free(hd);
 		hd = NULL;
