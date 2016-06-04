@@ -82,7 +82,7 @@ void inthandler(unsigned, void (*)(int, void *), void *);
 int evtalloc(void);
 void evtwait(int evt);
 void evtclear(int evt);
-void evtast(int evt, void (*func)(void));
+void evtast(int evt, void (*func) (void));
 void __evtset(int evt);
 
 
@@ -109,14 +109,15 @@ enum dio_op {
 };
 
 DEVICE *dopen(char *devname);
-int din(DEVICE *d, uint32_t port, uint64_t *val);
-int dout(DEVICE *d, uint32_t port, uint64_t val);
-int dmapirq(DEVICE *d, unsigned irq, int evt);
-int dgetirq(DEVICE *d, int irqno);
-int dgetpio(DEVICE *d, int piono);
-ssize_t dgetmemrange(DEVICE *d, unsigned rangeno, uint64_t *base);
-int dgetinfo(DEVICE *d, struct dinfo *i);
-void dclose(DEVICE *d);
+int din(DEVICE * d, uint32_t port, uint64_t * val);
+int dout(DEVICE * d, uint32_t port, uint64_t val);
+int dmapirq(DEVICE * d, unsigned irq, int evt);
+int dgetirq(DEVICE * d, int irqno);
+int dgetpio(DEVICE * d, int piono);
+ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base);
+int dgetinfo(DEVICE * d, struct dinfo *i);
+void *diomap(DEVICE * d, uint64_t base, size_t len);
+void dclose(DEVICE * d);
 
 
 /*

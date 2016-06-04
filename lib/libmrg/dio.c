@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/errno.h>
+#include <machine/vmparam.h>
 
 #define perror(...) printf(__VA_ARGS__)
 #warning add perror
@@ -29,13 +30,12 @@ struct _DEVICE {
 
 static void __irq_handler(int irqint, void *arg)
 {
-	int irqevt = (int)(uintptr_t)arg;
+	int irqevt = (int) (uintptr_t) arg;
 
 	__evtset(irqevt);
 }
 
-DEVICE *
-dopen(char *devname)
+DEVICE *dopen(char *devname)
 {
 	DEVICE *d;
 	int i, ret, dd;
@@ -135,7 +135,8 @@ dopen(char *devname)
 	 * memsegs
 	 */
 	d->nmemsegs = cfg.nmemsegs;
-	d->memsegs = malloc(sizeof(struct sys_rdcfg_memseg) * d->info.nmemsegs);
+	d->memsegs =
+		malloc(sizeof(struct sys_rdcfg_memseg) * d->info.nmemsegs);
 	if (d->memsegs == NULL) {
 		perror("malloc");
 		free(d->iosegs);
@@ -150,23 +151,20 @@ dopen(char *devname)
 	return d;
 }
 
-int
-din(DEVICE *d, uint32_t port, uint64_t *val)
+int din(DEVICE * d, uint32_t port, uint64_t * val)
 {
 
 	return sys_in(d->dd, port, val);
 }
 
 
-int
-dout(DEVICE *d, uint32_t port, uint64_t val)
+int dout(DEVICE * d, uint32_t port, uint64_t val)
 {
 
 	return sys_out(d->dd, port, val);
 }
 
-int
-dmapirq(DEVICE *d, unsigned irq, int evt)
+int dmapirq(DEVICE * d, unsigned irq, int evt)
 {
 	int ret, irqint;
 
@@ -177,12 +175,11 @@ dmapirq(DEVICE *d, unsigned irq, int evt)
 		return ret;
 	}
 
-	inthandler(irqint, __irq_handler, (void *)(uintptr_t)evt);
+	inthandler(irqint, __irq_handler, (void *) (uintptr_t) evt);
 	return 0;
 }
 
-int
-dgetirq(DEVICE *d, int irqno)
+int dgetirq(DEVICE * d, int irqno)
 {
 	int i, rem;
 
@@ -199,8 +196,7 @@ dgetirq(DEVICE *d, int irqno)
 	return -ENOENT;
 }
 
-int
-dgetpio(DEVICE *d, int piono)
+int dgetpio(DEVICE * d, int piono)
 {
 	int i, rem;
 
@@ -217,8 +213,7 @@ dgetpio(DEVICE *d, int piono)
 	return -ENOENT;
 }
 
-ssize_t
-dgetmemrange(DEVICE *d, unsigned rangeno, uint64_t *base)
+ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base)
 {
 	int i, rem;
 	struct sys_rdcfg_memseg *seg;
@@ -233,17 +228,39 @@ dgetmemrange(DEVICE *d, unsigned rangeno, uint64_t *base)
 	return seg->len;
 }
 
-int
-dgetinfo(DEVICE *d, struct dinfo *i)
+int dgetinfo(DEVICE * d, struct dinfo *i)
 {
-	
+
 	*i = d->info;
 	return 0;
 }
 
+void *diomap(DEVICE * d, uint64_t base, size_t len)
+{
+	vaddr_t va;
+	unsigned i, pages, ret;
 
-void
-dclose(DEVICE *d)
+	pages = round_page(len) >> PAGE_SHIFT;
+	va = vmap_alloc(len, VFNT_MMIO);
+	if (va == 0)
+		return NULL;
+
+	for (i = 0; i < pages; i++) {
+		ret = sys_iomap(d->dd,
+				va + (i << PAGE_SHIFT),
+				trunc_page(base) + (i << PAGE_SHIFT));
+	}
+	if (ret < 0) {
+		int j;
+		for (j = 0; j < i; j++)
+			sys_iounmap(d->dd, va + (j << PAGE_SHIFT));
+		return NULL;
+	}
+
+	return (void *) (uintptr_t) (va + (base & PAGE_MASK));
+}
+
+void dclose(DEVICE * d)
 {
 	sys_close(d->dd);
 	free(d->devids);
