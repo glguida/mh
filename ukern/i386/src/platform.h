@@ -35,35 +35,35 @@
 
 void platform_init(void);
 
-static inline int platform_inb(unsigned port)
+static inline unsigned platform_inb(unsigned port)
 {
 
 	return inb(port);
 }
 
-static inline int platform_inw(unsigned port)
+static inline unsigned platform_inw(unsigned port)
 {
 
 	return inw(port);
 }
 
-static inline int platform_inl(unsigned port)
+static inline unsigned platform_inl(unsigned port)
 {
 
 	return inl(port);
 }
 
-static inline void platform_outb(unsigned port, int val)
+static inline void platform_outb(unsigned port, unsigned val)
 {
 	outb(port, val);
 }
 
-static inline void platform_outw(unsigned port, int val)
+static inline void platform_outw(unsigned port, unsigned val)
 {
 	outw(port, val);
 }
 
-static inline void platform_outl(unsigned port, int val)
+static inline void platform_outl(unsigned port, unsigned val)
 {
 	outl(port, val);
 }
