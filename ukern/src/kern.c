@@ -156,7 +156,7 @@ static struct thread *thnew(void (*__start) (void))
 	th->egid = 0;
 	th->sgid = 0;
 
-	th->usrdev = 0;
+	memset(&th->usrdevs, 0, sizeof(th->usrdevs));
 	memset(&th->bus, 0, sizeof(th->bus));
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
@@ -206,7 +206,7 @@ struct thread *thfork(void)
 	nth->sigsp = cth->sigsp;
 
 	/* XXX: What to do on fork */
-	nth->usrdev = 0;
+	memset(&nth->usrdevs, 0, sizeof(nth->usrdevs));
 	memset(&nth->bus, 0, sizeof(nth->bus));
 	/* XXX: FORK BUS! */
 
@@ -478,6 +478,7 @@ int childstat(struct sys_childstat *cs)
 
 __dead void __exit(int status)
 {
+	int i;
 	struct thread *th = current_thread();
 	struct thread *child, *tmp;
 
@@ -488,7 +489,8 @@ __dead void __exit(int status)
 	/* In the future, remove shared mapping mechanisms before
 	 * mappings */
 	bus_remove(&th->bus);
-	devremove();
+	for (i = 0; i < MAXDEVS; i++)
+		devremove(i);
 	vmclear(USERBASE, USEREND - USERBASE);
 	/* Let INIT inherit children of dead process */
 	spinlock(&th->children_lock);
@@ -665,79 +667,90 @@ int hwcreat(struct sys_hwcreat_cfg *cfg, mode_t mode)
 
 int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 {
+	int i;
 	struct thread *th = current_thread();
 
 	if (sig > MAXSIGNALS)
 		return -EINVAL;
 
-	if (th->usrdev)
+	for (i = 0; i < MAXDEVS; i++)
+		if (th->usrdevs[i] == NULL)
+			break;
+	if (i >= MAXDEVS)
 		return -EBUSY;
 
-	th->usrdev = usrdev_creat(cfg, sig, mode);
+	th->usrdevs[i] = usrdev_creat(cfg, sig, mode);
 	dprintf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
 	       cfg->vendorid);
-	if (th->usrdev == NULL)
+	if (th->usrdevs[i] == NULL)
 		return -EEXIST;
-	return 0;
+	return i;
 }
 
-int devpoll(struct sys_poll_ior *polld)
+int devpoll(unsigned did, struct sys_poll_ior *polld)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
-	if (th->usrdev)
-		ret = usrdev_poll(th->usrdev, polld);
+	if (did >= MAXDEVS)
+		return -EINVAL;
+
+	if (th->usrdevs[did])
+		ret = usrdev_poll(th->usrdevs[did], polld);
 	return ret;
 }
 
-int deveio(unsigned id)
+int devirq(unsigned did, unsigned id, unsigned irq)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
+	if (did >= MAXDEVS)
+		return -EINVAL;
+
+	if (th->usrdevs[did])
+		ret = usrdev_irq(th->usrdevs[did], id, irq);
 	return ret;
 }
 
-int devirq(unsigned id, unsigned irq)
+int devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
-	if (th->usrdev)
-		ret = usrdev_irq(th->usrdev, id, irq);
+	if (did >= MAXDEVS)
+		return -EINVAL;
+
+	if (th->usrdevs[did])
+		ret = usrdev_wriospace(th->usrdevs[did], id, port, val);
 	return ret;
 }
 
-int devwriospace(unsigned id, uint32_t port, uint64_t val)
+int devimport(unsigned did, unsigned id, unsigned iopfn, unsigned va)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
 
-	if (th->usrdev)
-		ret = usrdev_wriospace(th->usrdev, id, port, val);
+	if (did >= MAXDEVS)
+		return -EINVAL;
+
+	if (th->usrdevs[did])
+		ret = usrdev_import(th->usrdevs[did], id, iopfn, va);
+
 	return ret;
 }
 
-int devimport(unsigned id, unsigned iopfn, unsigned va)
-{
-	int ret = -ENOENT;
-	struct thread *th = current_thread();
-
-	if (th->usrdev)
-		ret = usrdev_import(th->usrdev, id, iopfn, va);
-	return ret;
-}
-
-void devremove(void)
+void devremove(unsigned did)
 {
 	struct usrdev *ud;
 	struct thread *th = current_thread();
 
-	if (th->usrdev) {
-		ud = th->usrdev;
+	assert(did < MAXDEVS);
+
+	if (th->usrdevs[did]) {
+		ud = th->usrdevs[did];
 		usrdev_destroy(ud);
-		th->usrdev = NULL;
+		th->usrdevs[did] = NULL;
 	}
 }
 

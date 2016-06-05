@@ -83,10 +83,10 @@ int sys_out(unsigned ddno, uint32_t port, uint64_t val);
 int sys_close(unsigned ddno);
 
 int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
-int sys_poll(struct sys_poll_ior *ior);
-int sys_wriospc(unsigned id, uint32_t port, u_long val);
-int sys_irq(unsigned id, unsigned irq);
-int sys_import(unsigned id, unsigned iopfn, u_long va);
+int sys_poll(unsigned did, struct sys_poll_ior *ior);
+int sys_wriospc(unsigned did, unsigned id, uint32_t port, u_long val);
+int sys_irq(unsigned did, unsigned id, unsigned irq);
+int sys_import(unsigned did, unsigned id, unsigned iopfn, u_long va);
 
 int sys_hwcreat(struct sys_hwcreat_cfg *cfg, devmode_t mode);
 

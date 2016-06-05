@@ -15,7 +15,7 @@
 #define mrg_panic(...) do { printf("UUH"); while(1); } while(0)
 
 static int reqevt = -1;
-
+static unsigned devid = -1;
 
 static int kbdval_req = 0;
 static int kbdbuf_fpos = 0;
@@ -75,7 +75,7 @@ static void __console_io_ast(void)
 	int ret;
 	struct sys_poll_ior ior;
 
-	while ((ret = devpoll(&ior)) >= 0) {
+	while ((ret = devpoll(devid, &ior)) >= 0) {
 		switch (ior.op) {
 		case SYS_POLL_OP_OUT:
 			console_io_out(ret, ior.port, ior.val, ior.size);
@@ -105,7 +105,7 @@ devsts_kbdata_update(int id)
 	uint64_t val;
 
 	val = kbdfetch(id);
-	ret = devwriospace(id, IOPORT_QWORD(CONSIO_KBDATA), val);
+	ret = devwriospace(devid, id, IOPORT_QWORD(CONSIO_KBDATA), val);
 	if (ret != 0) {
 		printf("error on devwriospace(%d)", id);
 		return;
@@ -116,11 +116,11 @@ devsts_kbdata_update(int id)
 		return;
 	}
 
-	ret = devwriospace(id, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
+	ret = devwriospace(devid, id, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
 	if (ret != 0)
 		printf("error on devwriospace(%d)", id);
 
-	ret = devraiseirq(id, CONSIO_IRQ_KBDATA);
+	ret = devraiseirq(devid, id, CONSIO_IRQ_KBDATA);
 	if (ret != 0)
 		printf("error raising irq(%d)", id);
 }
@@ -155,6 +155,7 @@ static void pltconsole()
 	if (ret < 0)
 		mrg_panic("Cannot create console: devcreat() [%d]", ret);
 
+	devid = ret;
 	console_kbd_init();
 
 	lwt_sleep();

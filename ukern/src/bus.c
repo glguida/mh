@@ -224,7 +224,8 @@ int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val)
 	return ret;
 }
 
-int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iopfn)
+int bus_export(struct bus *b, unsigned desc, vaddr_t va,
+	       unsigned long *iopfn)
 {
 	int ret;
 	struct dev *d;

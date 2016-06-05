@@ -38,7 +38,7 @@
 #include <uk/bus.h>
 
 #define MAXSIGNALS (sizeof(u_long) * 8)
-#define MAXDEVDS 16
+#define MAXDEVS 16
 
 #define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
 #define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
@@ -59,7 +59,7 @@ struct thread {
 	void *stack_4k;
 	void *frame;
 
-	struct usrdev *usrdev;
+	struct usrdev *usrdevs[MAXDEVS];
 	struct bus bus;
 
 	struct thread *parent;
@@ -129,19 +129,19 @@ int hwcreat(struct sys_hwcreat_cfg *cfg, mode_t mode);
 int childstat(struct sys_childstat *cs);
 
 int devcreat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
-int devpoll(struct sys_poll_ior *ior);
-int devwriospace(unsigned id, uint32_t port, uint64_t val);
-int devirq(unsigned id, unsigned irq);
-int devimport(unsigned id, unsigned iopfn, unsigned va);
-int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot);
-int deviounmap(unsigned dd, vaddr_t va);
-void devremove(void);
+int devpoll(unsigned did, struct sys_poll_ior *ior);
+int devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val);
+int devirq(unsigned did, unsigned id, unsigned irq);
+int devimport(unsigned did, unsigned id, unsigned iopfn, unsigned va);
+void devremove(unsigned did);
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);
 int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn);
 int devin(unsigned dd, uint32_t port, uint64_t * valptr);
 int devout(unsigned dd, uint32_t port, uint64_t val);
 int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg);
+int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot);
+int deviounmap(unsigned dd, vaddr_t va);
 void devclose(unsigned dd);
 
 void wake(struct thread *);

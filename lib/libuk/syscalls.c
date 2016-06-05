@@ -233,35 +233,35 @@ int sys_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode)
 	return ret;
 }
 
-int sys_poll(struct sys_poll_ior *ior)
+int sys_poll(unsigned did, struct sys_poll_ior *ior)
 {
 	int ret;
 
-	__syscall1(SYS_POLL, (unsigned long) ior, ret);
+	__syscall2(SYS_POLL, did, (unsigned long) ior, ret);
 	return ret;
 }
 
-int sys_wriospc(unsigned id, uint32_t port, unsigned long val)
+int sys_wriospc(unsigned did, unsigned id, uint32_t port, unsigned long val)
 {
 	int ret;
 
-	__syscall3(SYS_WRIOSPC, (unsigned long) id, port, val, ret);
+	__syscall4(SYS_WRIOSPC, (unsigned long) did, (unsigned long) id, (unsigned long) port, val, ret);
 	return ret;
 }
 
-int sys_irq(unsigned id, unsigned irq)
+int sys_irq(unsigned did, unsigned id, unsigned irq)
 {
 	int ret;
 
-	__syscall2(SYS_IRQ, (unsigned long) id, (unsigned long) irq, ret);
+	__syscall3(SYS_IRQ, (unsigned long) did, (unsigned long) id, (unsigned long ) irq, ret);
 	return ret;
 }
 
-int sys_import(unsigned id, unsigned iopfn, u_long va)
+int sys_import(unsigned did, unsigned id, unsigned iopfn, u_long va)
 {
 	int ret;
 
-	__syscall3(SYS_IMPORT, (unsigned long) id, (unsigned long) iopfn,
+	__syscall4(SYS_IMPORT, (unsigned long) did, (unsigned long) id, (unsigned long) iopfn,
 		   va, ret);
 	return ret;
 }

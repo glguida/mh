@@ -31,22 +31,22 @@ devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt)
 }
 
 int
-devpoll(struct sys_poll_ior *ior)
+devpoll(unsigned did, struct sys_poll_ior *ior)
 {
 
-	return sys_poll(ior);
+	return sys_poll(did, ior);
 }
 
 int
-devwriospace(unsigned id, uint32_t port, uint64_t val)
+devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val)
 {
 
-	return sys_wriospc(id, port, val);
+	return sys_wriospc(did, id, port, val);
 }
 
 int
-devraiseirq(unsigned id, unsigned irq)
+devraiseirq(unsigned did, unsigned id, unsigned irq)
 {
 
-	return sys_irq(id, irq);
+	return sys_irq(did, id, irq);
 }

@@ -133,12 +133,12 @@ static int sys_creat(uaddr_t ucfg, unsigned sig, devmode_t mode)
 	return devcreat(&cfg, sig, mode);
 }
 
-static int sys_poll(uaddr_t uior)
+static int sys_poll(unsigned did, uaddr_t uior)
 {
 	int id, ret;
 	struct sys_poll_ior sior;
 
-	id = devpoll(&sior);
+	id = devpoll(did, &sior);
 	if (id < 0)
 		return id;
 
@@ -149,21 +149,21 @@ static int sys_poll(uaddr_t uior)
 	return id;
 }
 
-static int sys_wriospace(unsigned id, uint32_t port, uint64_t val)
+static int sys_wriospace(unsigned did, unsigned id, uint32_t port, uint64_t val)
 {
-	return devwriospace(id, port, val);
+	return devwriospace(did, id, port, val);
 }
 
-static int sys_import(unsigned id, unsigned iopfn, u_long va)
+static int sys_import(unsigned did, unsigned id, unsigned iopfn, u_long va)
 {
 	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
 		return -EINVAL;
-	return devimport(id, iopfn, va);
+	return devimport(did, id, iopfn, va);
 }
 
-static int sys_irq(unsigned id, unsigned irq)
+static int sys_irq(unsigned did, unsigned id, unsigned irq)
 {
-	return devirq(id, irq);
+	return devirq(did, id, irq);
 }
 
 static int sys_open32(u_long hi, u_long lo)
@@ -471,13 +471,13 @@ int sys_call(int sc,
 	case SYS_CREAT:
 		return sys_creat(a1, a2, a3);
 	case SYS_POLL:
-		return sys_poll(a1);
+		return sys_poll(a1, a2);
 	case SYS_WRIOSPC:
-		return sys_wriospace(a1, a2, a3);
+		return sys_wriospace(a1, a2, a3, a4);
 	case SYS_IMPORT:
-		return sys_import(a1, a2, a3);
+		return sys_import(a1, a2, a3, a4);
 	case SYS_IRQ:
-		return sys_irq(a1, a2);
+		return sys_irq(a1, a2, a3);
 	case SYS_OPEN:
 		return sys_open(a1);
 	case SYS_OPEN32:
