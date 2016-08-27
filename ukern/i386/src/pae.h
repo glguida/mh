@@ -78,10 +78,10 @@
 #define __val2tbl(_va) ((l2e_t *)__paeoffva(2, LINOFF +2, LINOFF + 2) + LINOFF)
 
 #define trunc_4k(_a) ((uintptr_t)(_a) & 0xfffff000)
-#define mkl1e(_a, _f) (trunc_page((uintptr_t)(_a)) | PG_S | (_f))
-#define mkl2e(_a, _f) (trunc_4k((uintptr_t)(_a)) | (_f))
+#define mkl1e(_a, _f) (trunc_page((paddr_t)(_a)) | PG_S | (_f))
+#define mkl2e(_a, _f) (trunc_4k((paddr_t)(_a)) | (_f))
 /* Linear mapping must use 4k mapping. */
-#define mklinl1e(_a, _f) (trunc_4k((uintptr_t)(_a)) | (_f))
+#define mklinl1e(_a, _f) (trunc_4k((paddr_t)(_a)) | (_f))
 
 /* We use 2Mb pages, PAE has only 2 levels for to us */
 typedef uint64_t l2e_t;
