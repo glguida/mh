@@ -36,30 +36,41 @@
 
 #define __PFNMAX(_p) ((_p) < pfndb_max() ? (_p) : pfndb_max())
 
-#define MEMTYPE_LOKERN_START    (LKMEMSTRT >> PAGE_SHIFT)
-#define MEMTYPE_LOKERN_END      __PFNMAX(LKMEMEND >> PAGE_SHIFT)
 #define MEMTYPE_KERN_START      __PFNMAX(KMEMSTRT >> PAGE_SHIFT)
 #define MEMTYPE_KERN_END        __PFNMAX(KMEMEND >> PAGE_SHIFT)
 #define MEMTYPE_HIGH_START      __PFNMAX(HIGHSTRT >> PAGE_SHIFT)
 #define MEMTYPE_HIGH_END        pfndb_max()
 
-#define PFNZ_LOKERN(_p)				\
-    (((_p) >= MEMTYPE_LOKERN_START) &&		\
-     ((_p) <  MEMTYPE_LOKERN_END))
+#define __PFNZ_KERN(_p)			  \
+	(((_p) >= MEMTYPE_KERN_START) &&  \
+	 ((_p) < MEMTYPE_KERN_END))
 
-#define PFNZ_KERN(_p)			  \
-    (((_p) >= MEMTYPE_KERN_START) &&	  \
-     ((_p) < MEMTYPE_KERN_END))
+#define __PFNZ_HIGH(_p)				\
+	(((_p) >= MEMTYPE_HIGH_START) &&	\
+	 ((_p) < MEMTYPE_HIGH_END))
 
-#define PFNZ_HIGH(_p)			\
-    (((_p) >= MEMTYPE_HIGH_START) &&	\
-     ((_p) < MEMTYPE_HIGH_END))
+#define PFNZ_32(_p)				\
+	((_p) < (1UL << (32 - PAGE_SHIFT)))
+
+#define PFNZ_KERN32(_p) (__PFNZ_KERN(_p) && PFNZ_32(_p))
+#define PFNZ_KERN(_p)   (__PFNZ_KERN(_p) && !PFNZ_32(_p))
+#define PFNZ_HIGH32(_p) (__PFNZ_HIGH(_p) && PFNZ_32(_p))
+#define PFNZ_HIGH(_p)   (__PFNZ_HIGH(_p) && !PFNZ_32(_p))
 
 
-#define PFNZ_TYPE(_p)					\
-    (PFNZ_KERN(_p) ? 1 : PFNZ_LOKERN(_p) ? 0 : 2)
+static inline int PFNZ_TYPE(unsigned p)
+{
+	if (PFNZ_KERN32(p))
+		return 0;
+	if (PFNZ_KERN(p))
+		return 1;
+	if (PFNZ_HIGH32(p))
+		return 2;
+	/* HIGH */
+	return 3;
+}
 
-#define NPFNZTYPES 3
+#define NPFNZTYPES 4
 
 
 /*
@@ -180,16 +191,25 @@ pfn_t pgalloc(size_t size, uint8_t type, unsigned long flags)
 		flags = GFP_DEFAULT;
 
 	if (flags & GFP_HIGH_ONLY)
+		__LCK(3, {
+		      addr = pgzone_alloc(pgzones + 3, size);
+		      }
+	);
+
+	if (!addr && flags & GFP_HIGH32_ONLY)
 		__LCK(2, {
 		      addr = pgzone_alloc(pgzones + 2, size);}
 	);
+
 	if (!addr && flags & GFP_KERN_ONLY)
 		__LCK(1, {
-		      addr = pgzone_alloc(pgzones + 1, size);}
+		      addr = pgzone_alloc(pgzones + 1, size);
+		      }
 	);
-	if (!addr && flags & GFP_LOKERN_ONLY)
+	if (!addr && flags & GFP_KERN32_ONLY)
 		__LCK(0, {
-		      addr = pgzone_alloc(pgzones + 0, size);}
+		      addr = pgzone_alloc(pgzones + 0, size);
+		      }
 	);
 	if (!addr)
 		panic("OOM");
@@ -210,7 +230,8 @@ void pgfree(pfn_t pfn, size_t size)
 	assert(pfnz_type < NPFNZTYPES);
 
 	__LCK(pfnz_type, {
-	      pgzone_free(pgzones + pfnz_type, pfn, size);});
+	      pgzone_free(pgzones + pfnz_type, pfn, size);
+	      });
 }
 
 void pginit(void)
@@ -220,7 +241,7 @@ void pginit(void)
 	int status = 0;		/* 1: we're scanning freezone,
 				 * 0: we're searching for free zone */
 
-	for (j = 0; j < 3; j++) {
+	for (j = 0; j < NPFNZTYPES; j++) {
 		pgalloc_lck[j] = 0;
 		pgzone_init(pgzones + j);
 	}

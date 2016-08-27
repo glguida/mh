@@ -39,13 +39,14 @@ struct pgzentry {
 	size_t size;
 };
 
-#define GFP_LOKERN_ONLY 1
+#define GFP_KERN32_ONLY 1
 #define GFP_KERN_ONLY   2
-#define GFP_HIGH_ONLY   4
+#define GFP_HIGH32_ONLY 4
+#define GFP_HIGH_ONLY   8
 
-#define GFP_LOKERN (GFP_LOKERN_ONLY)
-#define GFP_KERN   (GFP_KERN_ONLY | GFP_LOKERN)
-#define GFP_HIGH   (GFP_HIGH_ONLY | GFP_KERN)
+#define GFP_MEM32  (GFP_KERN32_ONLY | GFP_HIGH32_ONLY)
+#define GFP_KERN   (GFP_KERN32_ONLY | GFP_KERN_ONLY)
+#define GFP_HIGH   (GFP_HIGH32_ONLY | GFP_HIGH_ONLY | GFP_KERN)
 #define GFP_DEFAULT GFP_KERN
 
 void pginit(void);

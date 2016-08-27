@@ -76,14 +76,11 @@
  * 00000000:00100000     Boot-time allocation memory (640k)
  *                       + BIOS area
  * 00100000:_end         Kernel code + data
- * _end    :LKMEMEND     Low 1:1 Kernel memory
- * KMEMSTRT:KMEMEND      1:1 Kernel memory
+ * _end    :KMEMEND      1:1 Kernel memory
  * HIGHSTRT:HIGHEND      High memory, accessed through mapping
  */
 
-#define LKMEMSTRT        0
-#define LKMEMEND         __ULONG(16 << 20)
-#define KMEMSTRT         LKMEMEND
+#define KMEMSTRT        0
 #define KMEMEND          DMAPSIZE
 #define HIGHSTRT         DMAPSIZE
 
