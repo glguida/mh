@@ -1,7 +1,7 @@
 SRCROOT=../../
 include $(SRCROOT)/mk/mk.conf
 
-SRCS+= bootstrap.c plt_acpi.c console.c console-kbd_.c
+SRCS+= bootstrap.c plt_acpi.c console.c console-kbd_.c console-vga.c
 PROGNAME= bootstrap
 PROGDIR=sys
 NOINST=yes

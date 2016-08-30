@@ -24,7 +24,7 @@ static uint8_t kbdbuf[KBDBUF_SIZE];
 
 static void consdev_putchar(uint8_t v)
 {
-	printf("%c", v);
+	console_vga_putchar(v);
 }
 
 static void devsts_kbdata_update(int id);
@@ -144,6 +144,9 @@ static void pltconsole()
 {
 	int ret;
 	struct sys_creat_cfg cfg;
+	int i;
+	uint64_t pnpid = squoze("PNP0900");
+	struct device *tmp, *d = NULL;
 	
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.nameid = CONSOLE_NAMEID;
@@ -154,10 +157,24 @@ static void pltconsole()
 	ret = devcreat(&cfg, 0111, reqevt);
 	if (ret < 0)
 		mrg_panic("Cannot create console: devcreat() [%d]", ret);
-
 	devid = ret;
+
 	console_kbd_init();
 
+	/* Search for PNP0900 in devices */
+	SLIST_FOREACH(tmp, &devices, list) {
+		for (i = 0; i < DEVICEIDS; i++) {
+			if (tmp->deviceids[i] == pnpid)  {
+				d = tmp;
+				break;
+			}
+		}
+	}
+	if (d != NULL)
+		console_vga_init(d->nameid);
+	else {
+		/* VGA NOT FOUND. Keep using kernel putc */
+	}
 	lwt_sleep();
 }
 

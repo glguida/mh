@@ -109,7 +109,7 @@ main()
 		if (kbdval & CONSIO_DEVSTS_KBDVAL) {
 			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
 			while ((val & 0xff) > 0) {
-				printf("%c", (char)val);
+				dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
 				val >>= 8;
 			}
 		}
@@ -120,7 +120,7 @@ main()
 			evtwait(consevt);
 			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
 			while ((val & 0xff) > 0) {
-				printf("%c", (char)val);
+				dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
 				val >>= 8;
 			}
 			evtclear(consevt);
