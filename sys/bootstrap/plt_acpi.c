@@ -41,10 +41,14 @@
 #include <string.h>
 #include <sys/param.h>
 #include "internal.h"
+#include "vgahw.h"
 
 #define ACPI_SCAN_MAX_LEVELS 16
 #define ACPI_BUFFER_SIZE (10*1024)
 char *acpi_buffer;
+
+/* VGA handling. */
+static unsigned _vga_found = 0;
 
 /* PCI  Device.  Get name  and  EISAIDs  and then  get
  * information from PCI config BARs. */
@@ -421,6 +425,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	char name[13];
 	int i, j, nbars, hdrtype, ints[4];
 	uint64_t nameid = 0;
+	uint64_t is_vga = 0;
 
 	acpi_pciid.Segment = 0;
 	acpi_pciid.Bus = bus;
@@ -460,6 +465,26 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	hwcreat.deviceids[j++] = squoze(name);
 
 	printf(",%s", name);
+
+	/* VGA device hack: BIOSes do not expose, when the
+	   device is VGA compatible, I/O and memory addresses
+	   associated with it. Work around this by creating
+	   an extra 'VGA' device when we found a compatible one. */
+	if (!_vga_found) {
+		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_CLASS_REG, &reg, 32);
+		reg = PCI_CLASS(reg);
+		switch (reg) {
+		case 0x000100: /* class 0, subclass 1, prog-if 0 */
+		case 0x030000: /* class 3, subclass 0, prog-if 0 */
+			_vga_found = 1;
+			is_vga = 1;
+			printf(":PNP0900");
+			hwcreat.deviceids[j++] = squoze("PNP0900");
+			break;
+		default:
+			break;
+		}
+	}
 
 	as = AcpiGetObjectInfo(subdev, &info);
 	if (ACPI_FAILURE(as))
@@ -568,6 +593,19 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		hwcreat.npiosegs++;
 	}
 
+	/* Add VGA PIO */
+	if (is_vga) {
+		uint32_t iobase, iolen;
+
+		iobase = VGA_REG_BASE;
+		iolen = VGA_REG_LENGTH;
+
+		printf(",IO%04x(%d)", iobase, iolen);
+		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].base = iobase;
+		hwcreat.segs[hwcreat.nirqsegs + hwcreat.npiosegs].len = iolen;
+		hwcreat.npiosegs++;
+	}
+
 	/* Populate PCI bridge I/O */
 	if (hdrtype == 1) {
 		int base32, limit32;
@@ -629,6 +667,20 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 		hwcreat.memsegs[hwcreat.nmemsegs].len = memlen;
 		hwcreat.nmemsegs++;
 	}
+
+	/* Add VGA memory */
+	if (is_vga) {
+		uint64_t membase, memlen;
+
+		membase = VGA_VIDEO_MEM_BASE;
+		memlen = VGA_VIDEO_MEM_LENGTH;
+
+		printf(",MEM%08x-%08x", (uint32_t)membase, (uint32_t)(membase + memlen));
+		hwcreat.memsegs[hwcreat.nmemsegs].base = membase;
+		hwcreat.memsegs[hwcreat.nmemsegs].len = memlen;
+		hwcreat.nmemsegs++;
+	}
+
 
 	/* Populate PCI bridge MEM */
 	if (hdrtype == 1) {
