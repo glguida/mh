@@ -72,7 +72,6 @@ __RCSID("$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $");
 #include <unistd.h>
 #include "reentrant.h"
 #else
-#include <drex/drex.h>
 #define mutex_lock(_x)
 #define mutex_unlock(_x)
 #endif

@@ -516,7 +516,7 @@ diff -ru a/lib/libc/stdlib/simple_malloc.c b/lib/libc/stdlib/simple_malloc.c
  /*	$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $	*/
  
  /*
-@@ -58,8 +68,14 @@
+@@ -58,8 +68,13 @@
  #endif
  #include <stdlib.h>
  #include <string.h>
@@ -524,7 +524,6 @@ diff -ru a/lib/libc/stdlib/simple_malloc.c b/lib/libc/stdlib/simple_malloc.c
  #include <unistd.h>
  #include "reentrant.h"
 +#else
-+#include <drex/drex.h>
 +#define mutex_lock(_x)
 +#define mutex_unlock(_x)
 +#endif
