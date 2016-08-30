@@ -18,13 +18,13 @@ struct _DEVICE {
 	unsigned ndevids;
 	uint64_t *devids;
 
-	unsigned nirqsegs;
+	int nirqsegs;
 	struct sys_rdcfg_seg *irqsegs;
 
-	unsigned niosegs;
+	int niosegs;
 	struct sys_rdcfg_seg *iosegs;
 
-	unsigned nmemsegs;
+	int nmemsegs;
 	struct sys_rdcfg_memseg *memsegs;
 };
 
@@ -80,12 +80,14 @@ DEVICE *dopen(char *devname)
 	d->info.ndevids = i;
 	/* count irqs */
 	d->info.nirqs = 0;
-	for (i = 0; i < cfg.nirqsegs; i++)
-		d->info.nirqs += SYS_RDCFG_IRQSEG(&cfg, i).len;
+	if (cfg.nirqsegs != (uint8_t)-1)
+		for (i = 0; i < cfg.nirqsegs; i++)
+			d->info.nirqs += SYS_RDCFG_IRQSEG(&cfg, i).len;
 	/* count pios */
 	d->info.npios = 0;
-	for (i = 0; i < cfg.npiosegs; i++)
-		d->info.npios += SYS_RDCFG_IOSEG(&cfg, i).len;
+	if (cfg.npiosegs != (uint8_t)-1)
+		for (i = 0; i < cfg.npiosegs; i++)
+			d->info.npios += SYS_RDCFG_IOSEG(&cfg, i).len;
 	d->info.nmemsegs = cfg.nmemsegs;
 
 
@@ -93,6 +95,8 @@ DEVICE *dopen(char *devname)
 	 * devids
 	 */
 	d->ndevids = d->info.ndevids;
+	if (d->ndevids == -1)
+		goto skip_devids;
 	d->devids = malloc(sizeof(uint64_t) * d->info.ndevids);
 	if (d->devids == NULL) {
 		perror("malloc");
@@ -101,11 +105,14 @@ DEVICE *dopen(char *devname)
 	}
 	for (i = 0; i < d->ndevids; i++)
 		d->devids[i] = cfg.deviceids[i];
+skip_devids:
 
 	/*
 	 * irqsegs
 	 */
-	d->nirqsegs = cfg.nirqsegs;
+	d->nirqsegs = (cfg.nirqsegs == (uint8_t)-1 ? -1 : cfg.nirqsegs);
+	if (d->nirqsegs == -1)
+		goto skip_irqsegs;
 	d->irqsegs = malloc(sizeof(struct sys_rdcfg_seg) * d->nirqsegs);
 	if (d->irqsegs == NULL) {
 		perror("malloc");
@@ -115,11 +122,14 @@ DEVICE *dopen(char *devname)
 	}
 	for (i = 0; i < d->nirqsegs; i++)
 		d->irqsegs[i] = SYS_RDCFG_IRQSEG(&cfg, i);
+skip_irqsegs:
 
 	/*
 	 * iosegs
 	 */
-	d->niosegs = cfg.npiosegs;
+	d->niosegs = (cfg.npiosegs == (uint8_t)-1 ?  -1 : cfg.npiosegs);
+	if (d->niosegs == -1)
+		goto skip_iosegs;
 	d->iosegs = malloc(sizeof(struct sys_rdcfg_seg) * d->niosegs);
 	if (d->iosegs == NULL) {
 		perror("malloc");
@@ -130,11 +140,14 @@ DEVICE *dopen(char *devname)
 	}
 	for (i = 0; i < d->niosegs; i++)
 		d->iosegs[i] = SYS_RDCFG_IOSEG(&cfg, i);
+skip_iosegs:
 
 	/*
 	 * memsegs
 	 */
-	d->nmemsegs = cfg.nmemsegs;
+	d->nmemsegs = (cfg.nmemsegs == (uint8_t)-1 ? -1 : cfg.nmemsegs);
+	if (d->nmemsegs == -1)
+		goto skip_memsegs;
 	d->memsegs =
 		malloc(sizeof(struct sys_rdcfg_memseg) * d->info.nmemsegs);
 	if (d->memsegs == NULL) {
@@ -147,6 +160,7 @@ DEVICE *dopen(char *devname)
 	}
 	for (i = 0; i < d->nmemsegs; i++)
 		d->memsegs[i] = cfg.memsegs[i];
+skip_memsegs:
 
 	return d;
 }
