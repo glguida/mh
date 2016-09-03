@@ -571,14 +571,14 @@ struct pmap *pmap_copy(void)
 		if (!(l1e & PG_P)) {
 			/* Not present, copy */
 			__setl1e(copy, l1e);
-		} else if (l1e_imported(l1e) || l1e_iomap(l1e)) {
-			/* Do not inherit imported mappings */
+		} else if (l1e_imported(l1e) || l1e_iomap(l1e) || l1e_exported(l1e)) {
+			/* Do not inherit I/O mappings */
 			__setl1e(copy, 0);
 		} else {
 			/* COW, even for readonly pages */
 			assert(l1e & PG_U);
 			pfn_incref(l1epfn(l1e));
-			/* Remove writable and exported attributes */
+			/* Remove writable */
 			l1e = l1e_mkcow(l1e);
 			__setl1e(orig, l1e);
 			__setl1e(copy, l1e);
