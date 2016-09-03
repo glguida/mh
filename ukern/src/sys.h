@@ -73,6 +73,7 @@ struct sys_rdcfg_cfg {
 #define SYS_RDCFG_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
 #define SYS_RDCFG_MAX_SEGMENTS 24
 #define SYS_RDCFG_MAX_MEMSEGMENTS 16
+#define SYS_RDCFG_FLAGS_HW    1
 	uint64_t nameid;
 	uint64_t vendorid;
 	uint64_t deviceids[SYS_RDCFG_MAX_DEVIDS];
@@ -81,6 +82,7 @@ struct sys_rdcfg_cfg {
 	uint8_t nirqsegs;
 	uint8_t npiosegs;
 	uint8_t nmemsegs;
+	uint8_t flags;
 
 	struct sys_rdcfg_seg {
 		uint16_t base;

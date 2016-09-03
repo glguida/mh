@@ -199,6 +199,7 @@ static int _pltdev_rdcfg(void *devopq, unsigned id,
 	cfg->vendorid = PLATFORM_VENDORID;
 
 	memset(cfg->deviceids, 0, sizeof(cfg->deviceids));
+	cfg->flags |= SYS_RDCFG_FLAGS_HW;
 	cfg->niopfns = -1;
 	cfg->nirqsegs = -1;
 	cfg->npiosegs = -1;

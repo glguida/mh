@@ -43,6 +43,12 @@
 #define MAXHWDEVIDS SYS_RDCFG_MAX_DEVIDS
 #define MAXHWDEVREMS 256
 
+struct hwdma {
+	pfn_t iopfn;
+	vaddr_t va;
+	LIST_ENTRY(hwdma) list;
+};
+
 struct hwsig {
 	struct irqsig irqsig;
 	LIST_ENTRY(hwsig) list;
@@ -57,6 +63,7 @@ struct remth {
 	int use:1;			/* Entry in use */
 	LIST_HEAD(, hwsig) hwsigs; 	/* Signals mapped */
 	LIST_HEAD(, hwmap) hwmaps;	/* MMIO mapped */
+	LIST_HEAD(, hwdma) hwdmas;	/* Exported pages */
 };
 
 struct seg {
@@ -107,6 +114,7 @@ static int _hwdev_open(void *devopq, uint64_t did)
 		goto out;
 	}
 	hd->remths[i].use = 1;
+	LIST_INIT(&hd->remths[i].hwdmas);
 	LIST_INIT(&hd->remths[i].hwsigs);
 	LIST_INIT(&hd->remths[i].hwmaps);
 	ret = i;
@@ -201,13 +209,49 @@ static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 			 unsigned long *iopfn)
 {
+	struct hwdev *hd = (struct hwdev *) devopq;
+	struct hwdma *pd, *found;
+	pfn_t pfn = 0;
 	int ret;
-	pfn_t pfn;
 
-	/* XXX: IOMMU-less, also didn't check DMA is possible */
-	ret = pmap_phys(NULL, va, &pfn);
+	spinlock(&hd->lock);
+	if (va) {
+		/* Export VA address */
+		ret = pmap_uexport(NULL, va, NULL);
+		if (ret)
+			goto export_err;
+		ret = pmap_phys(NULL, va, &pfn);
+		if (ret) {
+			assert(!pmap_uexport_cancel(NULL, va));
+			goto export_err;
+		}
+		pd = heap_alloc(sizeof(*pd));
+		pd->va = va;
+		pd->iopfn = pfn;
+		LIST_INSERT_HEAD(&hd->remths[id].hwdmas, pd, list);
+		*iopfn = pfn;
+	} else {
+		/* Cancel export. Use *iopfn to find the va */
+		pfn = *iopfn;
+		LIST_FOREACH(pd, &hd->remths[id].hwdmas, list) {
+			if (pd->iopfn == pfn) {
+				found = pd;
+				break;
+			}
+		}
+		if (!found) {
+			ret = -ENOENT;
+			goto export_err;
+		}
+		  
 
-	*iopfn = pfn;
+		LIST_REMOVE(found, list);
+		ret = pmap_uexport_cancel(NULL, pd->va);
+		assert(!ret);
+		heap_free(found);
+	}
+export_err:
+	spinunlock(&hd->lock);
 	return ret;
 }
 
@@ -294,6 +338,7 @@ static int _hwdev_rdcfg(void *devopq, unsigned id,
 	for (i = 0; i < MAXHWDEVIDS; i++)
 		cfg->deviceids[i] = hdcfg->did[i];
 
+	cfg->flags |= SYS_RDCFG_FLAGS_HW;
 	cfg->niopfns = -1;
 	cfg->nirqsegs = hdcfg->nirqsegs;
 	cfg->npiosegs = hdcfg->npiosegs;
@@ -355,6 +400,7 @@ static void _hwdev_close(void *devopq, unsigned id)
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwsig *ps, *tps;
 	struct hwmap *pm, *tpm;
+	struct hwdma *pd, *tpd;
 
 	spinlock(&hd->lock);
 	assert(hd->remths[id].use);
@@ -367,6 +413,11 @@ static void _hwdev_close(void *devopq, unsigned id)
 		LIST_REMOVE(ps, list);
 		irqunregister(&ps->irqsig);
 		heap_free(ps);
+	}
+	LIST_FOREACH_SAFE(pd, &hd->remths[id].hwdmas, list, tpd) {
+		LIST_REMOVE(pd, list);
+		assert(!pmap_uexport_cancel(NULL, pd->va));
+		heap_free(pd);
 	}
 	hd->remths[id].use = 0;
 	spinunlock(&hd->lock);
@@ -404,7 +455,6 @@ struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)
 	hd->th = th;
 	memset(&hd->remths, 0, sizeof(hd->remths));
 	hd->cfg = (struct hwdev_cfg *) (hd + 1);
-
 	hd->cfg->vid = syscfg->vendorid;
 	for (i = 0; i < MAXHWDEVIDS; i++)
 		hd->cfg->did[i] = syscfg->deviceids[i];
