@@ -34,6 +34,7 @@ int pltpci_init(void);
 /* device management */
 void devadd(struct sys_hwcreat_cfg *cfg);
 
+int pltusb_process(void);
 int pltconsole_process(void);
 
 void kbdbuf_add(int id, uint8_t c);

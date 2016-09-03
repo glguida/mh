@@ -8,6 +8,8 @@
 #include <mrg/consio.h>
 #include "internal.h"
 
+int pltusb_pid = 0;
+
 struct device_list devices = SLIST_HEAD_INITIALIZER(devices);
 
 void
@@ -33,6 +35,21 @@ devadd(struct sys_hwcreat_cfg *cfg)
 	SLIST_INSERT_HEAD(&devices, d, list);
 }
 
+int do_child()
+{
+	pid_t pid;
+	struct sys_childstat cs;
+
+	do {
+		pid = sys_childstat(&cs);
+		if (pid > 0) {
+			if (pid == pltusb_pid) {
+				printf("PLTUSB crashed. (%d)\n", cs.exit_status);
+			} else printf("CHLD %d: exit %d\n", pid, cs.exit_status);
+		}
+	} while (pid > 0);
+}
+
 int
 main()
 {
@@ -48,12 +65,15 @@ main()
 		return -1;
 	}
 
+	/* Become INTRCHILD handler */
+	inthandler(INTR_CHILD, do_child, NULL);
 
+	pltusb_pid = pltusb_process();
 	/* ret = pltusb_init(); */
 
 	/* run sysconfig. Will get system configuration and inittab */
 
-	/* Become SIGCHILD handler */
+
 
 	/* fork and start init as configured in sysconfig */
 
@@ -61,13 +81,14 @@ main()
 	 * THE REST IS HIGHLY TEMPORARY.
 	 */
 
-	/* fork and create console device. */
+	lwt_sleep();
+	/* create console device. */
 	ret = pltconsole_process();
-	if (ret < 0) {
+	if (ret <= 0) {
 		printf("console process couldn't start: %d\n", ret);
 		return ret;
 	}
-	printf("Console process started as pid %d\n", ret);
+	printf("PLTCONSOLE started as pid %d\n", ret);
 
 	/* fork and create kloggerd.
 	 * ret = kloggerd_process(); */
