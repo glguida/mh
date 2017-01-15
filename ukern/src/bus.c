@@ -521,6 +521,7 @@ static const rb_tree_ops_t sys_device_tree_ops = {
 
 void pltdev_init(void);
 void usrdevs_init(void);
+void sysdev_init(void);
 
 void devices_init(void)
 {
@@ -528,5 +529,6 @@ void devices_init(void)
 	sys_device_rbtree_lock = 0;
 
 	pltdev_init();
+	sysdev_init();
 	usrdevs_init();
 }

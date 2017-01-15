@@ -202,6 +202,12 @@ struct sys_hwcreat_cfg {
 #define INTR_CHILD   0
 #define MAX_EXTINTRS 64
 
+/*
+ * System Device
+ */
+/* Input Ports */
+#define SYSDEVIO_TMRCNT 0
+
 
 #ifdef _UKERNEL
 int sys_call(int sc, unsigned long a1, unsigned long a2,
