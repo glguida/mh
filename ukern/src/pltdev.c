@@ -263,6 +263,6 @@ static struct devops pltdev_ops = {
 void pltdev_init(void)
 {
 	memset(platform_rems, 0, sizeof(platform_rems));
-	dev_init(&platform_dev, PLATFORM_NAMEID, NULL, &pltdev_ops, 0, 0, 600);
+	dev_init(&platform_dev, PLATFORM_NAMEID, NULL, &pltdev_ops, 0, 0, 0100);
 	dev_attach(&platform_dev);
 }
