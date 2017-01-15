@@ -212,12 +212,13 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdma *pd, *found;
 	pfn_t pfn = 0;
+	l1e_t l1e;
 	int ret;
 
 	spinlock(&hd->lock);
 	if (va) {
 		/* Export VA address */
-		ret = pmap_uexport(NULL, va, NULL);
+		ret = pmap_uexport(NULL, va, &l1e);
 		if (ret)
 			goto export_err;
 		ret = pmap_phys(NULL, va, &pfn);
