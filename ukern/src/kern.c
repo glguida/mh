@@ -656,6 +656,8 @@ int vmmap(vaddr_t addr, pmap_prot_t prot)
 		__freepage(opfn);
 		ret = 1;
 	}
+
+	memset((void *)trunc_page(addr), 0, PAGE_SIZE);
 	return ret;
 }
 
