@@ -76,7 +76,7 @@ lwt_setprivate(void *ptr)
 
 	if (!lwt_initialized)
 		lwt_init();
-	lwt_current = ptr;
+	lwt_current->priv = ptr;
 }
 
 lwt_t *
@@ -226,7 +226,7 @@ retry:
 }
 
 lwt_t *
-lwt_create(void (*start)(void *), void *arg, size_t stack_size)
+lwt_create_priv(void (*start)(void *), void *arg, size_t stack_size, void *priv)
 {
 	lwt_t *lwt;
 
@@ -239,7 +239,7 @@ lwt_create(void (*start)(void *), void *arg, size_t stack_size)
 	lwt->stack_size = stack_size;
 	lwt->start = start;
 	lwt->arg = arg;
-	lwt->priv = NULL;
+	lwt->priv = priv;
 
 	lwt_makebuf(lwt, start, arg, (void *)(lwt+1), stack_size);
 	return lwt;
