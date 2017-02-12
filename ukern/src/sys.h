@@ -206,7 +206,9 @@ struct sys_hwcreat_cfg {
  * System Device
  */
 /* Input Ports */
-#define SYSDEVIO_TMRCNT 0
+#define SYSDEVIO_TMRPRD 0
+#define SYSDEVIO_TMRCNT 1
+#define SYSDEVIO_ALMCNT 2
 
 
 #ifdef _UKERNEL

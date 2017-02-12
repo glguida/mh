@@ -12,8 +12,7 @@ int pltusb_pid = 0;
 
 struct device_list devices = SLIST_HEAD_INITIALIZER(devices);
 
-void
-devadd(struct sys_hwcreat_cfg *cfg)
+void devadd(struct sys_hwcreat_cfg *cfg)
 {
 	int i, ret;
 	struct device *d;
@@ -30,8 +29,8 @@ devadd(struct sys_hwcreat_cfg *cfg)
 	assert(d != NULL);
 	d->nameid = cfg->nameid;
 	d->vendorid = cfg->vendorid;
-	for (i = 0; i < MIN(DEVICEIDS,SYS_RDCFG_MAX_DEVIDS); i++)
-		     d->deviceids[i] = cfg->deviceids[i];
+	for (i = 0; i < MIN(DEVICEIDS, SYS_RDCFG_MAX_DEVIDS); i++)
+		d->deviceids[i] = cfg->deviceids[i];
 	SLIST_INSERT_HEAD(&devices, d, list);
 }
 
@@ -44,14 +43,16 @@ int do_child()
 		pid = sys_childstat(&cs);
 		if (pid > 0) {
 			if (pid == pltusb_pid) {
-				printf("PLTUSB crashed. (%d)\n", cs.exit_status);
-			} else printf("CHLD %d: exit %d\n", pid, cs.exit_status);
+				printf("PLTUSB crashed. (%d)\n",
+				       cs.exit_status);
+			} else
+				printf("CHLD %d: exit %d\n", pid,
+				       cs.exit_status);
 		}
 	} while (pid > 0);
 }
 
-int
-main()
+int main()
 {
 	int ret;
 	int consevt = -1;
@@ -130,18 +131,21 @@ main()
 		if (kbdval & CONSIO_DEVSTS_KBDVAL) {
 			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
 			while ((val & 0xff) > 0) {
-				dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
+				dout(console, IOPORT_BYTE(CONSIO_OUTDATA),
+				     val);
 				val >>= 8;
 			}
 		}
 
 		while (1) {
 			/* Request data */
-			dout(console, IOPORT_BYTE(CONSIO_DEVSTS), CONSIO_DEVSTS_KBDVAL);
+			dout(console, IOPORT_BYTE(CONSIO_DEVSTS),
+			     CONSIO_DEVSTS_KBDVAL);
 			evtwait(consevt);
 			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
 			while ((val & 0xff) > 0) {
-				dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
+				dout(console, IOPORT_BYTE(CONSIO_OUTDATA),
+				     val);
 				val >>= 8;
 			}
 			evtclear(consevt);

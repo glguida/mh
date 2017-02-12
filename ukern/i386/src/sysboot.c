@@ -92,7 +92,7 @@ void sysboot(void)
 	void *lpfndb;
 	unsigned i, cpuid;
 	uint32_t pfn_maxmem = 0;
-	uint32_t pfn_maxaddr = 0xffffffff >> PAGE_SHIFT; /* MMIO arrives up there */
+	uint32_t pfn_maxaddr = 0xffffffff >> PAGE_SHIFT;	/* MMIO arrives up there */
 
 	printf("Welcome!\n");
 	if (_boot_cmdline != NULL)

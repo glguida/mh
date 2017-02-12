@@ -149,7 +149,8 @@ static int sys_poll(unsigned did, uaddr_t uior)
 	return id;
 }
 
-static int sys_wriospace(unsigned did, unsigned id, uint32_t port, uint64_t val)
+static int sys_wriospace(unsigned did, unsigned id, uint32_t port,
+			 uint64_t val)
 {
 	return devwriospace(did, id, port, val);
 }
@@ -168,7 +169,7 @@ static int sys_irq(unsigned did, unsigned id, unsigned irq)
 
 static int sys_open32(u_long hi, u_long lo)
 {
-	uint64_t id = ((uint64_t)hi << 32) | lo;
+	uint64_t id = ((uint64_t) hi << 32) | lo;
 	return devopen(id);
 }
 
@@ -177,7 +178,7 @@ static int sys_open(uint64_t id)
 	return devopen(id);
 }
 
-static int sys_export(unsigned ddno, u_long va, u_long uiopfnptr)
+static int sys_export(unsigned ddno, u_long va, uaddr_t uiopfnptr)
 {
 	int ret;
 	unsigned long iopfn, orig;
@@ -189,13 +190,13 @@ static int sys_export(unsigned ddno, u_long va, u_long uiopfnptr)
 	if (ret)
 		return ret;
 
-        orig = iopfn;
+	orig = iopfn;
 	ret = devexport(ddno, va, &iopfn);
 
 	if (orig != iopfn)
-		ret = copy_to_user(uiopfnptr, iopfn, sizeof(iopfn));
+		ret = copy_to_user(uiopfnptr, &iopfn, sizeof(iopfn));
 	if (ret)
-		printf("Warning: error on final copy to user\n");
+		dprintf("Warning: error on final copy to user\n");
 
 	return ret;
 }
@@ -239,9 +240,10 @@ static int sys_in(unsigned ddno, uint32_t port, uaddr_t valptr)
 	return ret;
 }
 
-static int sys_out32(unsigned ddno, uint32_t port, uint32_t hival, uint32_t loval)
+static int sys_out32(unsigned ddno, uint32_t port, uint32_t hival,
+		     uint32_t loval)
 {
-	uint64_t val = ((uint64_t)hival << 32) | loval;
+	uint64_t val = ((uint64_t) hival << 32) | loval;
 
 	return devout(ddno, port, val);
 }
@@ -499,7 +501,7 @@ int sys_call(int sc,
 	case SYS_CLOSE:
 		return sys_close(a1);
 	case SYS_HWCREAT:
-		return sys_hwcreat(a1,a2);
+		return sys_hwcreat(a1, a2);
 	case SYS_GETUID:
 		return sys_getuid(a1);
 	case SYS_SETUID:

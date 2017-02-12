@@ -52,6 +52,19 @@
 #define thread_has_interrupts(_th) (((_th)->userfl & THFL_INTR)	\
 				    && (_th)->softintrs)
 
+struct timer {
+	uint64_t time;
+	struct thread *th;
+	void (*handler) (uint64_t);
+	 LIST_ENTRY(timer) list;
+};
+
+struct thsysdev {
+	int alarm_valid;
+	unsigned alarm_sig;
+	struct timer alarm;
+};
+
 struct thread {
 	jmp_buf ctx;
 	struct pmap *pmap;
@@ -84,6 +97,8 @@ struct thread {
 #define THFL_INTR (1L << 0)
 	uint32_t userfl;
 
+	struct thsysdev sysdev;
+
 	u_long softintrs;
 	uint16_t status;
 	unsigned cpu;
@@ -107,6 +122,8 @@ void thintr(unsigned xcpt, vaddr_t va, unsigned long err);
 void kern_boot(void);
 void kern_bootap(void);
 
+#define SOFTIRQ_ZOMBIE (1 << 0)
+#define SOFTIRQ_TIMER  (1 << 1)
 struct cpu *cpu_setup(int id);
 void cpu_softirq_raise(int);
 void cpu_kick(void);
@@ -152,6 +169,7 @@ struct irqsig {
 	struct thread *th;
 	unsigned sig;
 	uint32_t filter;
+	void (*handler) (unsigned);
 	LIST_ENTRY(irqsig) list;
 };
 
@@ -159,5 +177,12 @@ void irqsignal(unsigned irq);
 int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
 		unsigned sig, uint32_t filter);
 void irqunregister(struct irqsig *irqsig);
+
+uint64_t timer_readcounter(void);
+uint64_t timer_readperiod(void);
+void timer_setcounter(uint64_t cnt);
+void timer_event(void);
+
+void thalrm(uint64_t time);
 
 #endif

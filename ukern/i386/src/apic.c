@@ -31,6 +31,7 @@
 #include <uk/heap.h>
 #include <uk/vmap.h>
 #include "i386.h"
+#include "apic.h"
 #include <lib/lib.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/apic.h>
@@ -104,8 +105,7 @@ void lapic_add_nmi(uint8_t pid, int l)
 		if (lapics[i].platformid == pid) {
 			if (l)
 				l = 1;
-			lapics[i].lint[l] =
-				(APIC_DLVR_NMI << 8);
+			lapics[i].lint[l] = (APIC_DLVR_NMI << 8);
 			return;
 		}
 	}
@@ -236,9 +236,9 @@ static void irqresolve(unsigned gsi)
 		start = ioapics[i].irq;
 		end = start + ioapics[i].pins;
 
-		if ((irq >= start) && (irq < end)) {
+		if ((gsi >= start) && (gsi < end)) {
 			gsis[gsi].ioapic = i;
-			gsis[gsi].pin = irq - start;
+			gsis[gsi].pin = gsi - start;
 			return;
 		}
 	}
@@ -246,37 +246,50 @@ static void irqresolve(unsigned gsi)
 	asm volatile ("ud2;");
 }
 
+void gsi_set_irqtype(unsigned irq, enum gsimode mode)
+{
+	uint32_t hi, lo;
+	uint32_t mask = 0;
+
+	lo = ioapic_read(gsis[irq].ioapic, IO_RED_LO(gsis[irq].pin));
+	lo &= ~((1L << 13) | (1L << 15));
+
+	gsis[irq].mode = mode;
+
+	/* Setup Masked IOAPIC entry with no vector information */
+	switch (gsis[irq].mode) {
+	default:
+		printf("Warning: GSI table corrupted. "
+		       "Setting GSI %d to EDGE\n", irq);
+	case EDGE:
+		break;
+	case LVLHI:
+		lo |= (1L << 15);
+		break;
+	case LVLLO:
+		lo |= ((1L << 15) | (1L << 13));
+		break;
+	}
+
+	ioapic_write(gsis[irq].ioapic, IO_RED_LO(gsis[irq].pin), lo);
+}
+
+enum gsimode gsi_get_irqtype(unsigned gsi)
+{
+	assert(gsi < gsis_no);
+	return gsis[gsi].mode;
+}
+
+
 void gsi_setup_done(void)
 {
 	unsigned i;
-	uint32_t hi, lo;
-
-	lo = 0;				/* No vector, fixed destination */
-	lo |= 1L << 16;			/* Masked */
-	hi = lapic_getcurrent() << 24;	/* Current Processor */
-
 	for (i = 0; i < gsis_no; i++) {
 		/* Now that we have the proper GSI to IRQ mapping, resolve the
 		 * IOAPIC/PIN of the GSI. */
 		irqresolve(i);
 
-		/* Setup Masked IOAPIC entry with no vector information */
-		switch (gsis[i].mode) {
-		default:
-			printf("Warning: GSI table corrupted. "
-			       "Setting GSI %d to EDGE\n", i);
-		case EDGE:
-			break;
-		case LVLHI:
-			lo |= (1L << 15);
-			break;
-		case LVLLO:
-			lo |= ((1L << 15) | (1L << 13));
-			break;
-		}
-
-		ioapic_write(gsis[i].ioapic, IO_RED_LO(gsis[i].pin), lo);
-		ioapic_write(gsis[i].ioapic, IO_RED_HI(gsis[i].pin), hi);
+		gsi_set_irqtype(i, gsis[i].mode);
 	}
 
 	/* 1:1 map GSI <-> Kernel IRQ */
@@ -290,11 +303,7 @@ void gsi_dump(void)
 	unsigned i;
 
 	for (i = 0; i < gsis_no; i++) {
-		printf("GSI: %02d IRQ: %02d MODE: %5s APIC: %02d PIN: %02d\n",
-		       i, gsis[i].irq,
-		       gsis[i].mode == EDGE ? "EDGE"
-		       : gsis[i].mode == LVLHI ? "LVLHI" : "LVLLO",
-		       gsis[i].ioapic, gsis[i].pin);
+		printf("GSI: %02d IRQ: %02d MODE: %5s APIC: %02d PIN: %02d\n", i, gsis[i].irq, gsis[i].mode == EDGE ? "EDGE" : gsis[i].mode == LVLHI ? "LVLHI" : "LVLLO", gsis[i].ioapic, gsis[i].pin);
 	}
 }
 

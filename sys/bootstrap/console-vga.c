@@ -34,8 +34,7 @@ struct vga_state {
 volatile uint8_t *__vga_mem = NULL;
 static struct vga_state __vga_state;
 
-static void
-vga_save(void)
+static void vga_save(void)
 {
 	struct vga_state *s = &__vga_state;
 	void *vgamem;
@@ -78,8 +77,7 @@ vga_save(void)
 	memcpy(s->vmem, __vga_mem, 80 * 25 * 2);
 }
 
-static void
-vga_setup(void)
+static void vga_setup(void)
 {
 	int i;
 	uint8_t dummy;
@@ -92,7 +90,8 @@ vga_setup(void)
 	VGAOUTB(0x00, VGA_ATTR_ADDR_DATA_REG);
 
 	VGAOUTB(VGA_GFX_MISC, VGA_GFX_ADDR_REG);
-	VGAOUTB(VGA_GFX_MISC_CHAINOE | VGA_GFX_MISC_B8TOBF, VGA_GFX_DATA_REG);
+	VGAOUTB(VGA_GFX_MISC_CHAINOE | VGA_GFX_MISC_B8TOBF,
+		VGA_GFX_DATA_REG);
 	VGAOUTB(VGA_GFX_MODE, VGA_GFX_ADDR_REG);
 	VGAOUTB(VGA_GFX_MODE_HOSTOE, VGA_GFX_DATA_REG);
 
@@ -106,13 +105,12 @@ uint8_t ypos = 0;
 static void scroll(void)
 {
 	int i;
-	memmove((void *)__vga_mem,
-		(void *)(__vga_mem + 80 * 2),
-		80*24*2);
+	memmove((void *) __vga_mem,
+		(void *) (__vga_mem + 80 * 2), 80 * 24 * 2);
 
 	for (i = 0; i < 80; i++) {
-	        (__vga_mem + 80*24*2)[i * 2] = 0;
-		(__vga_mem + 80*24*2)[i * 2 + 1] =  VGA_COLORATTR;
+		(__vga_mem + 80 * 24 * 2)[i * 2] = 0;
+		(__vga_mem + 80 * 24 * 2)[i * 2 + 1] = VGA_COLORATTR;
 	}
 }
 
@@ -124,21 +122,20 @@ static void update_cursor(void)
 	VGAOUTB(pos >> 8, VGA_CRT_DATA_REG);
 	VGAOUTB(VGA_CRT_CURSOR_LOW, VGA_CRT_ADDR_REG);
 	VGAOUTB(pos & 0xff, VGA_CRT_DATA_REG);
-} 
+}
 
 static void newline()
 {
 	xpos = 0;
 	ypos++;
-	if (ypos>= 25) {
+	if (ypos >= 25) {
 		ypos = 24;
 		scroll();
 	}
 	return;
 }
 
-int
-console_vga_init(uint64_t nameid)
+int console_vga_init(uint64_t nameid)
 {
 	char name[13];
 
@@ -158,17 +155,16 @@ console_vga_init(uint64_t nameid)
 
 void console_vga_putchar(int c)
 {
-	if (c == '\n' || c == '\r')
-	{
+	if (c == '\n' || c == '\r') {
 		newline();
 		update_cursor();
 		return;
 	}
 
-	if(c == '\t') {
+	if (c == '\t') {
 		/* 8 pos tab */
 		xpos = (xpos & 0xfffffff8) + 8;
-		if(xpos >= 80) 
+		if (xpos >= 80)
 			newline();
 		update_cursor();
 		return;

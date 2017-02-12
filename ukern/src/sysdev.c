@@ -30,8 +30,12 @@
 #include <uk/types.h>
 #include <uk/bus.h>
 #include <uk/sys.h>
-#include <uk/timer.h>
+#include <uk/kern.h>
+#include <machine/uk/cpu.h>
+#include <machine/uk/machdep.h>
 #include <lib/lib.h>
+
+#define SYSDEV_OWNER 0
 
 #define SYSTEM_NAMEID squoze("SYSTEM")
 #define SYSTEM_VENDORID squoze("MHSYS")
@@ -52,28 +56,44 @@ static void _sysdev_close(void *devopq, unsigned id)
 static int _sysdev_in(void *devopq, unsigned id, uint32_t port,
 		      uint64_t * val)
 {
-	struct usrdev *ud = (struct usrdev *) devopq;
 	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
 	uint16_t ioport = port >> IOPORT_SIZESHIFT;
+	struct thread *th = current_thread();
 	uint64_t ioval;
 
 	switch (ioport) {
 	case SYSDEVIO_TMRCNT:
 		ioval = timer_readcounter();
 		break;
+	case SYSDEVIO_TMRPRD:
+		ioval = timer_readperiod();
+		break;
 	default:
 		ioval = -1;
 		break;
 	}
-	dprintf("Reading SYS port: %d = %"PRIx64"\n", ioport, ioval);
+	dprintf("Reading SYS port: %d = %" PRIx64 "\n", ioport, ioval);
 	*val = ioval;
 	return 0;
 }
 
 static int _sysdev_out(void *devopq, unsigned id, uint32_t port,
-			  uint64_t val)
+		       uint64_t val)
 {
-	return -ENOSYS;
+	struct thread *th = current_thread();
+	uint8_t iosize = port & IOPORT_SIZEMASK;
+	uint16_t ioport = port >> IOPORT_SIZESHIFT;
+
+	switch (ioport) {
+	case SYSDEVIO_ALMCNT:
+		/* Adder is 32 bit */
+		val = (uint32_t) val + timer_readcounter();
+		thalrm(val);
+		break;
+	default:
+		break;
+	}
+	dprintf("Writing SYS port: %d, val: %" PRIx64 "\n", ioport, val);
 }
 
 static int _sysdev_export(void *devopq, unsigned id, vaddr_t va,
@@ -82,7 +102,8 @@ static int _sysdev_export(void *devopq, unsigned id, vaddr_t va,
 	return -ENOSYS;
 }
 
-static int _sysdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
+static int _sysdev_rdcfg(void *devopq, unsigned id,
+			 struct sys_rdcfg_cfg *cfg)
 {
 	cfg->nameid = SYSTEM_NAMEID;
 	cfg->vendorid = SYSTEM_VENDORID;
@@ -98,7 +119,13 @@ static int _sysdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 static int _sysdev_irqmap(void *devopq, unsigned id, unsigned irq,
 			  unsigned sig)
 {
-	return -ENOSYS;
+	struct thread *th = current_thread();
+
+	if (irq != 0)
+		return -EINVAL;
+
+	th->sysdev.alarm_sig = sig + 1;
+	return 0;
 }
 
 static int _sysdev_iomap(void *devopq, unsigned id, vaddr_t va,
@@ -113,7 +140,7 @@ static int _sysdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 }
 
 static struct devops sysdev_ops = {
-  	.open = _sysdev_open,
+	.open = _sysdev_open,
 	.close = _sysdev_close,
 	.in = _sysdev_in,
 	.out = _sysdev_out,
@@ -126,6 +153,7 @@ static struct devops sysdev_ops = {
 
 void sysdev_init(void)
 {
-	dev_init(&system_dev, SYSTEM_NAMEID, NULL, &sysdev_ops, 0, 0, 0111);
+	dev_init(&system_dev, SYSTEM_NAMEID, NULL, &sysdev_ops,
+		 SYSDEV_OWNER, 0, 0111);
 	dev_attach(&system_dev);
 }

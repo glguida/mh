@@ -46,24 +46,24 @@
 struct hwdma {
 	pfn_t iopfn;
 	vaddr_t va;
-	LIST_ENTRY(hwdma) list;
+	 LIST_ENTRY(hwdma) list;
 };
 
 struct hwsig {
 	struct irqsig irqsig;
-	LIST_ENTRY(hwsig) list;
+	 LIST_ENTRY(hwsig) list;
 };
 
 struct hwmap {
 	vaddr_t va;
-	LIST_ENTRY(hwmap) list;
+	 LIST_ENTRY(hwmap) list;
 };
 
 struct remth {
-	int use:1;			/* Entry in use */
-	LIST_HEAD(, hwsig) hwsigs; 	/* Signals mapped */
-	LIST_HEAD(, hwmap) hwmaps;	/* MMIO mapped */
-	LIST_HEAD(, hwdma) hwdmas;	/* Exported pages */
+	int use:1;		/* Entry in use */
+	 LIST_HEAD(, hwsig) hwsigs;	/* Signals mapped */
+	 LIST_HEAD(, hwmap) hwmaps;	/* MMIO mapped */
+	 LIST_HEAD(, hwdma) hwdmas;	/* Exported pages */
 };
 
 struct seg {
@@ -244,14 +244,14 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 			ret = -ENOENT;
 			goto export_err;
 		}
-		  
+
 
 		LIST_REMOVE(found, list);
 		ret = pmap_uexport_cancel(NULL, pd->va);
 		assert(!ret);
 		heap_free(found);
 	}
-export_err:
+      export_err:
 	spinunlock(&hd->lock);
 	return ret;
 }

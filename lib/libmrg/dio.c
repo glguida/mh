@@ -80,12 +80,12 @@ DEVICE *dopen(char *devname)
 	d->info.ndevids = i;
 	/* count irqs */
 	d->info.nirqs = 0;
-	if (cfg.nirqsegs != (uint8_t)-1)
+	if (cfg.nirqsegs != (uint8_t) - 1)
 		for (i = 0; i < cfg.nirqsegs; i++)
 			d->info.nirqs += SYS_RDCFG_IRQSEG(&cfg, i).len;
 	/* count pios */
 	d->info.npios = 0;
-	if (cfg.npiosegs != (uint8_t)-1)
+	if (cfg.npiosegs != (uint8_t) - 1)
 		for (i = 0; i < cfg.npiosegs; i++)
 			d->info.npios += SYS_RDCFG_IOSEG(&cfg, i).len;
 	d->info.nmemsegs = cfg.nmemsegs;
@@ -105,12 +105,12 @@ DEVICE *dopen(char *devname)
 	}
 	for (i = 0; i < d->ndevids; i++)
 		d->devids[i] = cfg.deviceids[i];
-skip_devids:
+      skip_devids:
 
 	/*
 	 * irqsegs
 	 */
-	d->nirqsegs = (cfg.nirqsegs == (uint8_t)-1 ? -1 : cfg.nirqsegs);
+	d->nirqsegs = (cfg.nirqsegs == (uint8_t) - 1 ? -1 : cfg.nirqsegs);
 	if (d->nirqsegs == -1)
 		goto skip_irqsegs;
 	d->irqsegs = malloc(sizeof(struct sys_rdcfg_seg) * d->nirqsegs);
@@ -122,12 +122,12 @@ skip_devids:
 	}
 	for (i = 0; i < d->nirqsegs; i++)
 		d->irqsegs[i] = SYS_RDCFG_IRQSEG(&cfg, i);
-skip_irqsegs:
+      skip_irqsegs:
 
 	/*
 	 * iosegs
 	 */
-	d->niosegs = (cfg.npiosegs == (uint8_t)-1 ?  -1 : cfg.npiosegs);
+	d->niosegs = (cfg.npiosegs == (uint8_t) - 1 ? -1 : cfg.npiosegs);
 	if (d->niosegs == -1)
 		goto skip_iosegs;
 	d->iosegs = malloc(sizeof(struct sys_rdcfg_seg) * d->niosegs);
@@ -140,12 +140,12 @@ skip_irqsegs:
 	}
 	for (i = 0; i < d->niosegs; i++)
 		d->iosegs[i] = SYS_RDCFG_IOSEG(&cfg, i);
-skip_iosegs:
+      skip_iosegs:
 
 	/*
 	 * memsegs
 	 */
-	d->nmemsegs = (cfg.nmemsegs == (uint8_t)-1 ? -1 : cfg.nmemsegs);
+	d->nmemsegs = (cfg.nmemsegs == (uint8_t) - 1 ? -1 : cfg.nmemsegs);
 	if (d->nmemsegs == -1)
 		goto skip_memsegs;
 	d->memsegs =
@@ -160,7 +160,7 @@ skip_iosegs:
 	}
 	for (i = 0; i < d->nmemsegs; i++)
 		d->memsegs[i] = cfg.memsegs[i];
-skip_memsegs:
+      skip_memsegs:
 
 	return d;
 }
@@ -272,6 +272,11 @@ void *diomap(DEVICE * d, uint64_t base, size_t len)
 	}
 
 	return (void *) (uintptr_t) (va + (base & PAGE_MASK));
+}
+
+int dexport(DEVICE * d, void *vaddr, unsigned long *iopfn)
+{
+	return sys_export(d->dd, (vaddr_t) vaddr, iopfn);
 }
 
 void dclose(DEVICE * d)

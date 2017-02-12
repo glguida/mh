@@ -49,6 +49,12 @@ void usrframe_setret(struct usrframe *f, unsigned long r);
 uint32_t usrframe_iret(struct usrframe *f);
 void usrframe_switch(void);
 
+uint64_t timer_readcounter(void);
+uint64_t timer_readperiod(void);
+void timer_setcounter(uint64_t);
+void timer_setalarm(uint64_t);
+void timer_handler_cb(void);
+
 extern int __crash_requested;
 
 #define __goodbye()				\

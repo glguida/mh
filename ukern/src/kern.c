@@ -58,9 +58,11 @@ TAILQ_HEAD_INITIALIZER(running_threads);
 static TAILQ_HEAD(, thread) stopped_threads =
 TAILQ_HEAD_INITIALIZER(stopped_threads);
 
+lock_t timers_lock = 0;
+static LIST_HEAD(, timer) timers = LIST_HEAD_INITIALIZER(timers);
+
 lock_t softirq_lock = 0;
 uint64_t softirqs = 0;
-#define SOFTIRQ_ZOMBIE (1 << 0)
 
 static lock_t irqsigs_lock;
 LIST_HEAD(, irqsig) irqsigs[MAXIRQS];
@@ -158,6 +160,7 @@ static struct thread *thnew(void (*__start) (void))
 
 	memset(&th->usrdevs, 0, sizeof(th->usrdevs));
 	memset(&th->bus, 0, sizeof(th->bus));
+	memset(&th->sysdev, 0, sizeof(th->sysdev));
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
@@ -204,6 +207,9 @@ struct thread *thfork(void)
 
 	nth->sigip = cth->sigip;
 	nth->sigsp = cth->sigsp;
+
+	/* XXX: What to do on fork */
+	memset(&nth->sysdev, 0, sizeof(nth->sysdev));
 
 	/* XXX: What to do on fork */
 	memset(&nth->usrdevs, 0, sizeof(nth->usrdevs));
@@ -291,8 +297,7 @@ static void thswitch(struct thread *th)
 	pmap_switch(th->pmap);
 	set_current_thread(th);
 	if (thread_is_idle(th))
-		__sync_or_and_fetch(&cpu_idlemap,
-				    (1L << cpu_number()));
+		__sync_or_and_fetch(&cpu_idlemap, (1L << cpu_number()));
 	usrframe_switch();
 }
 
@@ -321,6 +326,7 @@ void cpu_kick(void)
 }
 
 static void do_zombie(void);
+static void do_timer(void);
 
 void do_softirq(void)
 {
@@ -341,6 +347,11 @@ void do_softirq(void)
 			do_zombie();
 			si &= ~SOFTIRQ_ZOMBIE;
 		}
+
+		if (si & SOFTIRQ_TIMER) {
+			do_timer();
+			si &= ~SOFTIRQ_TIMER;
+		}
 	}
 }
 
@@ -350,7 +361,7 @@ static void do_zombie(void)
 
 	TAILQ_FOREACH_SAFE(th, &current_cpu()->resched, sched_list, tmp) {
 		TAILQ_REMOVE(&current_cpu()->resched, th, sched_list);
-		assert (th->status == THST_ZOMBIE);
+		assert(th->status == THST_ZOMBIE);
 		spinlock(&th->parent->children_lock);
 		LIST_REMOVE(th, child_list);
 		LIST_INSERT_HEAD(&th->parent->zombie_children, th,
@@ -392,7 +403,7 @@ void schedule(int newst)
 		return;
 
 	/* Volatile: changes in this function. */
-	oldth = (volatile struct thread *)current_thread();
+	oldth = (volatile struct thread *) current_thread();
 
 	/* Do not sleep if active signals */
 	if ((newst == THST_STOPPED) && thread_has_interrupts(oldth))
@@ -420,7 +431,7 @@ void schedule(int newst)
 		if (th == oldth)
 			goto _skip_resched;
 
-		thswitch(th); /* SWITCH current_thread() here. */
+		thswitch(th);	/* SWITCH current_thread() here. */
 
 		if (thread_is_idle(oldth))
 			goto _skip_resched;
@@ -430,12 +441,14 @@ void schedule(int newst)
 		switch (oldth->status) {
 		case THST_RUNNABLE:
 			spinlock(&sched_lock);
-			TAILQ_INSERT_TAIL(&running_threads, oldth, sched_list);
+			TAILQ_INSERT_TAIL(&running_threads, oldth,
+					  sched_list);
 			spinunlock(&sched_lock);
 			break;
 		case THST_STOPPED:
 			spinlock(&sched_lock);
-			TAILQ_INSERT_TAIL(&stopped_threads, oldth, sched_list);
+			TAILQ_INSERT_TAIL(&stopped_threads, oldth,
+					  sched_list);
 			spinunlock(&sched_lock);
 			break;
 		case THST_ZOMBIE:
@@ -449,7 +462,7 @@ void schedule(int newst)
 			panic("Uknown schedule state %d\n", oldth->status);
 		}
 
-	_skip_resched:
+	      _skip_resched:
 
 		_longjmp(th->ctx, 1);
 		panic("WTF.");
@@ -559,7 +572,8 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 
 	for (i = 0; i < round_page(sz) >> PAGE_SHIFT; i++) {
 		pfn = __allocuser();
-		pmap_uenter(NULL, trunc_page(addr) + i * PAGE_SIZE, pfn, prot, &pfn);
+		pmap_uenter(NULL, trunc_page(addr) + i * PAGE_SIZE, pfn,
+			    prot, &pfn);
 		if (pfn != PFN_INVALID) {
 			__freepage(pfn);
 			ret++;
@@ -569,7 +583,7 @@ unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 	/* Warning: accessing user space without checking (we are
 	   single threaded, area just mapped and still locked, it is
 	   fine, but future-fragile). */
-	memset((void *)trunc_page(addr), 0, round_page(sz));
+	memset((void *) trunc_page(addr), 0, round_page(sz));
 	return ret;
 }
 
@@ -681,7 +695,7 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 
 	th->usrdevs[i] = usrdev_creat(cfg, sig, mode);
 	dprintf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
-	       cfg->vendorid);
+		cfg->vendorid);
 	if (th->usrdevs[i] == NULL)
 		return -EEXIST;
 	return i;
@@ -827,6 +841,10 @@ void irqsignal(unsigned irq)
 	assert(irq < MAXIRQS);
 	spinlock(&irqsigs_lock);
 	LIST_FOREACH(irqsig, &irqsigs[irq], list) {
+		if (irqsig->handler) {
+			irqsig->handler(irqsig->sig);
+			continue;
+		}
 		if (irqsig->filter && !platform_irqfilter(irqsig->filter))
 			continue;
 		dprintf("Raising %p:%d\n", irqsig->th, irqsig->sig);
@@ -852,12 +870,121 @@ int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
 	irqsig->th = th;
 	irqsig->sig = sig;
 	irqsig->filter = filter;
+	irqsig->handler = NULL;
 
 	spinlock(&irqsigs_lock);
 	LIST_INSERT_HEAD(&irqsigs[irq], irqsig, list);
 	spinunlock(&irqsigs_lock);
 	platform_irqon(irq);
 	return 0;
+}
+
+int irqfnregister(struct irqsig *irqsig, unsigned irq,
+		  void (*handler) (void), unsigned opq)
+{
+	if (irq >= MAXIRQS)
+		return -EINVAL;
+	irqsig->th = NULL;
+	irqsig->sig = opq;
+	irqsig->filter = 0;
+	irqsig->handler = handler;
+	spinlock(&irqsigs_lock);
+	LIST_INSERT_HEAD(&irqsigs[irq], irqsig, list);
+	spinunlock(&irqsigs_lock);
+	platform_irqon(irq);
+	return 0;
+}
+
+static void do_timer(void)
+{
+	int updated;
+	uint64_t cnt = timer_readcounter();
+	struct timer *c, *t;
+
+	spinlock(&timers_lock);
+	updated = 0;
+	LIST_FOREACH_SAFE(c, &timers, list, t) {
+		if (c->time > cnt)
+			break;
+		if (c->handler != NULL) {
+			c->handler(cnt);
+		} else {
+			if (c->th->sysdev.alarm_sig != 0)
+				thraise(c->th,
+					c->th->sysdev.alarm_sig - 1);
+			c->th->sysdev.alarm_valid = 0;
+		}
+		LIST_REMOVE(c, list);
+		updated = 1;
+	}
+	if (updated) {
+		/* Update hw timer. */
+		c = LIST_FIRST(&timers);
+		if (c == NULL)
+			timer_disablealarm();
+		else
+			timer_setalarm(c->time);
+	}
+	spinunlock(&timers_lock);
+}
+
+static void timer_register(struct timer *t)
+{
+	uint64_t cnt = timer_readcounter();
+	struct timer *c;
+
+	spinlock(&timers_lock);
+	c = LIST_FIRST(&timers);
+	if (c == NULL) {
+		LIST_INSERT_HEAD(&timers, t, list);
+		goto out;
+	}
+	/* XXX: rollover */
+	while (t->time > c->time) {
+		if (LIST_NEXT(c, list) == NULL) {
+			LIST_INSERT_AFTER(c, t, list);
+			goto out;
+		}
+		c = LIST_NEXT(c, list);
+	}
+	LIST_INSERT_AFTER(c, t, list);
+      out:
+	/* Update hw timer. */
+	c = LIST_FIRST(&timers);
+	timer_setalarm(c->time);
+	spinunlock(&timers_lock);
+}
+
+static void timer_remove(struct timer *timer)
+{
+	struct timer *c;
+
+	spinlock(&timers_lock);
+	LIST_REMOVE(timer, list);
+	/* Update hw timer. */
+	c = LIST_FIRST(&timers);
+	if (c == NULL)
+		timer_disablealarm();
+	else
+		timer_setalarm(c->time);
+	spinunlock(&timers_lock);
+}
+
+void thalrm(uint64_t time)
+{
+	struct thread *th = current_thread();
+	struct thsysdev *sd = &th->sysdev;
+
+	if (sd->alarm_valid) {
+		timer_remove(&sd->alarm);
+		sd->alarm_valid = 0;
+	}
+
+	sd->alarm.time = time;
+	sd->alarm.th = th;
+	sd->alarm.handler = NULL;
+	sd->alarm_valid = 1;
+	timer_register(&sd->alarm);
 }
 
 static vaddr_t elfld(void *elfimg)
@@ -963,6 +1090,8 @@ void kern_boot(void)
 	th->egid = 0;
 	th->sgid = 0;
 
+	memset(&th->sysdev, 0, sizeof(th->sysdev));
+
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
 	/* We are idle thread now. */
@@ -1008,6 +1137,8 @@ void kern_bootap(void)
 	th->rgid = 0;
 	th->egid = 0;
 	th->sgid = 0;
+
+	memset(&th->sysdev, 0, sizeof(th->sysdev));
 
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
