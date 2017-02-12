@@ -625,6 +625,27 @@ int vmmap(vaddr_t addr, pmap_prot_t prot)
 	return ret;
 }
 
+int vmmap32(vaddr_t addr, pmap_prot_t prot)
+{
+	int ret = 0;
+	pfn_t pfn, opfn;
+
+	pfn = __allocuser32();
+	ret = pmap_uenter(NULL, addr, pfn, prot, &opfn);
+	pmap_commit(NULL);
+
+	if (ret < 0) {
+		__freepage(pfn);
+		return ret;
+	}
+
+	if (opfn != PFN_INVALID) {
+		__freepage(opfn);
+		ret = 1;
+	}
+	return ret;
+}
+
 int vmunmap(vaddr_t addr)
 {
 	int ret = 0;

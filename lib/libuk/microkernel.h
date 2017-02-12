@@ -68,6 +68,7 @@ typedef enum {
 } vm_prot_t;
 
 int vmmap(vaddr_t addr, vm_prot_t prot);
+int vmmap32(vaddr_t addr, vm_prot_t prot);
 int vmunmap(vaddr_t addr);
 int vmchprot(vaddr_t addr, vm_prot_t prot);
 

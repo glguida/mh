@@ -56,6 +56,7 @@ struct sys_childstat {
 #ifndef _ASSEMBLER
 typedef enum {
 	MAP_NEW = 0x100,
+	MAP_NEW32 = 0x200,
 	MAP_NONE = 0,
 	MAP_RDONLY = 1,
 	MAP_RDEXEC = 2,

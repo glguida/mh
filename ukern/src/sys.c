@@ -263,14 +263,16 @@ static int sys_close(unsigned ddno)
 
 static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
-	int np, ret;
+	struct thread *th = current_thread();
+	int np, np32, ret;
 	pmap_prot_t prot;
 
 	/* _probably_ should not kill it and just return an error,
 	 * like a nice, respectful OS */
 	procassert(__chkuaddr(trunc_page(vaddr), PAGE_SIZE));
 	np = perm & MAP_NEW;
-	perm &= ~MAP_NEW;
+	np32 = perm & MAP_NEW32;
+	perm &= ~(MAP_NEW | MAP_NEW32);
 
 	switch (perm) {
 	case MAP_RDONLY:
@@ -288,6 +290,7 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 	case MAP_NONE:
 		prot = 0;
 		np = 0;
+		np32 = 0;
 		break;
 	default:
 		dprintf("perm = %x\n", perm);
@@ -296,7 +299,12 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 
 	if (np)
 		ret = vmmap(vaddr, prot);
-	else if (!prot)
+	else if (np32) {
+		if (th->euid)
+			ret = -EPERM;
+		else
+			ret = vmmap32(vaddr, prot);
+	} else if (!prot)
 		ret = vmunmap(vaddr);
 	else
 		ret = vmchprot(vaddr, prot);
@@ -483,7 +491,7 @@ int sys_call(int sc,
 	case SYS_OPEN:
 		return sys_open(a1);
 	case SYS_OPEN32:
-		return sys_open32(a1,a2);
+		return sys_open32(a1, a2);
 	case SYS_EXPORT:
 		return sys_export(a1, a2, a3);
 	case SYS_RDCFG:

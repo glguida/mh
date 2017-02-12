@@ -49,6 +49,7 @@
 #define VFNT_WREXEC  5
 #define VFNT_IMPORT  6
 #define VFNT_MMIO    7
+#define VFNT_MEM32   8
 
 vaddr_t vmap_alloc(size_t size, uint8_t type);
 void vmap_free(vaddr_t va, size_t size);
@@ -56,6 +57,9 @@ void vmap_info(vaddr_t va, vaddr_t * start, size_t * size, uint8_t * type);
 
 int brk(void *);
 void *sbrk(int);
+
+void *dma32_alloc(size_t len);
+void dma32_free(void *vaddr, size_t len);
 
 
 /*

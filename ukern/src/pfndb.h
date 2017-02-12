@@ -103,4 +103,13 @@ static inline pfn_t __allocuser(void)
 	return pfn;
 }
 
+static inline pfn_t __allocuser32(void)
+{
+	pfn_t pfn;
+
+	pfn = pgalloc(1, PFNT_USER, GFP_MEM32);
+	pfn_clrref(pfn);
+	return pfn;
+}
+
 #endif

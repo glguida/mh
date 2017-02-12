@@ -30,9 +30,16 @@
 #include <machine/vmparam.h>
 #include <microkernel.h>
 
+#define PROTFLAGS (MAP_NEW|MAP_NEW32)
+
 int vmmap(vaddr_t addr, vm_prot_t prot)
 {
 	return sys_map(addr, prot | MAP_NEW);
+}
+
+int vmmap32(vaddr_t addr, vm_prot_t prot)
+{
+	return sys_map(addr, prot | MAP_NEW32);
 }
 
 int vmunmap(vaddr_t addr)
@@ -42,5 +49,5 @@ int vmunmap(vaddr_t addr)
 
 int vmchprot(vaddr_t addr, vm_prot_t prot)
 {
-	return sys_map(addr, prot & ~MAP_NEW);
+	return sys_map(addr, prot & ~PROTFLAGS);
 }
