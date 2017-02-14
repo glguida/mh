@@ -53,16 +53,12 @@
 				    && (_th)->softintrs)
 
 struct timer {
+	int valid;
 	uint64_t time;
 	struct thread *th;
+	int sig;
 	void (*handler) (uint64_t);
 	 LIST_ENTRY(timer) list;
-};
-
-struct thsysdev {
-	int alarm_valid;
-	unsigned alarm_sig;
-	struct timer alarm;
 };
 
 struct thread {
@@ -97,7 +93,12 @@ struct thread {
 #define THFL_INTR (1L << 0)
 	uint32_t userfl;
 
-	struct thsysdev sysdev;
+	int vtt_almdiff;
+	uint64_t vtt_offset;
+	uint64_t vtt_rttbase;
+
+	struct timer rtt_alarm;
+	struct timer vtt_alarm;
 
 	u_long softintrs;
 	uint16_t status;
@@ -184,6 +185,8 @@ uint64_t timer_readperiod(void);
 void timer_setcounter(uint64_t cnt);
 void timer_event(void);
 
-void thalrm(uint64_t time);
+void thalrm(uint32_t diff);
+void thvtalrm(uint32_t diff);
+uint64_t thvtt(struct thread *th);
 
 #endif

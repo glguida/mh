@@ -62,11 +62,14 @@ static int _sysdev_in(void *devopq, unsigned id, uint32_t port,
 	uint64_t ioval;
 
 	switch (ioport) {
-	case SYSDEVIO_TMRCNT:
-		ioval = timer_readcounter();
-		break;
 	case SYSDEVIO_TMRPRD:
 		ioval = timer_readperiod();
+		break;
+	case SYSDEVIO_RTTCNT:
+		ioval = timer_readcounter();
+		break;
+	case SYSDEVIO_VTTCNT:
+		ioval = thvtt(th);
 		break;
 	default:
 		ioval = -1;
@@ -85,11 +88,14 @@ static int _sysdev_out(void *devopq, unsigned id, uint32_t port,
 	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 
 	switch (ioport) {
-	case SYSDEVIO_ALMCNT:
+	case SYSDEVIO_RTTALM:
 		/* Adder is 32 bit */
-		val = (uint32_t) val + timer_readcounter();
+		val = (uint32_t)val;
 		thalrm(val);
 		break;
+	case SYSDEVIO_VTTALM:
+		val = (uint32_t)val;
+		thvtalrm(val);
 	default:
 		break;
 	}
@@ -121,10 +127,17 @@ static int _sysdev_irqmap(void *devopq, unsigned id, unsigned irq,
 {
 	struct thread *th = current_thread();
 
-	if (irq != 0)
-		return -EINVAL;
-
-	th->sysdev.alarm_sig = sig + 1;
+	switch (irq) {
+	case SYSDEVIO_RTTINT:
+		th->rtt_alarm.sig = sig + 1;
+		break;
+	case SYSDEVIO_VTTINT:
+		th->vtt_alarm.sig = sig + 1;
+		break;
+	default:
+		dprintf("%s: invalid SYDEVIO irq.\n");
+		break;
+	}
 	return 0;
 }
 

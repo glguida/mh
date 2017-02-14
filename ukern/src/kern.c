@@ -160,7 +160,12 @@ static struct thread *thnew(void (*__start) (void))
 
 	memset(&th->usrdevs, 0, sizeof(th->usrdevs));
 	memset(&th->bus, 0, sizeof(th->bus));
-	memset(&th->sysdev, 0, sizeof(th->sysdev));
+	memset(&th->rtt_alarm, 0, sizeof(th->rtt_alarm));
+	memset(&th->vtt_alarm, 0, sizeof(th->vtt_alarm));
+
+	th->vtt_almdiff = 0;
+	th->vtt_offset = 0;
+	th->vtt_rttbase = 0;
 
 	_setupjmp(th->ctx, __start, th->stack_4k + 0xff0);
 	return th;
@@ -208,8 +213,13 @@ struct thread *thfork(void)
 	nth->sigip = cth->sigip;
 	nth->sigsp = cth->sigsp;
 
+	nth->vtt_almdiff = 0;
+	nth->vtt_rttbase = 0;
+	nth->vtt_offset = 0;
+
 	/* XXX: What to do on fork */
-	memset(&nth->sysdev, 0, sizeof(nth->sysdev));
+	memset(&nth->rtt_alarm, 0, sizeof(nth->rtt_alarm));
+	memset(&nth->vtt_alarm, 0, sizeof(nth->vtt_alarm));
 
 	/* XXX: What to do on fork */
 	memset(&nth->usrdevs, 0, sizeof(nth->usrdevs));
@@ -431,7 +441,19 @@ void schedule(int newst)
 		if (th == oldth)
 			goto _skip_resched;
 
+		oldth->vtt_offset = thvtt(oldth);
+		if (oldth->vtt_alarm.valid) {
+			uint64_t ctime = timer_readcounter();
+			uint64_t ttime = oldth->vtt_alarm.time;
+			oldth->vtt_almdiff = ttime > ctime ?
+				ttime - ctime : 1;
+		}
+		timer_remove(&oldth->vtt_alarm);
 		thswitch(th);	/* SWITCH current_thread() here. */
+		th->vtt_rttbase = timer_readcounter();
+		if (th->vtt_almdiff) {
+			thvtalrm(th->vtt_almdiff);
+		}
 
 		if (thread_is_idle(oldth))
 			goto _skip_resched;
@@ -930,11 +952,12 @@ static void do_timer(void)
 		if (c->handler != NULL) {
 			c->handler(cnt);
 		} else {
-			if (c->th->sysdev.alarm_sig != 0)
+			if (c->sig != 0) {
 				thraise(c->th,
-					c->th->sysdev.alarm_sig - 1);
-			c->th->sysdev.alarm_valid = 0;
+					c->sig - 1);
+			}
 		}
+		c->valid = 0;
 		LIST_REMOVE(c, list);
 		updated = 1;
 	}
@@ -953,6 +976,9 @@ static void timer_register(struct timer *t)
 {
 	uint64_t cnt = timer_readcounter();
 	struct timer *c;
+
+	if (!t->valid)
+		return;
 
 	spinlock(&timers_lock);
 	c = LIST_FIRST(&timers);
@@ -976,10 +1002,12 @@ static void timer_register(struct timer *t)
 	spinunlock(&timers_lock);
 }
 
-static void timer_remove(struct timer *timer)
+void timer_remove(struct timer *timer)
 {
 	struct timer *c;
 
+	if (!timer->valid)
+		return;
 	spinlock(&timers_lock);
 	LIST_REMOVE(timer, list);
 	/* Update hw timer. */
@@ -989,23 +1017,40 @@ static void timer_remove(struct timer *timer)
 	else
 		timer_setalarm(c->time);
 	spinunlock(&timers_lock);
+	timer->valid = 0;
 }
 
-void thalrm(uint64_t time)
+void thalrm(uint32_t diff)
 {
 	struct thread *th = current_thread();
-	struct thsysdev *sd = &th->sysdev;
+	struct timer *t = &th->rtt_alarm;
 
-	if (sd->alarm_valid) {
-		timer_remove(&sd->alarm);
-		sd->alarm_valid = 0;
-	}
+	timer_remove(t);
+	t->time = timer_readcounter() + diff;
+	t->th = th;
+	t->handler = NULL;
+	t->valid = 1;
+	timer_register(t);
+}
 
-	sd->alarm.time = time;
-	sd->alarm.th = th;
-	sd->alarm.handler = NULL;
-	sd->alarm_valid = 1;
-	timer_register(&sd->alarm);
+void thvtalrm(uint32_t vtdiff)
+{
+	struct thread *th = current_thread();
+	struct timer *t = &th->vtt_alarm;
+
+	timer_remove(t);
+	t->time = timer_readcounter() + vtdiff;
+	t->th = th;
+	t->handler = NULL;
+	t->valid = 1;
+	dprintf("Setting vtalm at %lx\n", (uint32_t)t->time);
+	timer_register(t);
+}
+
+uint64_t thvtt(struct thread *th)
+{
+	assert(th == current_thread());
+	return timer_readcounter() - th->vtt_rttbase + th->vtt_offset;
 }
 
 static vaddr_t elfld(void *elfimg)
@@ -1111,7 +1156,12 @@ void kern_boot(void)
 	th->egid = 0;
 	th->sgid = 0;
 
-	memset(&th->sysdev, 0, sizeof(th->sysdev));
+	th->vtt_almdiff = 0;
+	th->vtt_offset = 0;
+	th->vtt_rttbase = 0;
+
+	memset(&th->rtt_alarm, 0, sizeof(th->rtt_alarm));
+	memset(&th->vtt_alarm, 0, sizeof(th->vtt_alarm));
 
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;
@@ -1159,7 +1209,12 @@ void kern_bootap(void)
 	th->egid = 0;
 	th->sgid = 0;
 
-	memset(&th->sysdev, 0, sizeof(th->sysdev));
+	th->vtt_almdiff = 0;
+	th->vtt_offset = 0;
+	th->vtt_rttbase = 0;
+
+	memset(&th->rtt_alarm, 0, sizeof(th->rtt_alarm));
+	memset(&th->vtt_alarm, 0, sizeof(th->vtt_alarm));
 
 	set_current_thread(th);
 	current_cpu()->idle_thread = th;

@@ -206,11 +206,16 @@ struct sys_hwcreat_cfg {
 /*
  * System Device
  */
-/* Input Ports */
-#define SYSDEVIO_TMRPRD 0
-#define SYSDEVIO_TMRCNT 1
-#define SYSDEVIO_ALMCNT 2
 
+/* I/O Ports */
+#define SYSDEVIO_TMRPRD 0 /* Read */
+#define SYSDEVIO_RTTCNT 1 /* Read */
+#define SYSDEVIO_RTTALM 1 /* Write */
+#define SYSDEVIO_VTTCNT 2 /* Read */
+#define SYSDEVIO_VTTALM 2 /* Write */
+/* Interrupts */
+#define SYSDEVIO_RTTINT 0
+#define SYSDEVIO_VTTINT 1
 
 #ifdef _UKERNEL
 int sys_call(int sc, unsigned long a1, unsigned long a2,

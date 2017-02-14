@@ -1,0 +1,99 @@
+SYSDEV I/O Specification.
+
+0. Introduction
+===============
+
+SYSDEV is a per-process private device, automatically added to the
+process's bus on creation.
+
+It controls system resources specific to the process but handled by
+the kernel.
+
+SYSDEV is partitioned in the following system.
+
+ 1. Timers
+ 2. Memory Controller
+ 3. Bus Controller
+ 4. Miscellanea
+
+
+1. Timers
+=========
+
+SYSDEV provides the user of two timers: a real-time timer (RTT) and a
+virtual-time timer (VTT).
+RTT is started shortly after the bootstrap of the system and follows
+real (i.e. wall clock) time.
+VTT is started with the creation of the process and measures the time
+the process has been effectively running. VTT is paused when the
+process is descheduled, and resumed when the process is running.
+
+
+List of I/O ports:
+
+ - SYSDEVIO_TMRPRD(0): RO
+
+  Bit 0-64: Timer Counter Period. - RO
+
+      	    Returns the period in femtoseconds (10^-15 secs) of a tick
+      	    of the timers. This value (TMRPRD), can be used to
+      	    translate counter values, used by the device, into
+      	    seconds.
+
+
+ - SYSDEVIO_RTTCNT(1): RD
+
+ Bit 0-64: RTT Counter - RD
+
+     	   Returns the current value of the real-time timer (RTT)
+     	   counter. The system counter is set to zero shortly after
+     	   boot time and continuosly incremented (see
+     	   SYSDEVIO_TMRPRD).
+
+
+ - SYSDEVIO_RTTALM(1): WR
+
+ Bit 0-32: RTT Alarm (RTTA) - WR
+
+     	   Arm the timer to raise a RTTINT interrupt in RTTA ticks of
+     	   the real-time timer.
+
+ Bit 0-64: Reserved. - MBZ
+
+     	   These bits should be set to zero.
+
+
+ - SYSDEVIO_VTTCNT(1): RD
+
+ Bit 0-64: VTT Counter - RD
+
+     	   Returns the current value of the virtual time timer (VTT)
+     	   counter. The system counter is set to zero at process
+     	   creation time and incremented only when the process is
+     	   running.
+
+
+ - SYSDEVIO_VTTALM(1): WR
+
+ Bit 0-32: VTT Alarm (VTTA) - WR
+
+     	   Arm the timer to raise a  VTTINT interrupt in VTTA ticks of
+     	   the virtual-time timer.
+
+ Bit 0-64: Reserved. - MBZ
+
+     	   These bits should be set to zero.
+
+
+List of Interrupts:
+
+ - IRQ0 - RTTINT
+
+   	  Raised by the RTT Alarm.
+
+
+ - IRQ1 - VTTINT
+
+   	  Raised by the VTT Alarm.
+
+
