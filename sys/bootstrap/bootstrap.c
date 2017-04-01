@@ -22,7 +22,7 @@ void devadd(struct sys_hwcreat_cfg *cfg)
 		char *name = unsquoze(cfg->nameid);
 		printf("Error adding device \"%s\": %d\n", name, ret);
 		free(name);
-		free(d);
+		return;
 	}
 
 	d = malloc(sizeof(*d));
