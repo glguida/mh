@@ -73,7 +73,7 @@ struct sys_rdcfg_cfg {
 #define SYS_RDCFG_IOSEG(_cfg, _i) ((_cfg)->segs[(_cfg)->nirqsegs + (_i)])
 #define SYS_RDCFG_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
 #define SYS_RDCFG_MAX_SEGMENTS 24
-#define SYS_RDCFG_MAX_MEMSEGMENTS 16
+#define SYS_RDCFG_MAX_MEMSEGMENTS 24
 #define SYS_RDCFG_FLAGS_HW    1
 	uint64_t nameid;
 	uint64_t vendorid;
@@ -151,7 +151,7 @@ struct sys_poll_ior {
 #ifndef _ASSEMBLER
 #define SYS_HWCREAT_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
 #define SYS_HWCREAT_MAX_SEGMENTS 24
-#define SYS_HWCREAT_MAX_MEMSEGMENTS 16
+#define SYS_HWCREAT_MAX_MEMSEGMENTS 24
 
 struct sys_hwcreat_cfg {
 	uint64_t nameid;
