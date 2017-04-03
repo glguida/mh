@@ -200,7 +200,6 @@ static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 		platform_outl(ioport, val);
 		break;
 	default:
-		printf("Meh: %llx\n", port);
 		return -EINVAL;
 	}
 	return 0;

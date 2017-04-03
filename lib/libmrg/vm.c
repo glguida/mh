@@ -151,7 +151,6 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 	case PG_ERR_REASON_NOTP:
 		/* XXX: Find if we need to swap in from somewhere */
 		/* XXX: For now, just populate new page */
-		printf("_: mapping %lx with prot %x\n", va, prot);
 		vmmap(va, prot);
 		return 0;
 	case PG_ERR_REASON_PROT:

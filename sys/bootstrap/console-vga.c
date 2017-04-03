@@ -141,7 +141,6 @@ int console_vga_init(uint64_t nameid)
 
 	unsquozelen(nameid, 13, name);
 
-	printf("opening %d\n", name);
 	vgad = dopen(name);
 	if (vgad == NULL)
 		return -ENOENT;

@@ -80,11 +80,9 @@ static int sys_wait(void)
 {
 	struct thread *th = current_thread();
 
-	dprintf("Sleeping");
 	/* Can't sleep with Interrupts disabled */
 	th->userfl |= THFL_INTR;
 	schedule(THST_STOPPED);
-	dprintf("Woken");
 	return 0;
 }
 
@@ -142,7 +140,6 @@ static int sys_poll(unsigned did, uaddr_t uior)
 	if (id < 0)
 		return id;
 
-	dprintf("sior.val = %" PRIx64 "\n", sior.val);
 	ret = copy_to_user(uior, &sior, sizeof(struct sys_poll_ior));
 	if (ret)
 		return ret;
@@ -293,7 +290,6 @@ static int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 		np32 = 0;
 		break;
 	default:
-		dprintf("perm = %x\n", perm);
 		return -EINVAL;
 	}
 
@@ -330,7 +326,6 @@ static int sys_iomap(unsigned ddno, vaddr_t va, uint64_t mmioaddr)
 
 	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
 		return -EINVAL;
-	dprintf("using prot %d ", prot);
 	return deviomap(ddno, va, mmioaddr, prot);
 }
 

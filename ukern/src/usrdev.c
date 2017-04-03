@@ -124,7 +124,6 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	ret = i;
       out:
 	spinunlock(&ud->lock);
-	dprintf("open %" PRIx64 "! = %d", did, ret);
 	return ret;
 }
 
@@ -141,7 +140,6 @@ static int _usrdev_in(void *devopq, unsigned id, uint32_t port,
 	start = MIN(ioport, IOSPACESZ);
 	end = MIN(start + iosize, IOSPACESZ);
 
-	dprintf("Reading space (%d): port %d (%d)\n", port, start, iosize);
 	ioval = -1;
 	ptr = (uint8_t *)&ioval;
 	spinlock(&ud->lock);
@@ -149,7 +147,6 @@ static int _usrdev_in(void *devopq, unsigned id, uint32_t port,
 		ptr[i - start] = ud->remths[id].iospace[i];
 	}
 	spinunlock(&ud->lock);
-	dprintf("ioval = %llx\n", ioval);
 	*val = ioval;
 	return 0;
 }
@@ -388,7 +385,6 @@ int usrdev_wriospace(struct usrdev *ud, unsigned id, uint32_t port,
 	start = MIN(ioport, IOSPACESZ);
 	end = MIN(start + iosize, IOSPACESZ);
 
-	dprintf("Writing space %lld at port %d:  %d (%d)\n", val, port, start, iosize);
 	ptr = (uint8_t *)&val;
 	spinlock(&ud->lock);
 	for (i = start; i < end; i++)
@@ -406,9 +402,7 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 		return -EINVAL;
 	spinlock(&ud->lock);
 	sig = ud->remths[id].irqmap[irq] - 1;
-	dprintf("-> %d, %d\n", ud->remths[id].use, sig);
 	if ((sig != -1) && ud->remths[id].use) {
-		dprintf("raising");
 		thraise(ud->remths[id].th, sig);
 	}
 	spinunlock(&ud->lock);

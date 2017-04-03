@@ -859,7 +859,6 @@ int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot)
 {
 	struct thread *th = current_thread();
 
-	dprintf("(m %d) ", prot);
 	return bus_iomap(&th->bus, dd, va, mmioaddr, prot);
 }
 
@@ -890,7 +889,6 @@ void irqsignal(unsigned irq)
 		}
 		if (irqsig->filter && !platform_irqfilter(irqsig->filter))
 			continue;
-		dprintf("Raising %p:%d\n", irqsig->th, irqsig->sig);
 		thraise(irqsig->th, irqsig->sig);
 	}
 	spinunlock(&irqsigs_lock);

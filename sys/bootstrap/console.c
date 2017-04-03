@@ -184,7 +184,6 @@ pltconsole_process(void)
 {
 	int ret, pid;
 
-	/* Search for console devices */
 	pid = sys_fork();
 	if (pid < 0)
 		return pid;

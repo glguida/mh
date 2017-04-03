@@ -58,7 +58,6 @@ int bus_plug(struct bus *b, uint64_t did)
 	int i, devid, ret;
 	struct dev *d;
 
-	dprintf("bus: opening device %llx\n", did);
 	spinlock(&sys_device_rbtree_lock);
 	d = rb_tree_find_node(&sys_device_rbtree, (void *) &did);
 	spinunlock(&sys_device_rbtree_lock);

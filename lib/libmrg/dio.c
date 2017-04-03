@@ -43,8 +43,10 @@ DEVICE *dopen(char *devname)
 	struct sys_rdcfg_cfg cfg;
 
 	d = malloc(sizeof(*d));
-	if (d == NULL)
+	if (d == NULL) {
+		perror("malloc");
 		return NULL;
+	}
 	memset(d, 0, sizeof(*d));
 
 	nameid = squoze(devname);
