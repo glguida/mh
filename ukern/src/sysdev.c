@@ -56,7 +56,6 @@ static void _sysdev_close(void *devopq, unsigned id)
 static int _sysdev_in(void *devopq, unsigned id, uint32_t port,
 		      uint64_t * val)
 {
-	uint8_t iosize = 1 << (port & IOPORT_SIZEMASK);
 	uint16_t ioport = port >> IOPORT_SIZESHIFT;
 	struct thread *th = current_thread();
 	uint64_t ioval;
@@ -96,6 +95,11 @@ static int _sysdev_out(void *devopq, unsigned id, uint32_t port,
 	case SYSDEVIO_VTTALM:
 		val = (uint32_t)val;
 		thvtalrm(val);
+		break;
+	case SYSDEVIO_CONSON:
+		/* Console is on: use only klog_putc */
+		_setputcfn(NULL, NULL);
+		break;
 	default:
 		break;
 	}

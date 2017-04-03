@@ -140,13 +140,24 @@ console_io_out(int id, uint32_t port, uint64_t val, uint8_t size)
 	}
 }
 
+static void console_klogon(void)
+{
+	DEVICE *d;
+
+	d = dopen("SYSTEM");
+	assert(d != NULL);
+	dout(d, IOPORT_BYTE(SYSDEVIO_CONSON), 1);
+	dclose(d);
+	d = NULL;
+}
+
 static void pltconsole()
 {
 	int ret;
 	struct sys_creat_cfg cfg;
 	int i;
-	uint64_t pnpid = squoze("PNP0900");
-	struct device *tmp, *d = NULL;
+	uint64_t pnpid;
+	struct device *tmp, *d;
 	
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.nameid = CONSOLE_NAMEID;
@@ -187,9 +198,10 @@ static void pltconsole()
 			}
 		}
 	}
-	if (d != NULL)
+	if (d != NULL) {
+		console_klogon();
 		console_vga_init(d->nameid);
-	else {
+	} else {
 		/* VGA NOT FOUND. Keep using kernel putc */
 	}
 	lwt_sleep();

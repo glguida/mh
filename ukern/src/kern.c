@@ -71,6 +71,8 @@ void __bad_thing(int user, const char *format, ...)
 {
 	va_list ap;
 
+	extern void _boot_putc(int);
+	_setputcfn(_boot_putc, NULL);
 	printf("(bad thing at CPU %d): ", cpu_number());
 	va_start(ap, format);
 	vprintf(format, ap);

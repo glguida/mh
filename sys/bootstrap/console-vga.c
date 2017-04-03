@@ -3,7 +3,7 @@
 #include "vgahw.h"
 #include "internal.h"
 
-#define VGA_COLORATTR 0x18
+#define VGA_COLORATTR 0x17
 
 static DEVICE *vgad = NULL;
 

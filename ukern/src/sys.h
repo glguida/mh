@@ -213,9 +213,24 @@ struct sys_hwcreat_cfg {
 #define SYSDEVIO_RTTALM 1 /* Write */
 #define SYSDEVIO_VTTCNT 2 /* Read */
 #define SYSDEVIO_VTTALM 2 /* Write */
+
+#define SYSDEVIO_CONSON 0x100 /* Write */
+
 /* Interrupts */
 #define SYSDEVIO_RTTINT 0
 #define SYSDEVIO_VTTINT 1
+
+/*
+ * Kernel Log Device
+ */
+
+/* I/O Ports */
+#define KLOGDEVIO_GETC   0 /* Read */
+#define KLOGDEVIO_SZ     1 /* Read */
+#define KLOGDEVIO_IE     2 /* Read/Write */
+#define KLOGDEVIO_ISR    3 /* Read/Write */
+/* Interrupts */
+#define KLOGDEVIO_AVLINT 0
 
 #ifdef _UKERNEL
 int sys_call(int sc, unsigned long a1, unsigned long a2,

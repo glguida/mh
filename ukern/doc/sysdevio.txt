@@ -97,3 +97,19 @@ List of Interrupts:
    	  Raised by the VTT Alarm.
 
 
+
+4. Miscellanea
+==============
+
+This section of the SYSDEVIO specification includes various system related tasks.
+
+List of I/O ports:
+
+ - SYSDEVIO_CONSON(0x100): WR
+
+  Bit 0-64: Ignored
+
+      	    Values written to this register are ignored. The act of writing disable
+	    the boot console, and turns on the KLOGDEV device.
+	    This is run at boot when the console device is fully running.
+

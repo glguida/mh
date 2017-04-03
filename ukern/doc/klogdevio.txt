@@ -1,0 +1,62 @@
+KLOGDEV I/O Specification.
+
+0. Introduction
+===============
+
+KLOGDEV is a global device, always present.
+
+It is used to retrieve log data produced by the kernel. Its owner is
+the super user, and only one process can open it.
+
+
+List of I/O ports:
+
+ - KLOGDEVIO_GETC(0): RO
+
+  Bit 0-64: Kernel Log Buffer Read. - RO
+
+      	    Retrieve characters from the kernel log packed into the
+	    64bit value.  I/O size of the operation (byte, word,
+	    doubleword, quadword), affects the number of 8-bit
+	    characters stored (one, two, four, and eight). In case
+	    more than one character is requested, characters are
+	    stored in order, the first in the MSB and the last
+	    in the LSB.
+
+ - KLOGDEVIO_SZ(1): RO
+
+  Bit 0-64: Kernel Log Buffer Size. - RO
+
+      	    Return the number of characters currently stored in the
+      	    kernel log buffer.
+
+ - KLOGDEVIO_IE: RW
+
+  Bit 0: AVL Interrupt Enable registers (AVLIE) - RW
+
+      	    On write, request AVLINT when the Kernel Log Buffer is non-empty.
+
+  Bit 1-63: Reserved.
+
+ - KLOGDEVIO_ISR: RW
+
+  Bit 0: AVL Interrupt Status Register (AVLISR) - WTC
+
+      	     This bit is set to 1 by the device when the AVL interrupt
+      	     is raised. No further AVL interrupt will be raised (if
+      	     enabled) until this bit is set.
+
+	     Writing 1 to this bit clears the bit, and if AVLIE is on
+	     a new AVL interrupt will be raised when a new character
+	     is added to the Kernel Log Buffer.
+	     Clearing AVLISR with AVLIE set and characters available
+	     in the Kernel Log Buffer does not raise an AVLINT.
+	     
+
+List of Interrupts:
+
+ - AVLINT(0): Available Characters Interrupt
+
+	     This interrupt is raised (see AVLIE, AVLISR) when a
+	     character is added to the Kernel Log Buffer.
+

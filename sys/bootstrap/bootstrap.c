@@ -82,7 +82,6 @@ int main()
 	 * THE REST IS HIGHLY TEMPORARY.
 	 */
 
-	lwt_sleep();
 	/* create console device. */
 	ret = pltconsole_process();
 	if (ret <= 0) {
@@ -91,16 +90,22 @@ int main()
 	}
 	printf("PLTCONSOLE started as pid %d\n", ret);
 
-	/* fork and create kloggerd.
-	 * ret = kloggerd_process(); */
-
 	/* open console */
+	printf("bootstrap: waiting for console.\n");
 	console = dopen("console");
-	while (console == NULL) {
-		printf("(%d)...", ret);
+	int i = 0;
+	while (console == NULL && i++ < 3) {
 		lwt_pause();
 		console = dopen("console");
 	}
+	if (console == NULL) {
+		printf("ERROR!\n");
+		exit(-1);
+	}
+	printf("bootstrap: console opened\n");
+
+	/* fork and create kloggerd. */
+	ret = klogger_process();
 
 	consevt = evtalloc();
 	ret = dmapirq(console, CONSIO_IRQ_KBDATA, consevt);

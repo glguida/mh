@@ -36,14 +36,14 @@
 #define	MIN(a,b)	((/*CONSTCOND*/(a)<(b))?(a):(b))
 #define	MAX(a,b)	((/*CONSTCOND*/(a)>(b))?(a):(b))
 
-int (*putc) (int);
-int (*sysputc) (int);
+void putc(int);
+void sysputc(int);
 void *memset(void *b, int c, size_t len);
 void *memcpy(void *d, void *s, size_t len);
 int memcmp(void *s1, void *s2, size_t len);
 int vprintf(const char *fmt, va_list ap);
 int printf(const char *, ...) __printflike(1, 2);
-void _setputcfn(int (*)(int), int (*)(int));
+void _setputcfn(void (*)(int), void (*)(int));
 int fls(int);
 int ffs(int);
 

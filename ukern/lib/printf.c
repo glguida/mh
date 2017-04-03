@@ -31,15 +31,30 @@
 #include <uk/stdarg.h>
 #include <lib/lib.h>
 
-extern int _boot_putc(int);
-extern int _boot_sysputc(int);
-int (*putc) (int) = _boot_putc;
-int (*sysputc) (int) = _boot_sysputc;
+extern void _boot_putc(int);
+extern void _boot_sysputc(int);
+extern void klog_putc(int);
+void (*kernputcfn) (int) = _boot_putc;
+void (*sysputcfn) (int) = _boot_sysputc;
 
-void _setputcfn(int (*fn) (int), int (*sysfn) (int))
+void putc(int ch)
 {
-	putc = fn;
-	sysputc = sysfn;
+	klog_putc(ch);
+	if (kernputcfn)
+		kernputcfn(ch);
+}
+
+void sysputc(int ch)
+{
+	klog_putc(ch);
+	if (sysputcfn)
+		sysputcfn(ch);
+}
+
+void _setputcfn(void (*fn) (int), void (*sysfn) (int))
+{
+	kernputcfn = fn;
+	sysputcfn = sysfn;
 }
 
 int __printflike(1, 2) printf(const char *fmt, ...)
