@@ -159,9 +159,26 @@ static void pltconsole()
 		mrg_panic("Cannot create console: devcreat() [%d]", ret);
 	devid = ret;
 
-	console_kbd_init();
+	/* Search for PNP0303 in devices */
+	d = NULL;
+	pnpid = squoze("PNP0303");
+	SLIST_FOREACH(tmp, &devices, list) {
+		for (i = 0; i < DEVICEIDS; i++) {
+			if (tmp->deviceids[i] == pnpid)  {
+				d = tmp;
+				break;
+			}
+		}
+	}
+	if (d != NULL) {
+		console_kbd_init(d->nameid);
+	} else {
+		printf("No keyboard found");
+	}
 
 	/* Search for PNP0900 in devices */
+	d = NULL;
+	pnpid = squoze("PNP0900");
 	SLIST_FOREACH(tmp, &devices, list) {
 		for (i = 0; i < DEVICEIDS; i++) {
 			if (tmp->deviceids[i] == pnpid)  {

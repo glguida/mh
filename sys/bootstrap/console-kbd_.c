@@ -131,14 +131,20 @@ static void __kbd_ast(void)
 }
 
 int
-console_kbd_init(void)
+console_kbd_init(uint64_t nameid)
 {
 	int ret, irq, kbdevt;
+	uint64_t pnpid = squoze("PNP0303");
+	struct device *tmp, *d = NULL;
 	struct dinfo info;
 
-	kbdd = dopen("KBD_");
-	if (kbdd == NULL)
+	char name[13];
+	unsquozelen(nameid, 13, name);
+	kbdd = dopen(name);
+	if (kbdd == NULL) {
+		printf("NO KBD_ FOUND");
 		return -ENOENT;
+	}
 
 	ret = dgetinfo(kbdd, &info);
 	if (ret)

@@ -38,7 +38,7 @@ int pltusb_process(void);
 int pltconsole_process(void);
 
 void kbdbuf_add(int id, uint8_t c);
-int console_kbd_init(void);
+int console_kbd_init(uint64_t nameid);
 int console_vga_init(uint64_t nameid);
 
 #endif
