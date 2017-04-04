@@ -217,8 +217,10 @@ pltconsole_process(void)
 	if (pid < 0)
 		return pid;
 
-	if (pid == 0)
+	if (pid == 0) {
 		pltconsole();
+		exit(0);
+	}
 
 	return pid;
 }
