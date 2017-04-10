@@ -1,7 +1,6 @@
 #ifndef _internal_h
 #define _internal_h
 
-#include <sys/null.h>
 #include <inttypes.h>
 #include <sys/queue.h>
 

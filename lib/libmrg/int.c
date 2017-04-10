@@ -1,4 +1,3 @@
-#include <sys/null.h>
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/errno.h>

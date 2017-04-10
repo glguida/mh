@@ -41,16 +41,16 @@ __RCSID("$NetBSD: crt0-common.c,v 1.13 2013/01/31 22:24:25 matt Exp $");
 
 #include <sys/types.h>
 #include <sys/exec.h>
-#ifndef _DREX_SOURCE
+#ifndef __MURGIA__
 #include <sys/syscall.h>
 #endif
 #include <machine/profile.h>
 #include <stdlib.h>
-#ifndef _DREX_SOURCE
+#ifndef __MURGIA__
 #include <unistd.h>
 #endif
 
-#ifndef _DREX_SOURCE
+#ifndef __MURGIA__
 #include "rtld.h"
 #else
 #define Obj_Entry void
@@ -89,8 +89,8 @@ char		*__progname = empty_string;
 __dead __dso_hidden void ___start(void (*)(void), const Obj_Entry *,
 			 struct ps_strings *);
 
-#ifdef _DREX_SOURCE
-#define write(fd, s, n) printf((s));
+#ifdef __MURGIA__
+#define write(fd, s, n)
 #else
 #define	write(fd, s, n)	__syscall(SYS_write, (fd), (s), (n))
 #endif
@@ -150,7 +150,7 @@ _fini(void)
 }
 #endif /* HAVE_INITFINI_ARRAY */
 
-#ifdef _DREX_SOURCE
+#ifdef __MURGIA__
 static char *_empty_ps_argvstr[1] = { "_no_info", };
 
 static struct ps_strings _empty_ps_strings = {
@@ -167,7 +167,7 @@ ___start(void (*cleanup)(void),			/* from shared loader */
 {
 
 	if (ps_strings == NULL)
-#ifdef _DREX_SOURCE		
+#ifdef __MURGIA__
 		ps_strings = &_empty_ps_strings;
 #else
 		_FATAL("ps_strings missing\n");
@@ -188,7 +188,7 @@ ___start(void (*cleanup)(void),			/* from shared loader */
 	}
 
 	if (&rtld_DYNAMIC != NULL) {
-#ifndef _DREX_SOURCE
+#ifndef __MURGIA__
 		if (obj == NULL)
 			_FATAL("NULL Obj_Entry pointer in GOT\n");
 		if (obj->magic != RTLD_MAGIC)
@@ -198,8 +198,6 @@ ___start(void (*cleanup)(void),			/* from shared loader */
 #endif
 		atexit(cleanup);
 	}
-
-	_libc_init();
 
 #ifdef HAVE_INITFINI_ARRAY
 	_preinit();

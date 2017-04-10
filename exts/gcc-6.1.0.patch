@@ -27,12 +27,9 @@ diff -Nru gcc-6.1.0.dist/gcc/config/i386/rtems.h gcc-6.1.0/gcc/config/i386/rtems
 diff -Nru gcc-6.1.0.dist/gcc/config/murgia.h gcc-6.1.0/gcc/config/murgia.h
 --- gcc-6.1.0.dist/gcc/config/murgia.h	1970-01-01 01:00:00.000000000 +0100
 +++ gcc-6.1.0/gcc/config/murgia.h	2016-05-08 15:25:14.290965849 +0100
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,16 @@
 +#undef TARGET_MURGIA
 +#define TARGET_MURGIA 1
-+
-+#define TARGET_OBJECT_SUFFIX ".obj"
-+#define TARGET_EXECUTABLE_SUFFIX ".exe"
 +
 +#define LIB_SPEC "-lc -lmrg -lc -luk"
 +
@@ -44,6 +41,8 @@ diff -Nru gcc-6.1.0.dist/gcc/config/murgia.h gcc-6.1.0/gcc/config/murgia.h
 +  do {									 \
 +    builtin_define_std ("__MURGIA__");					 \
 +    builtin_assert ("system=murgia");					 \
++    if (preprocessing_asm_p ())					 \
++      builtin_define_std ("_ASSEMBLER");				 \
 +  } while (0)
 diff -Nru gcc-6.1.0.dist/gcc/config.gcc gcc-6.1.0/gcc/config.gcc
 --- gcc-6.1.0.dist/gcc/config.gcc	2016-04-11 11:14:59.000000000 +0100
@@ -70,37 +69,6 @@ diff -Nru gcc-6.1.0.dist/gcc/config.gcc gcc-6.1.0/gcc/config.gcc
  ia64*-*-elf*)
  	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h ia64/sysv4.h ia64/elf.h"
  	tmake_file="ia64/t-ia64"
-diff -Nru gcc-6.1.0.dist/gcc/ginclude/stddef.h gcc-6.1.0/gcc/ginclude/stddef.h
---- gcc-6.1.0.dist/gcc/ginclude/stddef.h	2016-01-04 14:30:50.000000000 +0000
-+++ gcc-6.1.0/gcc/ginclude/stddef.h	2016-05-08 13:19:17.865530648 +0100
-@@ -48,7 +48,7 @@
- 
- /* On 4.3bsd-net2, make sure ansi.h is included, so we have
-    one less case to deal with in the following.  */
--#if defined (__BSD_NET2__) || defined (____386BSD____) || (defined (__FreeBSD__) && (__FreeBSD__ < 5)) || defined(__NetBSD__)
-+#if defined (__BSD_NET2__) || defined (____386BSD____) || (defined (__FreeBSD__) && (__FreeBSD__ < 5)) || defined(__NetBSD__) || defined(__MURGIA__)
- #include <machine/ansi.h>
- #endif
- /* On FreeBSD 5, machine/ansi.h does not exist anymore... */
-diff -Nru gcc-6.1.0.dist/gcc/tsystem.h gcc-6.1.0/gcc/tsystem.h
---- gcc-6.1.0.dist/gcc/tsystem.h	2016-01-04 14:30:50.000000000 +0000
-+++ gcc-6.1.0/gcc/tsystem.h	2016-05-08 12:25:16.453343964 +0100
-@@ -99,13 +99,13 @@
- /* If these system headers do not exist, fixincludes must create them.  */
- #include <string.h>
- #include <stdlib.h>
--#include <unistd.h>
-+//#include <unistd.h>
- 
- /* GCC supplies this header.  */
- #include <limits.h>
- 
- /* If these system headers do not exist, fixincludes must create them.  */
--#include <time.h>
-+//#include <time.h>
- 
- #endif /* inhibit_libc */
- 
 diff -Nru gcc-6.1.0.dist/libgcc/config.host gcc-6.1.0/libgcc/config.host
 --- gcc-6.1.0.dist/libgcc/config.host	2016-02-26 20:02:28.000000000 +0000
 +++ gcc-6.1.0/libgcc/config.host	2016-05-08 15:33:07.518993104 +0100

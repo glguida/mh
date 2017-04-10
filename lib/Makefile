@@ -1,6 +1,8 @@
 SRCROOT=..
 MKDIR=$(SRCROOT)/mk
-SUBDIRS+= libuk libmrg libacpi libc csu libsquoze
+include $(MKDIR)/mk.conf
+
+SUBDIRS+= csu libuk libmrg libacpi libsquoze
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk

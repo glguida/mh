@@ -1,4 +1,4 @@
-SRCROOT=..
+SRCROOT=$(PWD)/..
 MKDIR=$(SRCROOT)/mk
 MK_CONF_NO_RULES_MK_INCLUDE=y
 include $(MKDIR)/mk.conf
@@ -8,7 +8,7 @@ FTP?=curl -O
 
 TOOLDIR= $(SRCROOT)/toolchain
 TOOLBUILDDIR= $(TOOLDIR)/build
-TOOLPREFIXDIR= $(PWD)/$(TOOLDIR)/install
+TOOLPREFIXDIR?= $(PWD)/install
 
 
 BUILD_TARGET= i686-elf-murgia
@@ -18,6 +18,7 @@ GMP= gmp-6.1.0
 MPC= mpc-1.0.3
 MPFR= mpfr-3.1.4
 GCC= gcc-6.1.0
+NEWLIB= newlib-2.5.0.20170323
 
 GMP_CONFIGURE_OPTS=					\
 			--prefix $(TOOLPREFIXDIR) \
@@ -28,7 +29,7 @@ MPFR_CONFIGURE_OPTS=					\
 			--with-gnu-ld			\
 			--prefix $(TOOLPREFIXDIR) 	\
 			--target=$(BUILD_TARGET)	\
-			--with-gmp-build=$(PWD)/$(TOOLBUILDDIR)/gmp;
+			--with-gmp-build=$(TOOLBUILDDIR)/gmp;
 
 
 MPC_CONFIGURE_OPTS=					\
@@ -44,8 +45,8 @@ BINUTILS_CONFIGURE_OPTS=				\
 			--prefix $(TOOLPREFIXDIR) 	\
 			--target=$(BUILD_TARGET)	\
 			--without-isl			\
-			--with-headers=$(PWD)/$(INSTALLDIR)/usr/include \
 			--without-libs			\
+			--without-headers		\
 			--with-gmp=$(TOOLPREFIXDIR) 	\
 			--with-mpfr=$(TOOLPREFIXDIR)	\
 			--with-mpc=$(TOOLPREFIXDIR);
@@ -58,15 +59,16 @@ GCC_CONFIGURE_OPTS=					\
 			--enable-languages=c		\
 			--disable-libssp		\
 			--disable-libquadmath		\
-			--with-headers=$(PWD)/$(INSTALLDIR)/usr/include \
 			--without-libs			\
-			--with-build-sysroot=$(PWD)/$(INSTALLDIR) \
+			--without-headers		\
+			--with-newlib			\
+			--with-build-sysroot=$(INSTALLDIR) \
 			--with-gmp=$(TOOLPREFIXDIR) 	\
 			--with-mpfr=$(TOOLPREFIXDIR)	\
 			--with-mpc=$(TOOLPREFIXDIR);
 
 
-EXTS += $(BINUTILS) $(GMP) $(MPFR) $(MPC) $(GCC)
+EXTS += $(BINUTILS) $(GMP) $(MPFR) $(MPC) $(GCC) $(NEWLIB)
 
 .PHONY: help populate gmp mpfr mpc binutils gcc install
 ALL_TARGET+= binutils gcc
@@ -83,23 +85,24 @@ populate:
 	$(FTP) ftp.gnu.org:/pub/gnu/mpfr/$(MPFR).tar.bz2; \
 	$(FTP) ftp.gnu.org:/pub/gnu/mpc/$(MPC).tar.gz; \
 	$(FTP) ftp.gnu.org:/pub/gnu/binutils/$(BINUTILS).tar.bz2; \
-	$(FTP) ftp.gnu.org:/pub/gnu/gcc/$(GCC)/$(GCC).tar.bz2;)
+	$(FTP) ftp.gnu.org:/pub/gnu/gcc/$(GCC)/$(GCC).tar.bz2; \
+	$(FTP) ftp://sourceware.org/pub/newlib/$(NEWLIB).tar.gz)
 
 gmp:
 	mkdir -p $(TOOLBUILDDIR)/gmp;
-	(cd $(TOOLBUILDDIR)/gmp; $(PWD)/$(EXTSDIR)/$(GMP)/configure $(GMP_CONFIGURE_OPTS))
+	(cd $(TOOLBUILDDIR)/gmp; $(EXTSDIR)/$(GMP)/configure $(GMP_CONFIGURE_OPTS))
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/gmp
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/gmp install
 
 mpfr:
 	mkdir -p $(TOOLBUILDDIR)/mpfr;
-	(cd $(TOOLBUILDDIR)/mpfr; $(PWD)/$(EXTSDIR)/$(MPFR)/configure $(MPFR_CONFIGURE_OPTS))
+	(cd $(TOOLBUILDDIR)/mpfr; $(EXTSDIR)/$(MPFR)/configure $(MPFR_CONFIGURE_OPTS))
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/mpfr
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/mpfr install
 
 mpc:
 	mkdir -p $(TOOLBUILDDIR)/mpc;
-	(cd $(TOOLBUILDDIR)/mpc; $(PWD)/$(EXTSDIR)/$(MPC)/configure $(MPC_CONFIGURE_OPTS))
+	(cd $(TOOLBUILDDIR)/mpc; $(EXTSDIR)/$(MPC)/configure $(MPC_CONFIGURE_OPTS))
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/mpc
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/mpc install
 
@@ -109,19 +112,17 @@ export CFLAGS=-Wno-error
 
 binutils: gmp mpfr mpc
 	mkdir -p $(TOOLBUILDDIR)/binutils;
-	(cd $(TOOLBUILDDIR)/binutils; $(PWD)/$(EXTSDIR)/$(BINUTILS)/configure $(BINUTILS_CONFIGURE_OPTS))
+	(cd $(TOOLBUILDDIR)/binutils; $(EXTSDIR)/$(BINUTILS)/configure $(BINUTILS_CONFIGURE_OPTS))
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/binutils
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/binutils install
 
 gcc: binutils gmp mpfr mpc
+	-rm $(EXTSDIR)/$(GCC)/newlib
+	ln -s $(EXTSDIR)/$(NEWLIB)/newlib $(EXTSDIR)/$(GCC)/newlib
 	mkdir -p $(TOOLBUILDDIR)/gcc;
-	(cd $(TOOLBUILDDIR)/gcc; $(PWD)/$(EXTSDIR)/$(GCC)/configure $(GCC_CONFIGURE_OPTS))
+	(cd $(TOOLBUILDDIR)/gcc; $(EXTSDIR)/$(GCC)/configure $(GCC_CONFIGURE_OPTS))
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/gcc
 	$(MAKE) $(MAKEOPT) -C $(TOOLBUILDDIR)/gcc install
-
-install:
-	$(CP) -R $(TOOLPREFIX) $(TOOLCHAIN_PREFIXDIR)
-
 
 include $(MKDIR)/exts.mk
 include $(MKDIR)/def.mk

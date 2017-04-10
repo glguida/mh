@@ -30,6 +30,7 @@
 #ifndef _microkernel_h_
 #define _microkernel_h_
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <machine/microkernel.h>
 #include <uk/sys.h>

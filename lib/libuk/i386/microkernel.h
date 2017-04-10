@@ -30,6 +30,8 @@
 #ifndef _i386_microkernel_h
 #define _i386_microkernel_h
 
+#include <stdint.h>
+
 struct intframe {
 	uint16_t ds;
 	uint16_t es;

@@ -45,7 +45,7 @@ static lock_t kbuflock;
 static uint8_t klogbuf[KLOGBUFSZ];
 static volatile unsigned _c = 0;
 static volatile unsigned _p = 0;
-static unsigned logsize;
+static size_t logsize = 0;
 
 #define seq(_v) (((_v) + 1) % KLOGBUFSZ)
 
@@ -68,9 +68,9 @@ void klog_putc(int ch)
 	__klogdev_raise_avl();
 }
 
-static unsigned _klog_size(void)
+static size_t _klog_size(void)
 {
-	unsigned sz;
+	size_t sz;
 
 	spinlock(&kbuflock);
 	sz = logsize;

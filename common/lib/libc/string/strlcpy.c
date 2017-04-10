@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifdef __MURGIA__
+#define _DIAGASSERT(_x)
+#endif
+
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 #if HAVE_NBTOOL_CONFIG_H
 #include "nbtool_config.h"

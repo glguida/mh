@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef __MURGIA__
+#define _DIAGASSERT(_x)
+#endif
+
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: strcspn.c,v 1.1 2014/07/19 18:38:33 lneto Exp $");
 

@@ -27,10 +27,8 @@
  */
 
 
-#include <sys/null.h>
 #include <sys/types.h>
 #include <sys/errno.h>
-#include <sys/atomic.h>
 #include <machine/vmparam.h>
 #include <machine/mrgparam.h>
 #include <microkernel.h>

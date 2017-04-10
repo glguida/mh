@@ -6,11 +6,34 @@
 #include <sys/param.h>
 #include <mrg.h>
 #include <mrg/consio.h>
+#include <stdlib.h>
+#include <machine/param.h>
 #include "internal.h"
 
 int pltusb_pid = 0;
 
 struct device_list devices = SLIST_HEAD_INITIALIZER(devices);
+FILE *syscons;
+
+static int _sys_write(void *cookie, const char *c, int n)
+{
+  int i;
+
+  for (i = 0; i < n; i++) {
+    sys_putc(*c++);
+  }
+}
+
+static int _console_write(void *cookie, const char *c, int n)
+{
+  int i;
+  DEVICE *d = (DEVICE *)cookie;
+
+  for (i = 0; i < n; i++) {
+    dout(d, IOPORT_BYTE(CONSIO_OUTDATA), *c++);
+  }
+
+}
 
 void devadd(struct sys_hwcreat_cfg *cfg)
 {
@@ -58,8 +81,12 @@ int main()
 	int consevt = -1;
 	DEVICE *console;
 
-	printf("MRG bootstrap initiated.\n");
+	syscons = fwopen(NULL, _sys_write);
+	stdout = syscons;
+	stderr = syscons;
+	setvbuf(syscons, NULL, _IOLBF, 80);
 
+	printf("MRG bootstrap initiated.\n");
 	ret = platform_init();
 	if (ret < 0) {
 		printf("ACPI platform initialization failed: %d\n", ret);
@@ -73,8 +100,6 @@ int main()
 	/* ret = pltusb_init(); */
 
 	/* run sysconfig. Will get system configuration and inittab */
-
-
 
 	/* fork and start init as configured in sysconfig */
 
@@ -103,6 +128,13 @@ int main()
 		exit(-1);
 	}
 	printf("bootstrap: console opened\n");
+
+	
+	FILE *consf = fwopen((void *)console, _console_write);
+	setvbuf(consf, NULL, _IOLBF, 80);
+	stdout = consf;
+	stderr = consf;
+	
 
 	/* fork and create kloggerd. */
 	ret = klogger_process();

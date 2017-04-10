@@ -33,6 +33,10 @@
  * SUCH DAMAGE.
  */
 
+#ifdef __MURGIA__
+#define _DIAGASSERT(_x)
+#endif
+
 #include <sys/cdefs.h>
 #if defined(LIBC_SCCS) && !defined(lint)
 #if 0
