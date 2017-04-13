@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <mrg.h>
 #include <mrg/consio.h>
+#include <vtty/window.h>
 
 #include "internal.h"
 
@@ -88,14 +89,50 @@ static void __console_io_ast(void)
 }
 
 static void
-outdata_update(int id, uint64_t val, uint8_t size)
+outpos_do(int id, uint64_t val)
 {
-	int i, len;
-	uint8_t *c = (uint8_t *)&val;
+	unsigned x, y;
 
-	len = MIN(sizeof(val), (1 << size));
-	for (i = 0; i < len; i++, c++)
-		consdev_putchar(*c);
+	x = val & 0xffff;
+	y = val >> 16;
+	console_vga_goto(id, x, y);
+}
+
+static void
+outops_do(int id, uint64_t val)
+{
+	switch(val) {
+	case CONSIO_OUTOP_CURSON:
+		console_vga_cursor(id, 1);
+		break;
+	case CONSIO_OUTOP_CRSOFF:
+		console_vga_cursor(id, 0);
+		break;
+	case CONSIO_OUTOP_SCROLL:
+		console_vga_scroll(id);
+		break;
+	case CONSIO_OUTOP_UPSCRL:
+		console_vga_upscroll(id);
+		break;
+	case CONSIO_OUTOP_BELL:
+		console_vga_bell(id);
+		break;
+	default:
+		break;
+	}
+}
+
+void console_vga_putc(int c, int colattr, int xattr);
+
+static void
+outdata_update(int id, uint64_t val)
+{
+	int c, xattr, colattr;
+
+	c = val & 0xff;
+	xattr = (val >> 8) & 0xff;
+	colattr = (val >> 16) & 0xff;
+	console_vga_putc(c, colattr, xattr);
 }
 
 static void
@@ -128,6 +165,7 @@ devsts_kbdata_update(int id)
 static void
 console_io_out(int id, uint32_t port, uint64_t val, uint8_t size)
 {
+	devwriospace(devid, id, IOPORT_QWORD(CONSIO_OUTDISP), 80 + (25 << 8));
 
 	switch (port) {
 	case CONSIO_DEVSTS:
@@ -136,7 +174,14 @@ console_io_out(int id, uint32_t port, uint64_t val, uint8_t size)
 		}
 		break;
 	case CONSIO_OUTDATA:
-		outdata_update(id, val, size);
+		outdata_update(id, val);
+		break;
+	case CONSIO_OUTOP:
+		outops_do(id, val);
+		break;
+	case CONSIO_OUTPOS:
+		outpos_do(id, val);
+		break;
 	}
 }
 

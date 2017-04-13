@@ -7,6 +7,7 @@
 #include <mrg.h>
 #include <uk/sys.h>
 #include <mrg/consio.h>
+#include <vtty/window.h>
 
 #include "internal.h"
 
@@ -16,7 +17,9 @@ int klogevt;
 
 static void console_putchar(int ch)
 {
-	dout(console, IOPORT_BYTE(CONSIO_OUTDATA), ch);
+	uint32_t val;
+	val = ch | (XA_NORMAL << 8) | (COLATTR(RED,BLUE) << 16);
+	dout(console, IOPORT_DWORD(CONSIO_OUTDATA), val);
 }
 
 static void

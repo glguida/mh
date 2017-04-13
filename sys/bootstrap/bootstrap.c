@@ -8,6 +8,7 @@
 #include <mrg/consio.h>
 #include <stdlib.h>
 #include <machine/param.h>
+#include <vtty/window.h>
 #include "internal.h"
 
 int pltusb_pid = 0;
@@ -17,22 +18,18 @@ FILE *syscons;
 
 static int _sys_write(void *cookie, const char *c, int n)
 {
-  int i;
-
-  for (i = 0; i < n; i++) {
-    sys_putc(*c++);
-  }
+	int i;
+	for (i = 0; i < n; i++) {
+		sys_putc(*c++);
+	}
 }
 
 static int _console_write(void *cookie, const char *c, int n)
 {
-  int i;
-  DEVICE *d = (DEVICE *)cookie;
-
-  for (i = 0; i < n; i++) {
-    dout(d, IOPORT_BYTE(CONSIO_OUTDATA), *c++);
-  }
-
+	WIN *w = (WIN *)cookie;
+	for (int i = 0; i < n; i++) {
+		vtty_wputc(w, *c++);
+	}
 }
 
 void devadd(struct sys_hwcreat_cfg *cfg)
@@ -129,69 +126,50 @@ int main()
 	}
 	printf("bootstrap: console opened\n");
 
+	/* Initialize Window System */
+	win_init(BLUE, WHITE, XA_NORMAL);
+	WIN *ws;
+	ws = vtty_wopen(0, 0, 78, 23, BNONE, XA_NORMAL, BLUE, WHITE, 0, 0, 1);
+	vtty_wredraw(ws, 1);
 	
-	FILE *consf = fwopen((void *)console, _console_write);
-	setvbuf(consf, NULL, _IOLBF, 80);
+	FILE *consf = fwopen((void *)ws, _console_write);
+	setvbuf(consf, NULL, _IONBF, 0);
 	stdout = consf;
 	stderr = consf;
-	
 
+#if 0 // Disabling klogger for now
 	/* fork and create kloggerd. */
 	ret = klogger_process();
+#endif
 
 	consevt = evtalloc();
 	ret = dmapirq(console, CONSIO_IRQ_KBDATA, consevt);
 
-	{
-		uint64_t val = 0x4141414141414141LL;
-
-		ret = dout(console, CONSIO_OUTDATA, val);
-		if (ret < 0)
-			return ret;
-
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), '\n');
-		ret = dout(console, IOPORT_BYTE(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-		ret = dout(console, IOPORT_QWORD(CONSIO_OUTDATA), val);
-
-
-		/*
-		 * Read console.
-		 */
-		uint8_t kbdval = 0;
-
-		din(console, IOPORT_BYTE(CONSIO_DEVSTS), &kbdval);
-		if (kbdval & CONSIO_DEVSTS_KBDVAL) {
-			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
-			while ((val & 0xff) > 0) {
-				dout(console, IOPORT_BYTE(CONSIO_OUTDATA),
-				     val);
-				val >>= 8;
-			}
+	/*
+	 * Read console.
+	 */
+	uint64_t kbdval = 0;
+	uint64_t val;
+	din(console, IOPORT_BYTE(CONSIO_DEVSTS), &kbdval);
+	if (kbdval & CONSIO_DEVSTS_KBDVAL) {
+		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
+		while ((val & 0xff) > 0) {
+			fprintf(consf, "%c", (char)(val & 0xff));
+			val >>= 8;
 		}
-
-		while (1) {
-			/* Request data */
-			dout(console, IOPORT_BYTE(CONSIO_DEVSTS),
-			     CONSIO_DEVSTS_KBDVAL);
-			evtwait(consevt);
-			din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
-			while ((val & 0xff) > 0) {
-				dout(console, IOPORT_BYTE(CONSIO_OUTDATA),
-				     val);
-				val >>= 8;
-			}
-			evtclear(consevt);
-		}
-		ret = din(console, 1, &val);
-		printf("val = %llx\n", val);
 	}
 
-	/* start command loop
-	 * ret = pltcommand_setup(); */
+	while (1) {
+		/* Request data */
+		dout(console, IOPORT_BYTE(CONSIO_DEVSTS),
+		     CONSIO_DEVSTS_KBDVAL);
+		evtwait(consevt);
+		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
+		while ((val & 0xff) > 0) {
+			fprintf(consf, "%c", val & 0xff);
+			val >>= 8;
+		}
+		evtclear(consevt);
+	}
 	lwt_sleep();
 }

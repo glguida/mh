@@ -2,8 +2,10 @@
 #include <string.h>
 #include "vgahw.h"
 #include "internal.h"
+#include <vtty/window.h>
+#include <vtty/vtdrv.h>
 
-#define VGA_COLORATTR 0x17
+#define VGA_COLORATTR 0x07
 
 static DEVICE *vgad = NULL;
 
@@ -80,10 +82,15 @@ static void vga_save(void)
 static void vga_setup(void)
 {
 	int i;
-	uint8_t dummy;
+	uint64_t dummy;
 
 	memset(__vga_mem, 0, 80 * 25 * 2);
 
+	/* Enable blinking */
+	VGAINB(VGA_INPUT_STATUS_1_REG, &dummy);
+	VGAOUTB(VGA_ATTR_MODE, VGA_ATTR_ADDR_DATA_REG);
+	VGAOUTB(__vga_state.attr_mod | (1 << 3), VGA_ATTR_ADDR_DATA_REG);
+	
 	/* Enable screen */
 	VGAINB(VGA_INPUT_STATUS_1_REG, &dummy);
 	VGAOUTB(VGA_ATTR_ENABLE, VGA_ATTR_ADDR_DATA_REG);
@@ -124,17 +131,6 @@ static void update_cursor(void)
 	VGAOUTB(pos & 0xff, VGA_CRT_DATA_REG);
 }
 
-static void newline()
-{
-	xpos = 0;
-	ypos++;
-	if (ypos >= 25) {
-		ypos = 24;
-		scroll();
-	}
-	return;
-}
-
 int console_vga_init(uint64_t nameid)
 {
 	char name[13];
@@ -146,10 +142,165 @@ int console_vga_init(uint64_t nameid)
 		return -ENOENT;
 
 	__vga_mem = diomap(vgad, VGA_VIDEO_MEM_BASE, VGA_VIDEO_MEM_LENGTH);
-
 	vga_save();
 	vga_setup();
 	return 0;
+}
+
+void console_vga_cursor(int id, int on)
+{
+	if (on) {
+		VGAOUTB(VGA_CRT_CURSOR_START, VGA_CRT_ADDR_REG);
+		VGAOUTB(0, VGA_CRT_DATA_REG);
+	} else {
+		VGAOUTB(VGA_CRT_CURSOR_START, VGA_CRT_ADDR_REG);
+		VGAOUTB((1 << 5), VGA_CRT_DATA_REG);
+	}
+}
+
+void console_vga_scroll(int id)
+{
+	scroll();
+}
+
+void console_vga_upscroll(int id)
+{
+}
+
+void console_vga_bell(int id)
+{
+}
+
+void console_vga_goto(int id, unsigned x, unsigned y)
+{
+	xpos = x;
+	ypos = y;
+	update_cursor();
+}
+
+static int coltrans(int col)
+{
+	switch (col) {
+	case BLACK:
+		return 0;
+	case BLUE:
+		return 1;
+	case GREEN:
+		return 2;
+	case CYAN:
+		return 3;
+	case RED:
+		return 4;
+	case MAGENTA:
+		return 5;
+	case  YELLOW:
+		return 6;
+	case WHITE:
+		return 7;
+	default:
+		return 7;
+	}
+}
+
+void console_vga_putc(int c, int colattr, int xattr)
+{
+	uint8_t attr;
+	int bg, fg;
+
+	if (xattr & XA_BLANK) {
+		attr = 0;
+	} else {
+		attr = 0;
+		if (xattr & XA_BLINK) {
+			attr |= (1 << 7);
+		}
+		if (xattr & XA_BOLD) {
+			attr |= (1 << 3);
+		}
+	}
+
+	if (xattr & XA_REVERSE) {
+		fg = COLBG(colattr);
+		bg = COLFG(colattr);
+	} else {
+		fg = COLFG(colattr);
+		bg = COLBG(colattr);
+	}
+
+	bg = coltrans(bg);
+	fg = coltrans(fg);
+
+	attr |= (bg & 0x7);
+	attr |= ((fg & 0x7) << 4);
+
+	if (xattr & XA_ALTCHARSET) {
+		switch (c) {
+		case 'L':
+			c = 201;
+			break;
+		case 'l':
+			c = 218;
+			break;
+		case 'Q':
+			c = 205;
+			break;
+		case 'q':
+			c = 196;
+			break;
+		case 'K':
+			c = 187;
+			break;
+		case 'k':
+			c = 191;
+			break;
+		case 'M':
+			c = 200;
+			break;
+		case 'm':
+			c = 192;
+			break;
+		case 'X':
+			c = 186;
+			break;
+		case 'x':
+			c = 179;
+			break;
+		case 'J':
+			c = 188;
+			break;
+		case 'j':
+			c = 217;
+			break;
+		default:
+			c = 15;
+			break;
+		}
+	}
+
+	__vga_mem[(xpos + ypos * 80) * 2] = c & 0xff;
+	__vga_mem[(xpos + ypos * 80) * 2 + 1] = attr;
+	xpos++;
+	if (xpos >= 80) {
+		xpos = 0;
+		ypos >= (25-1) ? 24 : ypos++;
+	}
+	update_cursor();
+}
+
+
+/*
+ * 'Autonomous' putchar: print and scroll.
+ */
+
+static void newline()
+{
+	xpos = 0;
+	ypos++;
+	if (ypos >= 25) {
+		ypos = 24;
+		scroll();
+	}
+	return;
 }
 
 void console_vga_putchar(int c)

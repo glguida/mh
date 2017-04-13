@@ -25,14 +25,46 @@ List of I/O ports:
 
  - OUTDATA(32): Console Output Data Port - WR
 
-          Writes to this device will be send to the console output.
+ Bits:  0 -  7: ASCII character code to print
 
-    
+ Bits:  8 - 15: Character attributes:
+ 	    	 - Bit  8: Blinking
+		 - Bit  9: Bold
+		 - Bit 10: Reverse
+		 - Bit 11: Underline (Not always supported)
+		 - Bit 12: Alternative Charset
+		 - Bit 13: Blank
+		 - Bit 14-15: Ignored
+
+ Bits: 16 - 20: Character Background Color
+       	    	 - 0: Black
+		 - 1: Red
+		 - 2: Green
+		 - 3: Yellow
+		 - 4: Blue
+		 - 5: Magenta
+		 - 6: Cyan
+		 - 7: White
+
+Bits: 20 - 24: Character Foreground color
+       	         See 'Character Background Color' for values.
+
+  	     	 
+
+- OUTPOS(33): Console Output Position Port - WR
+
+  Bits:  0 -  7: X position.
+  Bits:  8 - 15: Y position.
+
+ - OUTDISP(34): Console Output Configuration - RO
+
+  Bits:  0 -  7: Columns
+  Bits:  8 - 15: Lines
 
 
 List of Interrupts:
 
  - IRQ0
 
-	Raised when DEVSTS.KBDVAL is set
+        Raised when DEVSTS.KBDVAL is set
 
