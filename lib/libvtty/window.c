@@ -557,6 +557,32 @@ int vtty_wreturn(void)
   return 0;
 }
 
+int vtty_wrestore(void)
+{
+  int x, y;
+  ELM *e;
+
+  oldx = curx;
+  oldy = cury;
+  ocursor = _curstype;
+  
+  curattr = -1;
+  curcolor = -1;
+  _gotoxy(0, 0);
+
+  _cursor(CNONE);
+  e = gmap;
+  for (y = 0; y <LINES; y++) {
+    for(x = 0; x <COLS; x++) {
+      _write(e->value, -1, x, y, e->attr, e->color);
+      e++;
+    }
+  }
+  _gotoxy(oldx, oldy);
+  _cursor(ocursor);
+  vtty_wflush();
+}
+
 /*
  * Redraw the whole window.
  */
@@ -1677,7 +1703,6 @@ int win_init(int fg, int bg, int attr)
   LINES= vtdrv_lines();
   COLS = vtdrv_columns();
 
-  
   /* Reset attributes */
   olduseattr = useattr;
   useattr = 1;

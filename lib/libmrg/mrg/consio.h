@@ -7,8 +7,9 @@
 #define CONSIO_KBDATA 1
 
 #define CONSIO_OUTDATA 32
+
 #define CONSIO_OUTPOS  33
-#define CONSIO_OUTDISP 34
+
 #define CONSIO_OUTOP   35
 
 #define CONSIO_OUTOP_BELL   0

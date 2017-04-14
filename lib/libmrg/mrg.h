@@ -120,6 +120,7 @@ int dgetirq(DEVICE * d, int irqno);
 int dgetpio(DEVICE * d, int piono);
 ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base);
 int dgetinfo(DEVICE * d, struct dinfo *i);
+uint64_t dusercfg(DEVICE * d, unsigned i);
 void *diomap(DEVICE * d, uint64_t base, size_t len);
 void dclose(DEVICE * d);
 

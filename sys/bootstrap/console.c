@@ -10,7 +10,10 @@
 
 #include "internal.h"
 
+//#define CONSOLE_DEBUG_BOOT
+
 #define CONSOLE_NAMEID squoze("console")
+#define CONSOLE_VENDORID squoze("mrgsys")
 #define CONSOLE_MAXSCREENS 256
 
 static int reqevt = -1;
@@ -162,6 +165,7 @@ void console_vga_putc(int c, int colattr, int xattr);
 static void
 outdata_update(int id, uint64_t val)
 {
+#ifndef CONSOLE_DEBUG_BOOT
 	int c, xattr, colattr;
 
 	if (id != cur_screen)
@@ -171,6 +175,7 @@ outdata_update(int id, uint64_t val)
 	xattr = (val >> 8) & 0xff;
 	colattr = (val >> 16) & 0xff;
 	console_vga_putc(c, colattr, xattr);
+#endif
 }
 
 static void
@@ -246,9 +251,6 @@ console_io_open(int id)
 {
 	struct screen *s = scr(id);
 
-	devwriospace(devid, id, IOPORT_QWORD(CONSIO_OUTDISP),
-		     console_vga_cols() + (console_vga_lines() << 8));
-
 	s->req = 0;
 	s->fpos = 0;
 	s->wpos = 0;
@@ -264,9 +266,6 @@ console_io_clone(int id, int clid)
 	struct screen *s = scr(id);
 	struct screen *cls = scr(clid);
 
-	devwriospace(devid, clid, IOPORT_QWORD(CONSIO_OUTDISP),
-		     console_vga_cols() + (console_vga_lines() << 8));
-	
 	cls->req = s->req;
 	cls->fpos = s->fpos;
 	cls->wpos = s->fpos;
@@ -277,6 +276,7 @@ console_io_clone(int id, int clid)
 	cls->active = 1;
 }
 
+#ifndef CONSOLE_DEBUG_BOOT
 static void console_klogon(void)
 {
 	DEVICE *d;
@@ -287,6 +287,7 @@ static void console_klogon(void)
 	dclose(d);
 	d = NULL;
 }
+#endif
 
 void console_switch(unsigned id)
 {
@@ -327,6 +328,9 @@ static void pltconsole()
 	
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.nameid = CONSOLE_NAMEID;
+	cfg.vendorid = CONSOLE_VENDORID;
+	/* XXX: MORE CONF! */
+	cfg.usercfg[0] = console_vga_cols() + (console_vga_lines() << 8);
 
 	reqevt = evtalloc();
 	evtast(reqevt, __console_io_ast);
@@ -366,7 +370,9 @@ static void pltconsole()
 		}
 	}
 	if (d != NULL) {
+#ifndef CONSOLE_DEBUG_BOOT
 		console_klogon();
+#endif
 		console_vga_init(d->nameid);
 	} else {
 		/* VGA NOT FOUND. Keep using kernel putc */

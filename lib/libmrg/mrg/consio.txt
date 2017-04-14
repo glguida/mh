@@ -53,13 +53,11 @@ Bits: 20 - 24: Character Foreground color
 
 - OUTPOS(33): Console Output Position Port - WR
 
+  Selects the position in the screen where the next character will be
+  printed.
+
   Bits:  0 -  7: X position.
   Bits:  8 - 15: Y position.
-
- - OUTDISP(34): Console Output Configuration - RO
-
-  Bits:  0 -  7: Columns
-  Bits:  8 - 15: Lines
 
 
 List of Interrupts:
@@ -72,3 +70,11 @@ List of Interrupts:
  - IRQ1
 
 	Raised when a redraw of the screen is requested.
+
+
+Configuration space:
+
+ - TEXTCFG(0):
+
+   - Bits 0 -  7: Number of columns
+   - Bits 8 - 16: Number of lines

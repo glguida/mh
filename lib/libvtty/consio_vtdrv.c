@@ -2,11 +2,20 @@
 #include <mrg.h>
 #include <mrg/consio.h>
 #include "vtdrv.h"
+#include "window.h"
 
 DEVICE *cons;
 int cur_attr = 0;
 int cur_colattr = 0;
 int consevt = -1;
+int drawevt = -1;
+
+static void __redraw(void)
+{
+	vtdrv_goto(0,0);
+	vtdrv_putc('1');
+	vtty_wrestore();
+}
 
 __weak int vtdrv_init(void)
 {
@@ -24,21 +33,27 @@ __weak int vtdrv_init(void)
 	consevt = evtalloc();
 	dmapirq(cons, CONSIO_IRQ_KBDATA, consevt);
 
+	drawevt = evtalloc();
+	evtast(drawevt, __redraw);
+	dmapirq(cons, CONSIO_IRQ_REDRAW, drawevt);
+	
 	return 0;
 }
 
 __weak short vtdrv_lines(void)
 {
-  	uint64_t cfg = 0;
-  	din(cons, IOPORT_WORD(CONSIO_OUTDISP), &cfg);
-	return (cfg >> 8) & 0xff;
+  	uint64_t val = 0;
+
+	val = dusercfg(cons, 0);
+	return (val >> 8) & 0xff;
 }
 
 __weak short vtdrv_columns(void)
 {
-	uint64_t cfg = 0;
-	din(cons, IOPORT_WORD(CONSIO_OUTDISP), &cfg);
-	return cfg & 0xff;
+    	uint64_t val = 0;
+
+	val = dusercfg(cons, 0);
+	return val & 0xff;
 }
 
 __weak void  vtdrv_exit(void)

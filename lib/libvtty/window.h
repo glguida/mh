@@ -147,6 +147,7 @@ WIN *vtty_wopen(int x1, int y1, int x2, int y2, int border,
 void vtty_wclose(WIN *win, int replace);
 void vtty_wleave(void);
 int vtty_wreturn(void);
+void vtty_restore(void);
 void vtty_wresize(WIN *w, int x, int y);
 void vtty_wredraw(WIN *w, int newdirect);
 void vtty_wscroll(WIN *win, int dir);

@@ -26,6 +26,8 @@ struct _DEVICE {
 
 	int nmemsegs;
 	struct sys_rdcfg_memseg *memsegs;
+
+	uint64_t usercfg[SYS_RDCFG_MAXUSERCFG];
 };
 
 static void __irq_handler(int irqint, void *arg)
@@ -52,7 +54,7 @@ DEVICE *dopen(char *devname)
 	nameid = squoze(devname);
 	dd = sys_open(nameid);
 	if (dd < 0) {
-		perror("open(%s)", devname);
+		perror("sys_open");
 		free(d);
 		return NULL;
 	}
@@ -60,13 +62,16 @@ DEVICE *dopen(char *devname)
 
 	ret = sys_rdcfg(dd, &cfg);
 	if (ret < 0) {
-		perror("rdcfg(%s)", devname);
+		perror("sys_rdcfg");
 		sys_close(dd);
 		free(d);
 		return NULL;
 	}
 
 	assert(nameid == cfg.nameid);
+
+	assert(sizeof(d->usercfg) == sizeof(cfg.usercfg));
+	memcpy(d->usercfg, cfg.usercfg, sizeof(cfg.usercfg));
 
 
 	/*
@@ -242,6 +247,14 @@ ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base)
 	if (base)
 		*base = seg->base;
 	return seg->len;
+}
+
+uint64_t dusercfg(DEVICE * d, unsigned i)
+{
+	if (i >= SYS_RDCFG_MAXUSERCFG)
+		return 0;
+
+	return d->usercfg[i];
 }
 
 int dgetinfo(DEVICE * d, struct dinfo *i)
