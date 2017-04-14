@@ -107,6 +107,7 @@ struct usrdev_cfg {
 	uint32_t vid;
 	uint32_t did;
 	uint8_t nirqs;
+	uint64_t usercfg[SYS_DEVCONFIG_MAXUSERCFG];
 };
 
 struct usrdev {
@@ -345,13 +346,14 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
 
 	/* Current thread: Process */
 	assert(id < MAXUSRDEVREMS);
+	assert(sizeof(cfg->usercfg) == sizeof(ud->cfg.usercfg));
 
 	spinlock(&ud->lock);
 	cfg->niopfns = IOSPACESZ;
 	cfg->vendorid = ud->cfg.vid;
 	cfg->deviceids[0] = ud->cfg.did;
 	cfg->segs[0].len = ud->cfg.nirqs;
-
+	memcpy(cfg->usercfg, ud->cfg.usercfg, sizeof(cfg->usercfg));
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -448,6 +450,8 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	struct usrdev *ud;
 	struct thread *th = current_thread();
 
+	assert(sizeof(cfg->usercfg) == sizeof(ud->cfg.usercfg));
+
 	ud = heap_alloc(sizeof(*ud));
 	ud->lock = 0;
 	ud->th = th;
@@ -456,6 +460,7 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
 	ud->cfg.nirqs = cfg->nirqs;
+	memcpy(ud->cfg.usercfg, cfg->usercfg, sizeof(cfg->usercfg));
 	memset(&ud->remths, 0, sizeof(ud->remths));
 	TAILQ_INIT(&ud->ioreqs);
 

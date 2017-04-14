@@ -31,7 +31,7 @@
 #define _uk_sys_h_
 
 #define SYS_DEVCFG_MAXDEVIDS 8
-
+#define SYS_DEVCONFIG_MAXUSERCFG 2
 
 /*
  * Syscalls
@@ -72,6 +72,7 @@ struct sys_rdcfg_cfg {
 #define SYS_RDCFG_IRQSEG(_cfg, _i) ((_cfg)->segs[(_i)])
 #define SYS_RDCFG_IOSEG(_cfg, _i) ((_cfg)->segs[(_cfg)->nirqsegs + (_i)])
 #define SYS_RDCFG_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
+#define SYS_RDCFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG
 #define SYS_RDCFG_MAX_SEGMENTS 24
 #define SYS_RDCFG_MAX_MEMSEGMENTS 24
 #define SYS_RDCFG_FLAGS_HW    1
@@ -94,6 +95,8 @@ struct sys_rdcfg_cfg {
 		uint64_t base;
 		uint32_t len;
 	} memsegs[SYS_RDCFG_MAX_MEMSEGMENTS];
+
+	uint64_t usercfg[SYS_RDCFG_MAXUSERCFG];
 };
 #endif
 #define SYS_OPEN   0x20
@@ -116,12 +119,15 @@ struct sys_rdcfg_cfg {
 
 #define SYS_CLOSE  0x2F
 
+#define SYS_CREAT_CFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG
 #ifndef _ASSEMBLER
 struct sys_creat_cfg {
 	uint64_t nameid;
 	uint32_t vendorid;
 	uint32_t deviceid;
 	uint8_t nirqs;
+
+	uint64_t usercfg[SYS_CREAT_CFG_MAXUSERCFG];
 };
 
 enum sys_poll_ior_op {
