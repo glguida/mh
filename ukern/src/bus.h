@@ -49,9 +49,11 @@ struct bus {
 	} devs[MAXBUSDEVS];
 };
 
+struct thread;
 struct sys_rdcfg_cfg;
 struct devops {
 	int (*open) (void *devopq, uint64_t did);
+	int (*clone) (void *devopq, unsigned id, struct thread *nth);
 	int (*in) (void *devopq, unsigned id, uint32_t port,
 		   uint64_t * val);
 	int (*out) (void *devopq, unsigned id, uint32_t port,
@@ -86,6 +88,8 @@ struct dev {
 #define BUS_IRQEIO 0		/* Raised at EIO. */
 
 int bus_plug(struct bus *b, uint64_t did);
+int bus_copy(struct bus *b, unsigned desc,
+	     struct thread *dstth, struct bus *dstb, unsigned dstdesc);
 int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val);
 int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iopfn);

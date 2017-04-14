@@ -186,6 +186,7 @@ static void __childstart(void)
 
 struct thread *thfork(void)
 {
+	int i;
 	vaddr_t va;
 	struct thread *nth, *cth = current_thread();
 
@@ -223,10 +224,19 @@ struct thread *thfork(void)
 	memset(&nth->rtt_alarm, 0, sizeof(nth->rtt_alarm));
 	memset(&nth->vtt_alarm, 0, sizeof(nth->vtt_alarm));
 
-	/* XXX: What to do on fork */
+	/* It makes sense not to clone user devs.
+	 *
+	 * 1. How should we name the new device?
+	 * 2. It is straightforward from userspace to re-creat the
+	 * same device.
+	 * 3. It is more complex to cloe from the kernel.
+	 */
 	memset(&nth->usrdevs, 0, sizeof(nth->usrdevs));
+
+	/* Fork Bus */
 	memset(&nth->bus, 0, sizeof(nth->bus));
-	/* XXX: FORK BUS! */
+	for (i = 0; i < MAXBUSDEVS; i++)
+		bus_copy(&cth->bus, i, nth, &nth->bus, i);
 
 	/* NB: Stack is mostly at the end of the 4k page.
 	 * Frame is at the very beginning. */

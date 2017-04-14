@@ -291,9 +291,6 @@ static int _hwdev_iomap(void *devopq, unsigned id, vaddr_t va,
 	if (!pfn_is_valid(mmiopfn))
 		return -EINVAL;
 
-	dprintf("mapping at addr %lx mmio %" PRIx64 " (%d)\n",
-		va, (uint64_t) mmioaddr, prot);
-
 	ret = iomap(va, mmiopfn, prot);
 	if (ret < 0)
 		return ret;

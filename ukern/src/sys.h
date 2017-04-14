@@ -125,7 +125,10 @@ struct sys_creat_cfg {
 };
 
 enum sys_poll_ior_op {
+	SYS_POLL_OP_OPEN,
+	SYS_POLL_OP_CLONE,
 	SYS_POLL_OP_OUT,
+	SYS_POLL_OP_CLOSE,
 };
 
 struct sys_poll_ior {
@@ -135,6 +138,9 @@ struct sys_poll_ior {
 			uint8_t size;
 			uint16_t port;
 			uint64_t val;
+		};
+		struct {
+			unsigned clone_id;
 		};
 	};
 	pid_t pid;

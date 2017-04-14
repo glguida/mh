@@ -37,6 +37,20 @@
 #include <uk/heap.h>
 #include <lib/lib.h>
 
+/* User devices and OP serialization:
+ *
+ * Certain rules of serialization of the events must apply:
+ *
+ * Events pertaining the same 'id' must be polled in the order of
+ * insertion.  A special case is clone, that has two ID, the clone and
+ * the original 'id': In this case this operation belong to both
+ * 'id's, so they must be polled in order.
+ * 
+ * In order to make things simpler, we apply a FIFO ior polling to
+ * make thing both easy and correct.
+ */
+
+
 #define MAXUSRDEVREMS 256
 #define MAXUSRDEVAPERTS 16
 #define IOSPACESZ 32
@@ -44,19 +58,28 @@
 static struct slab usrioreqs;
 
 enum usrior_op {
+	IOR_OP_OPEN,
+	IOR_OP_CLONE,
 	IOR_OP_OUT,
+	IOR_OP_CLOSE,
 };
 
 struct usrioreq {
 	unsigned id;
 	enum usrior_op op;
 	union {
+		/* Nothing for OPEN */
+		struct {
+			/* CLONE */
+			unsigned clone_id;
+		};
 		struct {
 			/* OUT */
 			uint8_t size;
 			uint16_t port;
 			uint64_t val;
 		};
+		/* Nothing for CLOSE */
 	};
 	uid_t uid;
 	gid_t gid;
@@ -92,6 +115,7 @@ struct usrdev {
 	struct thread *th;	/* Device thread */
 	struct usrdev_cfg cfg;  /* Device Configuration Space */
 	unsigned sig;		/* Request Signal */
+	unsigned detaching;     /* Shutting down, stop operations. */
 
 	struct remth remths[MAXUSRDEVREMS];
 
@@ -105,9 +129,17 @@ struct usrdev_procopq {
 static int _usrdev_open(void *devopq, uint64_t did)
 {
 	int i, ret;
+	struct thread *th = current_thread();
+	struct usrioreq *ior;
+	int unused_ior = 1;
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
+	ior = structs_alloc(&usrioreqs);
+	memset(ior, 0, sizeof(*ior));
+	ior->op = IOR_OP_OPEN;
+	ior->gid = th->egid;
+	ior->uid = th->euid;
 
 	spinlock(&ud->lock);
 	for (i = 0; i < MAXUSRDEVREMS; i++) {
@@ -122,8 +154,76 @@ static int _usrdev_open(void *devopq, uint64_t did)
 	ud->remths[i].use = 1;
 	ud->remths[i].id = i;
 	ret = i;
+
+	if (ud->detaching) {
+		unused_ior = 1;
+		ret = -ENODEV;
+		goto out;
+	}
+
+	ior->id = i;
+	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
+	thraise(ud->th, ud->sig);
+	unused_ior = 0;
+
       out:
 	spinunlock(&ud->lock);
+	if (unused_ior)
+		structs_free(ior);
+	return ret;
+}
+
+static int _usrdev_clone(void *devopq, unsigned id, struct thread *nth)
+{
+	int i, ret;
+	struct thread *th = current_thread();
+	struct usrioreq *ior;
+	int unused_ior = 1;
+	struct usrdev *ud = (struct usrdev *) devopq;
+
+	/* Current thread: Process */
+	ior = structs_alloc(&usrioreqs);
+	memset(ior, 0, sizeof(*ior));
+	ior->op = IOR_OP_CLONE;
+	ior->id = id;
+	ior->gid = th->egid;
+	ior->uid = th->euid;
+
+	spinlock(&ud->lock);
+	for (i = 0; i < MAXUSRDEVREMS; i++) {
+		if (!ud->remths[i].use)
+			break;
+	}
+	if (i >= MAXUSRDEVREMS) {
+		ret = -ENFILE;
+		goto out;
+	}
+	ud->remths[i].th = nth;
+	ud->remths[i].use = 1;
+	ud->remths[i].id = i;
+	memcpy(ud->remths[i].iospace,
+	       ud->remths[id].iospace,
+	       sizeof(ud->remths[i].iospace));
+	memcpy(ud->remths[i].irqmap,
+	       ud->remths[id].irqmap,
+	       sizeof(ud->remths[i].irqmap));
+	/* do not copy ud->remths[i].apertbl */
+	ret = i;
+
+	if (ud->detaching) {
+		unused_ior = 1;
+		ret = -ENODEV;
+		goto out;
+	}
+
+	ior->clone_id = i;
+	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
+	thraise(ud->th, ud->sig);
+	unused_ior = 0;
+ out:
+	spinunlock(&ud->lock);
+	if (unused_ior)
+		structs_free(ior);
 	return ret;
 }
 
@@ -175,6 +275,14 @@ static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 	ior->gid = th->egid;
 
 	spinlock(&ud->lock);
+	if (ud->detaching) {
+		spinunlock(&ud->lock);
+		structs_free(ior);
+		/* Only temporarily a lie. Device will be destroyed
+		 * soon. */
+		return -ENODEV;
+	}
+
 	TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
 	thraise(ud->th, ud->sig);
 	spinunlock(&ud->lock);
@@ -267,10 +375,20 @@ static int _usrdev_irqmap(void *devopq, unsigned id, unsigned irq,
 static void _usrdev_close(void *devopq, unsigned id)
 {
 	int i, ret;
+	struct thread *th = current_thread();
 	struct apert *apt;
 	vaddr_t procva, devva;
 	unsigned procid;
+	struct usrioreq *ior;
+	int unused_ior = 0;
 	struct usrdev *ud = (struct usrdev *) devopq;
+
+	ior = structs_alloc(&usrioreqs);
+	memset(ior, 0, sizeof(*ior));
+	ior->id = id;
+	ior->op = IOR_OP_CLOSE;
+	ior->gid = th->egid;
+	ior->uid = th->euid;
 
 	/* Current thread: Process or Device */
 	spinlock(&ud->lock);
@@ -298,14 +416,25 @@ static void _usrdev_close(void *devopq, unsigned id)
 		apt[i].l1e = 0;
 	}
 	ud->remths[id].use = 0;
+
+	if (ud->detaching) {
+		unused_ior = 1;
+	} else {
+		TAILQ_INSERT_TAIL(&ud->ioreqs, ior, queue);
+		thraise(ud->th, ud->sig);
+		unused_ior = 0;
+	}
 	spinunlock(&ud->lock);
 	pmap_commit(ud->remths[id].th->pmap);
 	pmap_commit(ud->th->pmap);
-	dprintf("close(%d)!\n", id);
+
+	if (unused_ior)
+		structs_free(ior);
 }
 
 static struct devops usrdev_ops = {
 	.open = _usrdev_open,
+	.clone = _usrdev_clone,
 	.close = _usrdev_close,
 	.in = _usrdev_in,
 	.out = _usrdev_out,
@@ -323,6 +452,7 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 	ud->lock = 0;
 	ud->th = th;
 	ud->sig = sig;
+	ud->detaching = 0;
 	ud->cfg.vid = cfg->vendorid;
 	ud->cfg.did = cfg->deviceid;
 	ud->cfg.nirqs = cfg->nirqs;
@@ -355,12 +485,24 @@ retry:
 	if (ior == NULL)
 		return -ENOENT;
 
+	memset(poll, 0, sizeof(*poll));
+	
 	switch (ior->op) {
+	case IOR_OP_OPEN:
+		poll->op = SYS_POLL_OP_OPEN;
+		break;
+	case IOR_OP_CLONE:
+		poll->op = SYS_POLL_OP_CLONE;
+		poll->clone_id = ior->clone_id;
+		break;
 	case IOR_OP_OUT:
 		poll->op = SYS_POLL_OP_OUT;
 		poll->size = ior->size;
 		poll->port = ior->port;
 		poll->val = ior->val;
+		break;
+	case IOR_OP_CLOSE:
+		poll->op = SYS_POLL_OP_CLOSE;
 		break;
 	default:
 		panic("Invalid IOR entry type %d!\n", ior->op);
@@ -444,17 +586,16 @@ int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
 void usrdev_destroy(struct usrdev *ud)
 {
 	int sig;
-	unsigned id;
 	struct usrioreq *ior, *tmp;
 
+	ud->detaching = 1;
+	dev_detach(&ud->dev);
 	spinlock(&ud->lock);
-	/* EOI all pending ioreqs */
 	TAILQ_FOREACH_SAFE(ior, &ud->ioreqs, queue, tmp) {
-		id = ior->id;
 		structs_free(ior);
 	}
 	spinunlock(&ud->lock);
-	dev_detach(&ud->dev);
+
 	heap_free(ud);
 }
 

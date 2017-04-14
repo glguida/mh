@@ -109,6 +109,85 @@ int bus_plug(struct bus *b, uint64_t did)
 	return ret;
 }
 
+int bus_copy(struct bus *b, unsigned desc,
+	     struct thread *dstth, struct bus *dstb, unsigned dstdesc)
+{
+	int devid, ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	/* Mark DSTB descriptor DSTDESC allocated */
+	spinlock(&dstb->lock);
+	if (dstb->devs[dstdesc].plg || dstb->devs[dstdesc].bsy) {
+		spinunlock(&dstb->lock);
+		return -EBUSY;
+	}
+	dstb->devs[dstdesc].plg = 1;
+	spinunlock(&dstb->lock);
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto out_copy;
+	}
+	assert(d != NULL);
+
+	if (d->ops->clone == NULL) {
+		ret = -ENODEV;
+		goto out_copy;
+	}
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto out_copy;
+	}
+
+	devid = d->ops->clone(d->devopq, b->devs[desc].devid, dstth);
+	if (devid < 0) {
+		spinunlock(&d->lock);
+		ret = devid;
+		goto out_copy;
+	}
+	spinunlock(&d->lock);
+	ret = 0;
+      out_copy:
+	if (ret != 0) {
+		dstb->devs[dstdesc].plg = 0;
+		spinunlock(&b->lock);
+		return ret;
+	}
+	spinunlock(&b->lock);
+
+
+	spinlock(&dstb->lock);
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret =  -ESRCH;
+		goto out_copy_2;
+	}
+
+	LIST_INSERT_HEAD(&d->busdevs, dstb->devs + dstdesc, list);
+	spinunlock(&d->lock);
+	dstb->devs[dstdesc].bus = dstb;
+	dstb->devs[dstdesc].dev = d;
+	dstb->devs[dstdesc].devid = devid;
+
+	/* Mark it open. */
+	dstb->devs[dstdesc].bsy = 1;
+	ret = 0;
+      out_copy_2:
+	if (ret != 0)
+		dstb->devs[dstdesc].plg = 0;
+	spinunlock(&dstb->lock);
+	return ret;
+}
+
 /* Bus unplug:
  *
  * . bus lock
@@ -175,8 +254,10 @@ int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr)
 	}
 	assert(d != NULL);
 
-	if (d->ops->in == NULL)
-		return -ENODEV;
+	if (d->ops->in == NULL) {
+		ret = -ENODEV;
+		goto out_io_in;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -207,8 +288,10 @@ int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val)
 	}
 	assert(d != NULL);
 
-	if (d->ops->out == NULL)
-		return -ENODEV;
+	if (d->ops->out == NULL) {
+		ret = -ENODEV;
+		goto out_io_out;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -241,8 +324,10 @@ int bus_export(struct bus *b, unsigned desc, vaddr_t va,
 	}
 	assert(d != NULL);
 
-	if (d->ops->export == NULL)
-		return -ENODEV;
+	if (d->ops->export == NULL) {
+		ret = -ENODEV;
+		goto out_io;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -273,8 +358,10 @@ int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	}
 	assert(d != NULL);
 
-	if (d->ops->iomap == NULL)
-		return -ENODEV;
+	if (d->ops->iomap == NULL) {
+		ret = -ENODEV;
+		goto out_iomap;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -306,8 +393,10 @@ int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
 	}
 	assert(d != NULL);
 
-	if (d->ops->iounmap == NULL)
-		return -ENODEV;
+	if (d->ops->iounmap == NULL) {
+		ret = -ENODEV;
+		goto out_iounmap;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -339,8 +428,10 @@ int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg)
 	}
 	assert(d != NULL);
 
-	if (d->ops->rdcfg == NULL)
-		return -ENODEV;
+	if (d->ops->rdcfg == NULL) {
+		ret = -ENODEV;
+		goto out_rdcfg;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
@@ -366,24 +457,25 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	spinunlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg) {
-		printf("Uh? %d\n", desc);
 		ret = -ENOENT;
-		goto out_io;
+		goto out_irqmap;
 	}
 	assert(d != NULL);
 
-	if (d->ops->irqmap == NULL)
-		return -ENODEV;
+	if (d->ops->irqmap == NULL) {
+		ret = -ENODEV;
+		goto out_irqmap;
+	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
 		ret = -ESRCH;
-		goto out_io;
+		goto out_irqmap;
 	}
 	ret = d->ops->irqmap(d->devopq, b->devs[desc].devid, irq, sig);
 	spinunlock(&d->lock);
-      out_io:
+      out_irqmap:
 	return ret;
 }
 
@@ -397,7 +489,6 @@ void bus_remove(struct bus *b)
 
 int dev_attach(struct dev *d)
 {
-	dprintf("attaching device %llx\n", d->did);
 	spinlock(&sys_device_rbtree_lock);
 	if (rb_tree_find_node(&sys_device_rbtree, &d->did)) {
 		spinunlock(&sys_device_rbtree_lock);
