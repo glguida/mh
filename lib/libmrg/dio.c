@@ -7,9 +7,6 @@
 #include <sys/errno.h>
 #include <machine/vmparam.h>
 
-#define perror(...) printf(__VA_ARGS__)
-#warning add perror
-
 struct _DEVICE {
 	int dd;
 
