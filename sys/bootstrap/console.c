@@ -11,48 +11,60 @@
 #include "internal.h"
 
 #define CONSOLE_NAMEID squoze("console")
-#define KBDBUF_SIZE 16
-
-#define mrg_panic(...) do { printf("UUH"); while(1); } while(0)
+#define CONSOLE_MAXSCREENS 256
 
 static int reqevt = -1;
 static unsigned devid = -1;
 
-static int kbdval_req = 0;
-static int kbdbuf_fpos = 0;
-static int kbdbuf_wpos = 0;
-static uint8_t kbdbuf[KBDBUF_SIZE];
+struct screen {
+	int active;
 
-static void consdev_putchar(uint8_t v)
-{
-	console_vga_putchar(v);
-}
+	/* Keyboard I/O State. */
+	int req;
+	int fpos;
+	int wpos;
+#define KBDBUF_SIZE 16
+	uint8_t kbdbuf[KBDBUF_SIZE];
+	void *kbd_opq;
+
+	/* Display I/O State. */
+	void *dsp_opq;
+};
+
+unsigned cur_screen = 0;
+struct screen screens[CONSOLE_MAXSCREENS];
+#define cscr() (screens + cur_screen)
+#define scr(_id) (screens + (_id))
 
 static void devsts_kbdata_update(int id);
 
 void
-kbdbuf_add(int id, uint8_t c)
+kbdbuf_add(uint8_t c)
 {
-	if (((kbdbuf_wpos + 1) % KBDBUF_SIZE) == kbdbuf_fpos) {
+	int fpos, wpos;
+	struct screen *s = cscr();
+
+	if (((s->wpos + 1) % KBDBUF_SIZE) == s->fpos) {
 		/* OVERFLOW */
 		return;
 	}
-	kbdbuf[kbdbuf_wpos++] = c;
-	kbdbuf_wpos %= KBDBUF_SIZE;
+	s->kbdbuf[s->wpos++] = c;
+	s->wpos %= KBDBUF_SIZE;
 
-	if (kbdval_req) {
-		kbdval_req = 0;
-		devsts_kbdata_update(id);
+	if (s->req) {
+		s->req = 0;
+		devsts_kbdata_update(cur_screen);
 	}
 }
 
 static uint64_t
 kbdfetch(int id)
 {
-	int i, len;
+	struct screen *s= scr(id);
 	uint64_t val = 0;
+	int i, len;
 
-	len = kbdbuf_wpos - kbdbuf_fpos;
+	len = s->wpos - s->fpos;
 	if (len == 0)
 		return 0;
 	if (len < 0)
@@ -61,14 +73,17 @@ kbdfetch(int id)
 	len = MIN(sizeof(uint64_t), len);
 	for (i = 0; i < len; i++) {
 		val << 8;
-		val |= kbdbuf[(kbdbuf_fpos + i) % KBDBUF_SIZE];
+		val |= s->kbdbuf[(s->fpos + i) % KBDBUF_SIZE];
 	}
-	kbdbuf_fpos = (kbdbuf_fpos + len) % KBDBUF_SIZE;
+	s->fpos = (s->fpos + len) % KBDBUF_SIZE;
 
 	return val;
 }
 
+static void console_io_open(int id);
+static void console_io_clone(int id, int clid);
 static void console_io_out(int id, uint32_t port, uint64_t val, uint8_t size);
+static void console_io_close(int id);
 
 static void __console_io_ast(void)
 {
@@ -81,8 +96,18 @@ static void __console_io_ast(void)
 		case SYS_POLL_OP_OUT:
 			console_io_out(ret, ior.port, ior.val, ior.size);
 			break;
+		case SYS_POLL_OP_CLOSE:
+			console_io_close(ret);
+			break;
+		case SYS_POLL_OP_OPEN:
+			console_io_open(ret);
+			break;
+		case SYS_POLL_OP_CLONE:
+			console_io_clone(ret, ior.clone_id);
+			break;
 		default:
 			break;
+
 		}
 	}
 	evtclear(reqevt);
@@ -91,31 +116,41 @@ static void __console_io_ast(void)
 static void
 outpos_do(int id, uint64_t val)
 {
+	struct screen *s = scr(id);
 	unsigned x, y;
 
 	x = val & 0xffff;
 	y = val >> 16;
-	console_vga_goto(id, x, y);
+	
+	if (s == cscr())
+		console_vga_goto(x, y);
 }
 
 static void
 outops_do(int id, uint64_t val)
 {
+	struct screen *s = scr(id);
+
 	switch(val) {
 	case CONSIO_OUTOP_CURSON:
-		console_vga_cursor(id, 1);
+		if (s == cscr())
+			console_vga_cursor(1);
 		break;
 	case CONSIO_OUTOP_CRSOFF:
-		console_vga_cursor(id, 0);
+		if (s == cscr())
+			console_vga_cursor(0);
 		break;
 	case CONSIO_OUTOP_SCROLL:
-		console_vga_scroll(id);
+		if (s == cscr())
+			console_vga_scroll();
 		break;
 	case CONSIO_OUTOP_UPSCRL:
-		console_vga_upscroll(id);
+		if (s == cscr())
+			console_vga_upscroll();
 		break;
 	case CONSIO_OUTOP_BELL:
-		console_vga_bell(id);
+		/* Ring the bell for all screens */
+		console_vga_bell();
 		break;
 	default:
 		break;
@@ -129,6 +164,9 @@ outdata_update(int id, uint64_t val)
 {
 	int c, xattr, colattr;
 
+	if (id != cur_screen)
+		return;
+
 	c = val & 0xff;
 	xattr = (val >> 8) & 0xff;
 	colattr = (val >> 16) & 0xff;
@@ -140,6 +178,7 @@ devsts_kbdata_update(int id)
 {
 	int ret;
 	uint64_t val;
+	struct screen *s = scr(id);
 
 	val = kbdfetch(id);
 	ret = devwriospace(devid, id, IOPORT_QWORD(CONSIO_KBDATA), val);
@@ -149,7 +188,7 @@ devsts_kbdata_update(int id)
 	}
 
 	if (val == 0) {
-		kbdval_req = 1;
+		s->req = 1;
 		return;
 	}
 
@@ -165,7 +204,7 @@ devsts_kbdata_update(int id)
 static void
 console_io_out(int id, uint32_t port, uint64_t val, uint8_t size)
 {
-	devwriospace(devid, id, IOPORT_QWORD(CONSIO_OUTDISP), 80 + (25 << 8));
+	struct screen *s = scr(id);
 
 	switch (port) {
 	case CONSIO_DEVSTS:
@@ -185,6 +224,59 @@ console_io_out(int id, uint32_t port, uint64_t val, uint8_t size)
 	}
 }
 
+static void
+console_io_close(int id)
+{
+	struct screen *s = scr(id);
+
+	console_kbd_close(s->kbd_opq);
+	console_vga_close(s->dsp_opq);
+
+	s->active = 0;
+	s->req = 0;
+	s->fpos = 0;
+	s->wpos = 0;
+
+	s->kbd_opq = NULL;
+	s->dsp_opq = NULL;
+}
+
+static void
+console_io_open(int id)
+{
+	struct screen *s = scr(id);
+
+	devwriospace(devid, id, IOPORT_QWORD(CONSIO_OUTDISP),
+		     console_vga_cols() + (console_vga_lines() << 8));
+
+	s->req = 0;
+	s->fpos = 0;
+	s->wpos = 0;
+
+	s->kbd_opq = NULL;
+	s->dsp_opq = NULL;
+	s->active = 1;
+}
+
+static void
+console_io_clone(int id, int clid)
+{
+	struct screen *s = scr(id);
+	struct screen *cls = scr(clid);
+
+	devwriospace(devid, clid, IOPORT_QWORD(CONSIO_OUTDISP),
+		     console_vga_cols() + (console_vga_lines() << 8));
+	
+	cls->req = s->req;
+	cls->fpos = s->fpos;
+	cls->wpos = s->fpos;
+
+	/* FIXME */
+	cls->kbd_opq = NULL;
+	cls->dsp_opq = NULL;
+	cls->active = 1;
+}
+
 static void console_klogon(void)
 {
 	DEVICE *d;
@@ -194,6 +286,35 @@ static void console_klogon(void)
 	dout(d, IOPORT_BYTE(SYSDEVIO_CONSON), 1);
 	dclose(d);
 	d = NULL;
+}
+
+void console_switch(unsigned id)
+{
+	struct screen *cs = cscr();
+	struct screen *ns = scr(id);
+
+	assert(cur_screen < CONSOLE_MAXSCREENS);
+
+	if (id >= CONSOLE_MAXSCREENS)
+		return;
+
+	if (!ns->active)
+		return;
+	
+	if (cs != ns) {
+		cs->dsp_opq = console_vga_save();
+		cs->kbd_opq = console_kbd_save();
+
+		console_vga_goto(0,0);
+		console_vga_putc('0', COLATTR(RED,WHITE), XA_BOLD);
+		
+		console_vga_restore(ns->dsp_opq);
+		ns->dsp_opq = NULL;
+		console_kbd_restore(ns->kbd_opq);
+		ns->kbd_opq = NULL;
+		cur_screen = id;
+	}
+	devraiseirq(devid, id, CONSIO_IRQ_REDRAW);
 }
 
 static void pltconsole()
@@ -211,8 +332,9 @@ static void pltconsole()
 	evtast(reqevt, __console_io_ast);
 
 	ret = devcreat(&cfg, 0111, reqevt);
-	if (ret < 0)
-		mrg_panic("Cannot create console: devcreat() [%d]", ret);
+	if (ret < 0) {
+		exit(-7);
+	}
 	devid = ret;
 
 	/* Search for PNP0303 in devices */

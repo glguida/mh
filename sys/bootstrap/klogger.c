@@ -12,14 +12,13 @@
 #include "internal.h"
 
 DEVICE *klogger = NULL;
-DEVICE *console;
 int klogevt;
+WIN *w;
+
 
 static void console_putchar(int ch)
 {
-	uint32_t val;
-	val = ch | (XA_NORMAL << 8) | (COLATTR(RED,BLUE) << 16);
-	dout(console, IOPORT_DWORD(CONSIO_OUTDATA), val);
+	vtty_wputc(w, ch);
 }
 
 static void
@@ -43,18 +42,16 @@ static void klogger_main(void)
 	klogger = dopen("KLOG");
 	assert(klogger != NULL);
 
-	console = dopen("console");
+	win_init(BLACK, YELLOW, XA_NORMAL);
+	w = vtty_wopen(0, 0, 79, 24, BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
+	vtty_wredraw(w, 1);
+	vtty_wputs(w, "Kernel Log:");
+	w = vtty_wopen(0, 1, 79, 24, BNONE, XA_NORMAL, BLACK, YELLOW, 0, 0, 1);
 
-	int i = 0;
-	while (console == NULL && i++ < 3) {
-		lwt_pause();
-		console = dopen("console");
-	}
-	if (console == NULL) {
-		printf("klogger: error opening console!\n");
-		exit(-1);
-	}
-	
+
+	vtty_wcursor(w, CNONE);
+	vtty_wredraw(w, 1);
+
 	/* Enable interrupt */
 	klogevt = evtalloc();
 	evtast(klogevt, __klog_avl_ast);
@@ -73,8 +70,10 @@ klogger_process(void)
 	if (pid < 0)
 		return pid;
 
-	if (pid == 0)
+	if (pid == 0) {
 		klogger_main();
+		exit(-1);
+	}
 
 	return pid;
 }

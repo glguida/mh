@@ -18,5 +18,6 @@
 #define CONSIO_OUTOP_CRSOFF 4
 
 #define CONSIO_IRQ_KBDATA 0
+#define CONSIO_IRQ_REDRAW 1
 
 #endif

@@ -112,64 +112,24 @@ int main()
 	}
 	printf("PLTCONSOLE started as pid %d\n", ret);
 
-	/* open console */
-	printf("bootstrap: waiting for console.\n");
-	console = dopen("console");
-	int i = 0;
-	while (console == NULL && i++ < 3) {
-		lwt_pause();
-		console = dopen("console");
-	}
-	if (console == NULL) {
-		printf("ERROR!\n");
-		exit(-1);
-	}
-	printf("bootstrap: console opened\n");
-
 	/* Initialize Window System */
-	win_init(BLUE, WHITE, XA_NORMAL);
+	win_init(BLACK, WHITE, XA_NORMAL);
 	WIN *ws;
-	ws = vtty_wopen(0, 0, 78, 23, BNONE, XA_NORMAL, BLUE, WHITE, 0, 0, 1);
+	ws = vtty_wopen(0, 0, 79, 24,
+			BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
 	vtty_wredraw(ws, 1);
 	
+
 	FILE *consf = fwopen((void *)ws, _console_write);
 	setvbuf(consf, NULL, _IONBF, 0);
 	stdout = consf;
 	stderr = consf;
+	printf("Welcome to the MURGIA system.\n");
 
-#if 0 // Disabling klogger for now
+	printf("starting kernel log...");
 	/* fork and create kloggerd. */
 	ret = klogger_process();
-#endif
+	printf("PID %d\n", ret);
 
-	consevt = evtalloc();
-	ret = dmapirq(console, CONSIO_IRQ_KBDATA, consevt);
-
-	/*
-	 * Read console.
-	 */
-	uint64_t kbdval = 0;
-	uint64_t val;
-	din(console, IOPORT_BYTE(CONSIO_DEVSTS), &kbdval);
-	if (kbdval & CONSIO_DEVSTS_KBDVAL) {
-		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
-		while ((val & 0xff) > 0) {
-			fprintf(consf, "%c", (char)(val & 0xff));
-			val >>= 8;
-		}
-	}
-
-	while (1) {
-		/* Request data */
-		dout(console, IOPORT_BYTE(CONSIO_DEVSTS),
-		     CONSIO_DEVSTS_KBDVAL);
-		evtwait(consevt);
-		din(console, IOPORT_QWORD(CONSIO_KBDATA), &val);
-		while ((val & 0xff) > 0) {
-			fprintf(consf, "%c", val & 0xff);
-			val >>= 8;
-		}
-		evtclear(consevt);
-	}
-	lwt_sleep();
+       	lwt_sleep();
 }

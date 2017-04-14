@@ -35,6 +35,15 @@ struct vga_state {
 
 volatile uint8_t *__vga_mem = NULL;
 static struct vga_state __vga_state;
+uint8_t xpos = 0;
+uint8_t ypos = 0;
+
+struct console_vga_state {
+	uint8_t attr_mod;
+  	uint8_t crt_crs_start;
+	uint8_t xpos;
+	uint8_t ypos;
+};
 
 static void vga_save(void)
 {
@@ -106,9 +115,6 @@ static void vga_setup(void)
 		__vga_mem[i * 2 + 1] = VGA_COLORATTR;
 }
 
-uint8_t xpos = 0;
-uint8_t ypos = 0;
-
 static void scroll(void)
 {
 	int i;
@@ -147,7 +153,40 @@ int console_vga_init(uint64_t nameid)
 	return 0;
 }
 
-void console_vga_cursor(int id, int on)
+void *console_vga_save(void)
+{
+	struct console_vga_state *sv;
+
+	sv = malloc(sizeof(*sv));
+	sv->xpos = xpos;
+	sv->ypos = ypos;
+
+	VGAOUTB(VGA_CRT_CURSOR_START, VGA_CRT_ADDR_REG);
+	VGAINB(VGA_CRT_DATA_REG, &sv->crt_crs_start);
+	return (void *)sv;
+}
+
+void console_vga_restore(void *opq)
+{
+	struct console_vga_state *sv = (struct console_vga_state *)opq;
+
+	if (sv == NULL)
+		return;
+
+	xpos = sv->xpos;
+	ypos = sv->ypos;
+	VGAOUTB(VGA_CRT_CURSOR_START, VGA_CRT_ADDR_REG);
+	VGAOUTB(sv->crt_crs_start, VGA_CRT_DATA_REG);
+	free(opq);
+}
+
+void console_vga_close(void *opq)
+{
+	if (opq != NULL)
+		free(opq);
+}
+
+void console_vga_cursor(int on)
 {
 	if (on) {
 		VGAOUTB(VGA_CRT_CURSOR_START, VGA_CRT_ADDR_REG);
@@ -158,20 +197,20 @@ void console_vga_cursor(int id, int on)
 	}
 }
 
-void console_vga_scroll(int id)
+void console_vga_scroll(void)
 {
 	scroll();
 }
 
-void console_vga_upscroll(int id)
+void console_vga_upscroll(void)
 {
 }
 
-void console_vga_bell(int id)
+void console_vga_bell(void)
 {
 }
 
-void console_vga_goto(int id, unsigned x, unsigned y)
+void console_vga_goto(unsigned x, unsigned y)
 {
 	xpos = x;
 	ypos = y;
@@ -287,6 +326,15 @@ void console_vga_putc(int c, int colattr, int xattr)
 	update_cursor();
 }
 
+unsigned console_vga_cols(void)
+{
+	return 80;
+}
+
+unsigned console_vga_lines(void)
+{
+	return 25;
+}
 
 /*
  * 'Autonomous' putchar: print and scroll.

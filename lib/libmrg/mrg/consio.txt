@@ -68,3 +68,7 @@ List of Interrupts:
 
         Raised when DEVSTS.KBDVAL is set
 
+
+ - IRQ1
+
+	Raised when a redraw of the screen is requested.

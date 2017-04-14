@@ -124,10 +124,29 @@ static void __kbd_ast(void)
 	while (val & 0x1) {
 		din(kbdd, IOPORT_BYTE(0x60), &val);
 		if (keymapper_us((char)val, &c)) {
-			kbdbuf_add(0, c);
+
+			if (c >= 'a' && c <= 'z') {
+				console_switch(c - 'a');
+			} else {
+				kbdbuf_add(c);
+			}
 		}
 		din(kbdd, IOPORT_BYTE(0x64), &val);
 	}
+}
+
+void *console_kbd_save(void)
+{
+	return NULL;
+}
+
+void console_kbd_restore(void *opq)
+{
+	return NULL;
+}
+
+void console_kbd_close(void *opq)
+{
 }
 
 int
