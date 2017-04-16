@@ -8,21 +8,26 @@
 #include <uk/sys.h>
 #include <mrg/consio.h>
 #include <vtty/window.h>
+#include <vtty/keyb.h>
 
 #include "internal.h"
 
 DEVICE *klogger = NULL;
 int klogevt;
-WIN *w;
 
+/* View. */
 
-static void console_putchar(int ch)
-{
-	vtty_wputc(w, ch);
-}
+WIN *view;
+int slines;
+int scols;
+int viewlines;
+int viewcols;
+int viewstart;
+
+#define KLOG_LINES 1024
 
 static void
-__klog_avl_ast()
+__klog_avl_ast(void)
 {
 	uint64_t ioval = 0;
 	uint8_t ch;
@@ -32,25 +37,41 @@ __klog_avl_ast()
 	while (ioval != 0) {
 		din(klogger, IOPORT_BYTE(KLOGDEVIO_GETC), &ioval);
 		ch = ioval & 0xff;
-		console_putchar(ch);
+		vtty_wputc(view, ch);
 		din(klogger, IOPORT_DWORD(KLOGDEVIO_SZ), &ioval);
 	}
 }
 
-static void klogger_main(void)
+void screen_init(void)
 {
-	klogger = dopen("KLOG");
-	assert(klogger != NULL);
+	WIN *w;
+	int viewoff = 1;
 
 	vtty_init(BLACK, YELLOW, XA_NORMAL);
-	w = vtty_wopen(0, 0, 79, 24, BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
-	vtty_wredraw(w, 1);
+	slines = vtty_lines() - 1;
+	scols = vtty_cols() - 1;
+	viewlines = slines - viewoff;
+	viewcols = scols;
+	viewstart = 0;
+
+	w = vtty_wopen(0, 0, scols- 1, slines - 1, BNONE,
+		       XA_NORMAL, BLACK, WHITE, 0, 1);
 	vtty_wputs(w, "Kernel Log:");
-	w = vtty_wopen(0, 1, 79, 24, BNONE, XA_NORMAL, BLACK, YELLOW, 0, 50, 1);
-
-
-	vtty_wcursor(w, CNONE);
 	vtty_wredraw(w, 1);
+
+	view = vtty_wopen(0, viewoff, viewcols - 1, viewlines - 1,
+			  BNONE, XA_NORMAL, BLACK, YELLOW, 0, 1);
+	vtty_wcursor(view, CNORMAL);
+	vtty_wredraw(view, 1);
+}
+
+
+static void klogger_main(void)
+{
+	screen_init();
+
+	klogger = dopen("KLOG");
+	assert(klogger != NULL);
 
 	/* Enable interrupt */
 	klogevt = evtalloc();
@@ -59,18 +80,6 @@ static void klogger_main(void)
 	dout(klogger, IOPORT_BYTE(KLOGDEVIO_IE), 1);
 	__klog_avl_ast();
 
-#if 0
-	while (1) {
-		switch(vtty_kgetcw()) {
-		case K_UP:
-			vtty_wscroll(w, S_UP);
-			break;
-		case K_DN:
-			vtty_wscroll(w, S_DOWN);
-			break;
-		}
-	}
-#endif	
 	lwt_sleep();
 }
 

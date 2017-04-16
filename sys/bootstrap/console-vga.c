@@ -207,12 +207,12 @@ void console_vga_cursor(int on)
 
 void console_vga_scroll(void)
 {
-	upscroll();
+	scroll();
 }
 
 void console_vga_upscroll(void)
 {
-	scroll();
+	upscroll();
 }
 
 void console_vga_bell(void)

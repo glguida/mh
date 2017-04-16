@@ -53,9 +53,6 @@ typedef struct _win {
   char o_attr;
   char o_color;		/* Position & attributes before window was opened */
   ELM *map;		/* Map of contents */
-  ELM *histbuf;		/* History buffer. */
-  int histlines;	/* How many lines we keep in the history buffer */
-  int histline;		/* Current line in the history buffer. */
 } WIN;
 
 /*
@@ -139,11 +136,12 @@ extern const char *J_col[]; /* Color's names */
  * Function prototypes.
  */
 
-int wxgetch(void);
+int vtty_lines(void);
+int vtty_columns(void);
 
 void vtty_wflush(void);
 WIN *vtty_wopen(int x1, int y1, int x2, int y2, int border,
-           int attr, int fg, int bg, int direct, int hl, int rel);
+           int attr, int fg, int bg, int direct, int rel);
 void vtty_wclose(WIN *win, int replace);
 void vtty_wleave(void);
 int vtty_wreturn(void);

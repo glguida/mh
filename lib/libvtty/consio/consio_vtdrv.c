@@ -198,3 +198,9 @@ void vtdrv_kwait(void)
 	evtwait(clistevt);
 	evtclear(clistevt);
 }
+
+void vtty_kast(void (*func)(void))
+{
+
+	evtast(clistevt, func);
+}

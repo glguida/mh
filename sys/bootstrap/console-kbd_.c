@@ -189,7 +189,6 @@ int getkey(char sc)
 		if (key == K_ENT || key == K_BS)
 			key &= ~(M_ALT|M_SFT|M_CTL);
 	}
-//	printf("key = %02x\n", key);
 	return key;
 }
 

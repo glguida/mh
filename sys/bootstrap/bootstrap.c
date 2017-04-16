@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <machine/param.h>
 #include <vtty/window.h>
+#include <vtty/keyb.h>
 #include "internal.h"
 
 int pltusb_pid = 0;
@@ -116,7 +117,7 @@ int main()
 	vtty_init(BLACK, WHITE, XA_NORMAL);
 	WIN *ws;
 	ws = vtty_wopen(0, 0, 79, 24,
-			BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
+			BNONE, XA_NORMAL, BLACK, WHITE, 0, 1);
 	vtty_wredraw(ws, 1);
 	
 #ifndef CONSOLE_DEBUG_BOOT

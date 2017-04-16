@@ -318,10 +318,23 @@ void vtty_wresize(WIN *win, int lines, int cols)
 #endif
 
 /*
+ * Screen Description.
+ */
+int vtty_cols(void)
+{
+	return COLS;
+}
+
+int vtty_lines(void)
+{
+	return LINES;
+}
+
+/*
  * Create a new window.
  */
 WIN *vtty_wopen(int x1, int y1, int x2, int y2, int border, int attr,
-           int fg, int bg, int direct, int histlines, int doclr)
+           int fg, int bg, int direct, int doclr)
 {
   WIN *w;
   ELM *e;
@@ -403,29 +416,6 @@ WIN *vtty_wopen(int x1, int y1, int x2, int y2, int border, int attr,
     e += (x2 - x1 + 1);
   }
 
-  /* Do we want history? */
-  w->histline = w->histlines = 0;
-  w->histbuf = NULL;
-  if (histlines) {
-    /* Reserve some memory. */
-    bytes = w->xs * histlines * sizeof(ELM);
-    if ((w->histbuf = malloc(bytes)) == NULL) {
-      free(w->map);
-      free(w);
-      return NULL;
-    }
-    w->histlines = histlines;
-
-    /* Clear the history buf. */
-    e = w->histbuf;
-    for (y = 0; y < w->xs * histlines; y++) {
-      e->value = ' ';
-      e->attr = attr;
-      e->color = color;
-      e++;
-    }
-  }
-
   /* And draw the window */
   if (border) {
     _write(border == BSINGLE ? S_UL : D_UL, w->direct, x1, y1, xattr, color);
@@ -502,8 +492,6 @@ void vtty_wclose(WIN *win, int replace)
     _setattr(win->o_attr, win->o_color);
   }
   free(win->map);
-  if (win->histbuf)
-    free(win->histbuf);
   free(win);	/* 1.1.98 dickey@clark.net  */
   vtty_wflush();
 }
@@ -676,7 +664,7 @@ void vtty_wscroll(WIN *win, int dir)
       vtdrv_upscroll();
     }
   }
-  
+
   /* If a terminal has automatic margins, we can't write
    * to the lower right. After scrolling we have to restore
    * the non-visible character that is now visible.
@@ -690,25 +678,6 @@ void vtty_wscroll(WIN *win, int dir)
   }
 
   ocurx = win->curx;
-
-  /* If this window has a history buf, see if we want to use it. */
-  if (win->histbuf && dir == S_UP &&
-      win->sy2 == win->y2 && win->sy1 == win->y1) {
-
-    /* Calculate screen buffer */
-    e = gmap + win->y1 * COLS + win->x1;
-
-    /* Calculate history buffer */
-    f = win->histbuf + (win->xs * win->histline);
-
-    /* Copy line from screen to history buffer */
-    memcpy((char *)f, (char *)e, win->xs * sizeof(ELM));
-
-    /* Postion the next line in the history buffer */
-    win->histline++;
-    if (win->histline >= win->histlines)
-      win->histline = 0;
-  }
 
   /* If the window is screen-wide and has no border, there
    * is a much simpler & FASTER way of scrolling the memory image !!
@@ -743,7 +712,7 @@ void vtty_wscroll(WIN *win, int dir)
       for (y = win->sy1 + 1; y <= win->sy2; y++) {
         e = gmap + y * COLS + win->x1;
         for (x = win->x1; x <= win->x2; x++) {
-          _write(e->value, win->direct && doit, x, y - 1, e->attr, e->color);
+          _write(e->value, (win->direct && doit) ? 1 : 0, x, y - 1, e->attr, e->color);
           e++;
         }
       }
@@ -755,7 +724,7 @@ void vtty_wscroll(WIN *win, int dir)
       for (y = win->sy2 - 1; y >= win->sy1; y--) {
         e = gmap + y * COLS + win->x1;
         for (x = win->x1; x <= win->x2; x++) {
-          _write(e->value, win->direct && doit, x, y + 1, e->attr, e->color);
+          _write(e->value, (win->direct && doit) ? 1 : 0, x, y + 1, e->attr, e->color);
           e++;
         }
       }
@@ -1019,134 +988,6 @@ void vtty_wtitle(WIN *w, int pos, const char *s)
 }
 
 
-/* ==== Menu Functions ==== */
-
-/*
- * Change attributes of one line of a window.
- */
-void vtty_wcurbar(WIN *w, int y, int attr)
-{
-  ELM *e;
-  int x;
-
-#ifdef SMOOTH
-  curwin = w;
-#endif
-
-  y += w->y1;
-
-  e = gmap + y * COLS + w->x1;
-
-  /* If we can't do reverse, just put a '>' in front of
-   * the line. We only support XA_NORMAL & XA_REVERSE.
-   */
-  if (!useattr) {
-    if (attr & XA_REVERSE)
-      x = '>';
-    else
-      x = ' ';
-    _write(x, w->direct, w->x1, y, attr, e->color);
-  } else {
-    for (x = w->x1; x <= w->x2; x++) {
-      _write(e->value, w->direct, x, y, attr, e->color);
-      e++;
-    }
-  }
-  if (_curstype == CNORMAL && w->direct)
-    _gotoxy(w->x1, y);
-  if (w->direct)
-    vtty_wflush();
-}
-
-/*
- * vtty_wselect - select one of many choices.
- */
-int vtty_wselect(int x, int y, const char *const *choices,
-            void (*const *funlist)(void),
-            const char *title, int attr, int fg, int bg)
-{
-  const char *const *a = choices;
-  unsigned int len = 0;
-  int count = 0;
-  int cur = 0;
-  int c;
-  WIN *w;
-  int high_on = XA_REVERSE | attr;
-  int high_off = attr;
-
-  /* first count how many, and max. width. */
-
-  while (*a != NULL) {
-    count++;
-    if (strlen(*a) > len)
-      len = strlen(*a);
-    a++;
-  }
-  if (title != NULL && strlen(title) + 2 > len)
-    len = strlen(title) + 2;
-  if (attr & XA_REVERSE) {
-    high_on = attr & ~XA_REVERSE;
-    high_off = attr;
-  }
-
-  if ((w = vtty_wopen(x, y, x + len + 2, y + count - 1,
-                 BDOUBLE, attr, fg, bg, 0, 0, 0)) == NULL)
-    return -1;
-  vtty_wcursor(w, CNONE);
-
-  if (title != NULL)
-    vtty_wtitle(w, TMID, title);
-
-  for (c = 0; c < count; c++)
-    vtty_wprintf(w, " %s%s", choices[c], c == count - 1 ? "" : "\n");
-
-  vtty_wcurbar(w, cur, high_on);
-  vtty_wredraw(w, 1);
-
-  while (1) {
-    while ((c = vtty_kgetcw()) != 27 && c != '\n' && c!= '\r' && c != ' ') {
-      if (c == K_UP || c == K_DN || c == 'j' || c == 'k' ||
-          c == K_HOME || c == K_END)
-        vtty_wcurbar(w, cur, high_off);
-      switch (c) {
-        case K_UP:
-        case 'k':
-          cur--;
-          if (cur < 0)
-            cur = count - 1;
-          break;
-        case K_DN:
-        case 'j':
-          cur++;
-          if (cur >= count)
-            cur = 0;
-          break;
-        case K_HOME:
-          cur = 0;
-          break;
-        case K_END:
-          cur = count - 1;
-          break;
-      }
-      if (c == K_UP || c == K_DN || c == 'j' || c == 'k' ||
-          c == K_HOME || c == K_END)
-        vtty_wcurbar(w, cur, high_on);
-    }
-    vtty_wcursor(w, CNORMAL);
-    if (c == ' ' || c == 27) {
-      vtty_wclose(w, 1);
-      return 0;
-    }
-    if (funlist == NULL || funlist[cur] == NULL) {
-      vtty_wclose(w, 1);
-      return cur + 1;
-    }
-    (*funlist[cur])();
-    vtty_wcursor(w, CNONE);
-  }
-}
-
-
 /* ==== Clearing functions ==== */
 
 /*
@@ -1287,39 +1128,6 @@ void vtty_winclr(WIN *w)
   int i;
   int m;
 
-  /* If this window has history, save the image. */
-  if (w->histbuf) {
-    /* MARK updated 02/17/95 - Scan backwards from the bottom of the */
-    /* window for the first non-empty line.  We should save all other */
-    /* blank lines inside screen, since some nice BBS ANSI menus */
-    /* contains them for cosmetic purposes or as separators. */
-    for (m = w->y2; m >= w->y1; m--) {
-      /* Start of this line in the global map. */
-      e = gmap + m * COLS + w->x1;
-
-      /* Quick check to see if line is empty. */
-      for (i = 0; i < w->xs; i++)
-        if (e[i].value != ' ')
-          break;
-
-      if (i != w->xs)
-        break; /* Non empty line */
-    }
-
-    /* Copy window into history buffer line-by-line. */
-    for (y = w->y1; y <= m; y++) {
-      /* Start of this line in the global map. */
-      e = gmap + y * COLS + w->x1;
-
-      /* Now copy this line. */
-      f = w->histbuf + (w->xs * w->histline); /* History buffer */
-      memcpy((char *)f, (char *)e, w->xs * sizeof(ELM));
-      w->histline++;
-      if (w->histline >= w->histlines)
-        w->histline = 0;
-    }
-  }
-
   _setattr(w->attr, w->color);
   w->curx = 0;
 
@@ -1421,7 +1229,7 @@ void vtty_winschar2(WIN *w, char c, int move)
   /* Write buffer to screen */
   e = buf;
   for (++x; x <= w->x2; x++) {
-    _write(e->value, doit && w->direct, x, y, e->attr, e->color);
+    _write(e->value, (doit && w->direct) ? 1 : 0, x, y, e->attr, e->color);
     e++;
   }
   free(buf);
@@ -1454,10 +1262,10 @@ void vtty_wdelchar(WIN *w)
   e = gmap + y * COLS + x + 1;
 
   for (; x < w->x2; x++) {
-    _write(e->value, doit && w->direct, x, y, e->attr, e->color);
+    _write(e->value, (doit && w->direct) ? 1 : 0, x, y, e->attr, e->color);
     e++;
   }
-  _write(' ', doit && w->direct, x, y, w->attr, w->color);
+  _write(' ', (doit && w->direct) ? 1 : 0, x, y, w->attr, w->color);
   vtty_wlocate(w, w->curx, w->cury);
 }
 
@@ -1691,7 +1499,7 @@ int vtty_init(int fg, int bg, int attr)
   if (vtdrv_init())
     return -1;
 
-  LINES= vtdrv_lines();
+  LINES = vtdrv_lines();
   COLS = vtdrv_columns();
 
   /* Reset attributes */
@@ -1767,7 +1575,6 @@ int vtty_init(int fg, int bg, int attr)
   stdwin->attr     = attr;
   stdwin->color    = COLATTR(fg, bg);
   stdwin->direct   = 1;
-  stdwin->histbuf  = NULL;
 
   vtty_winclr(stdwin);
   w_init = 1;
