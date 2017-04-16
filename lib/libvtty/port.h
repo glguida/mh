@@ -74,4 +74,8 @@
 # define VC_MUSIC 1
 #endif
 
+#ifdef __MURGIA__
+#include <mrg/consio.h>
+#endif
+
 extern char **environ;

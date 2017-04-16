@@ -1,4 +1,5 @@
 #include <mrg.h>
+#include <stdlib.h>
 #include <string.h>
 #include "vgahw.h"
 #include "internal.h"
@@ -127,6 +128,13 @@ static void scroll(void)
 	}
 }
 
+static void upscroll(void)
+{
+	int i;
+	memmove((void *) (__vga_mem + 80 * 2),
+		(void *) __vga_mem, 80 * 24 * 2);
+}
+
 static void update_cursor(void)
 {
 	uint16_t pos = ypos * 80 + xpos;
@@ -199,11 +207,12 @@ void console_vga_cursor(int on)
 
 void console_vga_scroll(void)
 {
-	scroll();
+	upscroll();
 }
 
 void console_vga_upscroll(void)
 {
+	scroll();
 }
 
 void console_vga_bell(void)

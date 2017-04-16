@@ -8,6 +8,8 @@ NOINST=yes
 
 LDADD+= -lsquoze -lacpi -lvtty
 
+#CFLAGS+= -DCONSOLE_DEBUG_BOOT
+
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/sysprog.mk
 include $(MAKEDIR)/def.mk

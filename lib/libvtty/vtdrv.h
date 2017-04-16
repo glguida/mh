@@ -18,6 +18,4 @@ void vtdrv_upscroll(void);
 void vtdrv_putc(char c);
 void vtdrv_bell(void);
 
-char vtdrv_getch(void);
-
 #endif /* !__VTDRV_H__ */

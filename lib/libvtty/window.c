@@ -470,7 +470,7 @@ void vtty_wclose(WIN *win, int replace)
     return;
 
   if (win == stdwin) {
-    win_end();
+    vtty_end();
     return;
   }
   e = win->map;
@@ -557,7 +557,7 @@ int vtty_wreturn(void)
   return 0;
 }
 
-int vtty_wrestore(void)
+void vtty_wrestore(void)
 {
   int x, y;
   ELM *e;
@@ -670,10 +670,10 @@ void vtty_wscroll(WIN *win, int dir)
     _setattr(win->attr, win->color);
     if (dir == S_UP) {
       _gotoxy(0, LINES - 1);
-      vtdrv_upscroll();
+      vtdrv_scroll();
     } else {
       _gotoxy(0, 0);
-      vtdrv_scroll();
+      vtdrv_upscroll();
     }
   }
   
@@ -1104,7 +1104,7 @@ int vtty_wselect(int x, int y, const char *const *choices,
   vtty_wredraw(w, 1);
 
   while (1) {
-    while ((c = vtdrv_getch()) != 27 && c != '\n' && c!= '\r' && c != ' ') {
+    while ((c = vtty_kgetcw()) != 27 && c != '\n' && c!= '\r' && c != ' ') {
       if (c == K_UP || c == K_DN || c == 'j' || c == 'k' ||
           c == K_HOME || c == K_END)
         vtty_wcurbar(w, cur, high_off);
@@ -1517,7 +1517,7 @@ int vtty_wgetstr(WIN *w, char *s, int linelen, int maxlen)
       c = K_END;
       once--;
     } else {
-      c = vtdrv_getch();
+      c = vtty_kgetcw();
       if (c > 255 || c == K_BS || c == K_DEL)
         delete = 0;
     }
@@ -1679,18 +1679,9 @@ static int acmap(int c)
 /*
  * Initialize the window system
  */
-#ifdef BBS
-/* Code for the BBS system.. */
-int win_init(char *term, int lines)
+
+int vtty_init(int fg, int bg, int attr)
 {
-  int fg = WHITE;
-  int bg = BLACK;
-  int attr = XA_NORMAL;
-#else
-/* Code for other applications (minicom!) */
-int win_init(int fg, int bg, int attr)
-{
-#endif
   static WIN _stdwin;
   int olduseattr;
 
@@ -1783,7 +1774,7 @@ int win_init(int fg, int bg, int attr)
   return 0;
 }
 
-void win_end(void)
+void vtty_end(void)
 {
   if (gmap == NULL || w_init == 0)
     return;

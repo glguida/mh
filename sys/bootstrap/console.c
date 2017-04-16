@@ -10,8 +10,6 @@
 
 #include "internal.h"
 
-//#define CONSOLE_DEBUG_BOOT
-
 #define CONSOLE_NAMEID squoze("console")
 #define CONSOLE_VENDORID squoze("mrgsys")
 #define CONSOLE_MAXSCREENS 256
@@ -27,7 +25,7 @@ struct screen {
 	int fpos;
 	int wpos;
 #define KBDBUF_SIZE 16
-	uint8_t kbdbuf[KBDBUF_SIZE];
+	uint16_t kbdbuf[KBDBUF_SIZE];
 	void *kbd_opq;
 
 	/* Display I/O State. */
@@ -42,11 +40,11 @@ struct screen screens[CONSOLE_MAXSCREENS];
 static void devsts_kbdata_update(int id);
 
 void
-kbdbuf_add(uint8_t c)
+kbdbuf_add(uint16_t c)
 {
 	int fpos, wpos;
 	struct screen *s = cscr();
-
+	
 	if (((s->wpos + 1) % KBDBUF_SIZE) == s->fpos) {
 		/* OVERFLOW */
 		return;
@@ -60,7 +58,7 @@ kbdbuf_add(uint8_t c)
 	}
 }
 
-static uint64_t
+static uint16_t
 kbdfetch(int id)
 {
 	struct screen *s= scr(id);
@@ -73,12 +71,8 @@ kbdfetch(int id)
 	if (len < 0)
 		len += KBDBUF_SIZE;
 
-	len = MIN(sizeof(uint64_t), len);
-	for (i = 0; i < len; i++) {
-		val << 8;
-		val |= s->kbdbuf[(s->fpos + i) % KBDBUF_SIZE];
-	}
-	s->fpos = (s->fpos + len) % KBDBUF_SIZE;
+	val = s->kbdbuf[s->fpos % KBDBUF_SIZE];
+	s->fpos = (s->fpos + 1) % KBDBUF_SIZE;
 
 	return val;
 }
@@ -186,12 +180,11 @@ devsts_kbdata_update(int id)
 	struct screen *s = scr(id);
 
 	val = kbdfetch(id);
-	ret = devwriospace(devid, id, IOPORT_QWORD(CONSIO_KBDATA), val);
+	ret = devwriospace(devid, id, IOPORT_WORD(CONSIO_KBDATA), val);
 	if (ret != 0) {
 		printf("error on devwriospace(%d)", id);
 		return;
 	}
-
 	if (val == 0) {
 		s->req = 1;
 		return;
@@ -306,8 +299,10 @@ void console_switch(unsigned id)
 		cs->dsp_opq = console_vga_save();
 		cs->kbd_opq = console_kbd_save();
 
+
 		console_vga_goto(0,0);
 		console_vga_putc('0', COLATTR(RED,WHITE), XA_BOLD);
+
 		
 		console_vga_restore(ns->dsp_opq);
 		ns->dsp_opq = NULL;

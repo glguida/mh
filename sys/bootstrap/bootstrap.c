@@ -81,7 +81,7 @@ int main()
 	syscons = fwopen(NULL, _sys_write);
 	stdout = syscons;
 	stderr = syscons;
-	setvbuf(syscons, NULL, _IOLBF, 80);
+	setvbuf(syscons, NULL, _IONBF, 80);
 
 	printf("MRG bootstrap initiated.\n");
 	ret = platform_init();
@@ -113,17 +113,18 @@ int main()
 	printf("PLTCONSOLE started as pid %d\n", ret);
 
 	/* Initialize Window System */
-	win_init(BLACK, WHITE, XA_NORMAL);
+	vtty_init(BLACK, WHITE, XA_NORMAL);
 	WIN *ws;
 	ws = vtty_wopen(0, 0, 79, 24,
 			BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
 	vtty_wredraw(ws, 1);
 	
-
+#ifndef CONSOLE_DEBUG_BOOT
 	FILE *consf = fwopen((void *)ws, _console_write);
 	setvbuf(consf, NULL, _IONBF, 0);
 	stdout = consf;
 	stderr = consf;
+#endif
 	printf("Welcome to the MURGIA system.\n");
 
 	printf("starting kernel log...");
@@ -131,5 +132,8 @@ int main()
 	ret = klogger_process();
 	printf("PID %d\n", ret);
 
+	while(1) {
+		printf("<%lx>", vtty_kgetcw());
+	}
        	lwt_sleep();
 }

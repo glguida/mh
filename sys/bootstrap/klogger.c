@@ -42,11 +42,11 @@ static void klogger_main(void)
 	klogger = dopen("KLOG");
 	assert(klogger != NULL);
 
-	win_init(BLACK, YELLOW, XA_NORMAL);
+	vtty_init(BLACK, YELLOW, XA_NORMAL);
 	w = vtty_wopen(0, 0, 79, 24, BNONE, XA_NORMAL, BLACK, WHITE, 0, 0, 1);
 	vtty_wredraw(w, 1);
 	vtty_wputs(w, "Kernel Log:");
-	w = vtty_wopen(0, 1, 79, 24, BNONE, XA_NORMAL, BLACK, YELLOW, 0, 0, 1);
+	w = vtty_wopen(0, 1, 79, 24, BNONE, XA_NORMAL, BLACK, YELLOW, 0, 50, 1);
 
 
 	vtty_wcursor(w, CNONE);
@@ -58,6 +58,19 @@ static void klogger_main(void)
 	dmapirq(klogger, KLOGDEVIO_AVLINT, klogevt);
 	dout(klogger, IOPORT_BYTE(KLOGDEVIO_IE), 1);
 	__klog_avl_ast();
+
+#if 0
+	while (1) {
+		switch(vtty_kgetcw()) {
+		case K_UP:
+			vtty_wscroll(w, S_UP);
+			break;
+		case K_DN:
+			vtty_wscroll(w, S_DOWN);
+			break;
+		}
+	}
+#endif	
 	lwt_sleep();
 }
 

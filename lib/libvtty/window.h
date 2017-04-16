@@ -147,7 +147,7 @@ WIN *vtty_wopen(int x1, int y1, int x2, int y2, int border,
 void vtty_wclose(WIN *win, int replace);
 void vtty_wleave(void);
 int vtty_wreturn(void);
-void vtty_restore(void);
+void vtty_wrestore(void);
 void vtty_wresize(WIN *w, int x, int y);
 void vtty_wredraw(WIN *w, int newdirect);
 void vtty_wscroll(WIN *win, int dir);
@@ -178,12 +178,8 @@ void vtty_winschar2(WIN *w, char c, int move);
 void vtty_wdelchar(WIN *w);
 int  vtty_wgets(WIN *win, char *s, int linemax, int totmax);
 int  vtty_wgetwcs(WIN *win, char *s, int linemax, int totmax);
-void win_end(void);
-#ifdef BBS
-int win_init(char *term, int lines);
-#else
-int win_init(int fg, int bg, int attr);
-#endif
+void vtty_end(void);
+int vtty_init(int fg, int bg, int attr);
 /* fmg 8/20/97: both needed by history search section */
 void vtty_wdrawelm_inverse( WIN *w, int y, ELM *e);
 void vtty_wdrawelm_var(WIN *w, ELM *e, char *buf);
@@ -204,44 +200,14 @@ void vtty_wdrawelm_var(WIN *w, ELM *e, char *buf);
  * Allright, now the macro's for our keyboard routines.
  */
 
-#define K_BS		8
-#define K_ESC		27
-#define K_STOP		256
-#define K_F1		257
-#define K_F2		258
-#define K_F3		259
-#define K_F4		260
-#define K_F5		261
-#define K_F6		262
-#define K_F7		263
-#define K_F8		264
-#define K_F9		265
-#define K_F10		266
-#define K_F11		277
-#define K_F12		278
-
-#define K_HOME		267
-#define K_PGUP		268
-#define K_UP		269
-#define K_LT		270
-#define K_RT		271
-#define K_DN		272
-#define K_END		273
-#define K_PGDN		274
-#define K_INS		275
-#define K_DEL		276
-
 #define NUM_KEYS	23
 #define KEY_OFFS	256
-
-/* Here's where the meta keycode start. (512 + keycode). */
-#define K_META		512
 
 #ifndef EOF
 #  define EOF		((int) -1)
 #endif
 #define K_ERA		'\b'
-#define K_KILL		((int) -2)
+
 
 /* Internal structure. */
 struct key {
