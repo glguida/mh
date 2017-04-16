@@ -86,6 +86,14 @@ static int sys_wait(void)
 	return 0;
 }
 
+static int sys_raise(unsigned sint)
+{
+	struct thread *th = current_thread();
+
+	thraise(th, sint);
+	return 0;
+}
+
 static int sys_fork(void)
 {
 	struct thread *th;
@@ -468,6 +476,8 @@ int sys_call(int sc,
 		return sys_move(a1, a2);
 	case SYS_GETPID:
 		return sys_getpid();
+	case SYS_RAISE:
+		return sys_raise(a1);
 	case SYS_FORK:
 		return sys_fork();
 	case SYS_DIE:

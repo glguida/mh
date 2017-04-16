@@ -52,6 +52,8 @@ struct sys_childstat {
 #endif
 #define SYS_CHILDSTAT 8
 #define SYS_GETPID 9
+#define SYS_RAISE 10
+
 
 #ifndef _ASSEMBLER
 typedef enum {

@@ -107,6 +107,14 @@ int sys_getpid(void)
 	return ret;
 }
 
+int sys_raise(int signal)
+{
+	int ret;
+
+	__syscall1(SYS_RAISE, signal, ret);
+	return ret;
+}
+
 int sys_map(vaddr_t vaddr, sys_map_flags_t perm)
 {
 	int ret;
