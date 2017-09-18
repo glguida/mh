@@ -373,11 +373,11 @@ static int _usrdev_rdcfg(void *devopq, unsigned id, uint32_t off, uint8_t size, 
 		mask = 0xffff;
 		break;
 	case 4:
-		aln = 2;
+		aln = 3;
 		mask = 0xffffffff;
 		break;
 	case 8:
-		aln = 3;
+		aln = 7;
 		mask = (uint64_t)-1;
 		break;
 	default:
