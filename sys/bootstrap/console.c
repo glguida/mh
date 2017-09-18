@@ -324,7 +324,6 @@ static void pltconsole()
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.nameid = CONSOLE_NAMEID;
 	cfg.vendorid = CONSOLE_VENDORID;
-	/* XXX: MORE CONF! */
 	cfg.usercfg[0] = console_vga_cols() + (console_vga_lines() << 8);
 
 	reqevt = evtalloc();

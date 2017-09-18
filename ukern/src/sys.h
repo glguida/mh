@@ -70,17 +70,17 @@ typedef enum {
 #define SYS_MOVE 0x11
 
 #ifndef _ASSEMBLER
-struct sys_rdcfg_cfg {
-#define SYS_RDCFG_IRQSEG(_cfg, _i) ((_cfg)->segs[(_i)])
-#define SYS_RDCFG_IOSEG(_cfg, _i) ((_cfg)->segs[(_cfg)->nirqsegs + (_i)])
-#define SYS_RDCFG_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
-#define SYS_RDCFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG
-#define SYS_RDCFG_MAX_SEGMENTS 24
-#define SYS_RDCFG_MAX_MEMSEGMENTS 24
-#define SYS_RDCFG_FLAGS_HW    1
+struct sys_info_cfg {
+#define SYS_INFO_IRQSEG(_cfg, _i) ((_cfg)->segs[(_i)])
+#define SYS_INFO_IOSEG(_cfg, _i) ((_cfg)->segs[(_cfg)->nirqsegs + (_i)])
+#define SYS_INFO_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
+#define SYS_INFO_MAX_SEGMENTS 24
+#define SYS_INFO_MAX_MEMSEGMENTS 24
+#define SYS_INFO_FLAGS_HW    1
+#define SYS_INFO_FLAGS_HWPCI 2
 	uint64_t nameid;
 	uint64_t vendorid;
-	uint64_t deviceids[SYS_RDCFG_MAX_DEVIDS];
+	uint64_t deviceids[SYS_INFO_MAX_DEVIDS];
 
 	uint8_t niopfns;
 	uint8_t nirqsegs;
@@ -88,21 +88,19 @@ struct sys_rdcfg_cfg {
 	uint8_t nmemsegs;
 	uint8_t flags;
 
-	struct sys_rdcfg_seg {
+	struct sys_info_seg {
 		uint16_t base;
 		uint16_t len;
-	} segs[SYS_RDCFG_MAX_SEGMENTS];
+	} segs[SYS_INFO_MAX_SEGMENTS];
 
-	struct sys_rdcfg_memseg {
+	struct sys_info_memseg {
 		uint64_t base;
 		uint32_t len;
-	} memsegs[SYS_RDCFG_MAX_MEMSEGMENTS];
-
-	uint64_t usercfg[SYS_RDCFG_MAXUSERCFG];
+	} memsegs[SYS_INFO_MAX_MEMSEGMENTS];
 };
 #endif
-#define SYS_OPEN   0x20
-#define SYS_MAPIRQ 0x21
+#define SYS_OPEN    0x20
+#define SYS_MAPIRQ  0x21
 /* Platform device port mangling */
 #define IOPORT_SIZESHIFT 2
 #define IOPORT_SIZEMASK 0x3
@@ -110,15 +108,16 @@ struct sys_rdcfg_cfg {
 #define IOPORT_WORD(_x) (((_x) << IOPORT_SIZESHIFT) | 1)
 #define IOPORT_DWORD(_x) (((_x) << IOPORT_SIZESHIFT) | 2)
 #define IOPORT_QWORD(_x) (((_x) << IOPORT_SIZESHIFT) | 3)
-#define SYS_IN     0x22
-#define SYS_OUT    0x23
-#define SYS_EXPORT 0x24
-#define SYS_RDCFG  0x25
-#define SYS_IOMAP  0x26
+#define SYS_IN      0x22
+#define SYS_OUT     0x23
+#define SYS_EXPORT  0x24
+#define SYS_INFO    0x25
+#define SYS_IOMAP   0x26
 #define SYS_IOUNMAP 0x27
-#define SYS_OPEN32 0x28
-#define SYS_OUT32  0x29
-
+#define SYS_OPEN32  0x28
+#define SYS_OUT32   0x29
+#define SYS_RDCFG   0x2A
+#define SYS_WRCFG   0x2B
 #define SYS_CLOSE  0x2F
 
 #define SYS_CREAT_CFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG

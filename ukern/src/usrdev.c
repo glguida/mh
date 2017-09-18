@@ -340,21 +340,70 @@ static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
 	return 0;
 }
 
-static int _usrdev_rdcfg(void *devopq, unsigned id, struct sys_rdcfg_cfg *cfg)
+static int _usrdev_info(void *devopq, unsigned id, struct sys_info_cfg *cfg)
 {
 	struct usrdev *ud = (struct usrdev *) devopq;
 
 	/* Current thread: Process */
 	assert(id < MAXUSRDEVREMS);
-	assert(sizeof(cfg->usercfg) == sizeof(ud->cfg.usercfg));
 
 	spinlock(&ud->lock);
 	cfg->niopfns = IOSPACESZ;
 	cfg->vendorid = ud->cfg.vid;
 	cfg->deviceids[0] = ud->cfg.did;
 	cfg->segs[0].len = ud->cfg.nirqs;
-	memcpy(cfg->usercfg, ud->cfg.usercfg, sizeof(cfg->usercfg));
 	spinunlock(&ud->lock);
+	return 0;
+}
+
+static int _usrdev_rdcfg(void *devopq, unsigned id, uint32_t off, uint8_t size, uint64_t *val)
+{
+	uint8_t aln, shift;
+	uint32_t i;
+	uint64_t mask, res;
+	struct usrdev *ud = (struct usrdev *) devopq;
+
+	switch(size) {
+	case 1:
+		aln = 0;
+		mask = 0xff;
+		break;
+	case 2:
+		aln = 1;
+		mask = 0xffff;
+		break;
+	case 4:
+		aln = 2;
+		mask = 0xffffffff;
+		break;
+	case 8:
+		aln = 3;
+		mask = (uint64_t)-1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (off & aln)
+		return -EINVAL;
+
+	i = off >> 3;
+	shift = (off & 0x7) * 8;
+
+	/* Current thread: Process */
+	assert(id < MAXUSRDEVREMS);
+
+	if (i >= SYS_DEVCONFIG_MAXUSERCFG) {
+		return -EINVAL;
+	}
+
+	spinlock(&ud->lock);
+	res = ud->cfg.usercfg[i];
+	spinunlock(&ud->lock);
+
+	res >>= shift;
+	res &= mask;
+	*val = res;
 	return 0;
 }
 
@@ -441,6 +490,7 @@ static struct devops usrdev_ops = {
 	.in = _usrdev_in,
 	.out = _usrdev_out,
 	.export = _usrdev_export,
+	.info = _usrdev_info,
 	.rdcfg = _usrdev_rdcfg,
 	.irqmap = _usrdev_irqmap,
 };

@@ -112,8 +112,8 @@ static int _sysdev_export(void *devopq, unsigned id, vaddr_t va,
 	return -ENOSYS;
 }
 
-static int _sysdev_rdcfg(void *devopq, unsigned id,
-			 struct sys_rdcfg_cfg *cfg)
+static int _sysdev_info(void *devopq, unsigned id,
+			 struct sys_info_cfg *cfg)
 {
 	cfg->nameid = SYSTEM_NAMEID;
 	cfg->vendorid = SYSTEM_VENDORID;
@@ -164,7 +164,7 @@ static struct devops sysdev_ops = {
 	.export = _sysdev_export,
 	.iomap = _sysdev_iomap,
 	.iounmap = _sysdev_iounmap,
-	.rdcfg = _sysdev_rdcfg,
+	.info = _sysdev_info,
 	.irqmap = _sysdev_irqmap,
 };
 

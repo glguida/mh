@@ -221,8 +221,8 @@ static int _klogdev_export(void *devopq, unsigned id, vaddr_t va,
 	return -ENOSYS;
 }
 
-static int _klogdev_rdcfg(void *devopq, unsigned id,
-			 struct sys_rdcfg_cfg *cfg)
+static int _klogdev_info(void *devopq, unsigned id,
+			 struct sys_info_cfg *cfg)
 {
 	cfg->nameid = KLOGDEV_NAMEID;
 	cfg->vendorid = KLOGDEV_VENDORID;
@@ -269,7 +269,7 @@ static struct devops klogdev_ops = {
 	.export = _klogdev_export,
 	.iomap = _klogdev_iomap,
 	.iounmap = _klogdev_iounmap,
-	.rdcfg = _klogdev_rdcfg,
+	.info = _klogdev_info,
 	.irqmap = _klogdev_irqmap,
 };
 

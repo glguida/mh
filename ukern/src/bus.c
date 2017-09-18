@@ -306,6 +306,74 @@ int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val)
 	return ret;
 }
 
+int bus_rdcfg(struct bus *b, unsigned desc, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto rdcfg_out;
+	}
+	assert(d != NULL);
+
+	if (d->ops->rdcfg == NULL) {
+		ret = -ENODEV;
+		goto rdcfg_out;
+	}
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto rdcfg_out;
+	}
+	ret = d->ops->rdcfg(d->devopq, b->devs[desc].devid, off, sz, val);
+	spinunlock(&d->lock);
+      rdcfg_out:
+	spinunlock(&b->lock);
+	return ret;
+}
+
+int bus_wrcfg(struct bus *b, unsigned desc, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	int ret;
+	struct dev *d;
+
+	if (desc >= MAXBUSDEVS)
+		return -EBADF;
+
+	spinlock(&b->lock);
+	d = b->devs[desc].dev;
+	if (!b->devs[desc].plg) {
+		ret = -ENOENT;
+		goto wrcfg_out;
+	}
+	assert(d != NULL);
+
+	if (d->ops->wrcfg == NULL) {
+		ret = -ENODEV;
+		goto wrcfg_out;
+	}
+
+	spinlock(&d->lock);
+	if (d->offline) {
+		spinunlock(&d->lock);
+		ret = -ESRCH;
+		goto wrcfg_out;
+	}
+	ret = d->ops->wrcfg(d->devopq, b->devs[desc].devid, off, sz, val);
+	spinunlock(&d->lock);
+      wrcfg_out:
+	spinunlock(&b->lock);
+	return ret;
+}
+
 int bus_export(struct bus *b, unsigned desc, vaddr_t va,
 	       unsigned long *iopfn)
 {
@@ -411,7 +479,7 @@ int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
 	return ret;
 }
 
-int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg)
+int bus_info(struct bus *b, unsigned desc, struct sys_info_cfg *cfg)
 {
 	int ret;
 	struct dev *d;
@@ -424,25 +492,25 @@ int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg)
 	if (!b->devs[desc].plg) {
 		printf("Uh? %d\n", desc);
 		ret = -ENOENT;
-		goto out_rdcfg;
+		goto out_info;
 	}
 	assert(d != NULL);
 
-	if (d->ops->rdcfg == NULL) {
+	if (d->ops->info == NULL) {
 		ret = -ENODEV;
-		goto out_rdcfg;
+		goto out_info;
 	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
 		ret = -ESRCH;
-		goto out_rdcfg;
+		goto out_info;
 	}
-	ret = d->ops->rdcfg(d->devopq, b->devs[desc].devid, cfg);
+	ret = d->ops->info(d->devopq, b->devs[desc].devid, cfg);
 	cfg->nameid = d->did;
 	spinunlock(&d->lock);
-      out_rdcfg:
+      out_info:
 	return ret;
 }
 

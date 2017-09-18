@@ -839,11 +839,11 @@ int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn)
 	return bus_export(&th->bus, dd, va, iopfn);
 }
 
-int devrdcfg(unsigned dd, struct sys_rdcfg_cfg *cfg)
+int devinfo(unsigned dd, struct sys_info_cfg *cfg)
 {
 	struct thread *th = current_thread();
 
-	return bus_rdcfg(&th->bus, dd, cfg);
+	return bus_info(&th->bus, dd, cfg);
 }
 
 int devirqmap(unsigned dd, unsigned irq, unsigned sig)
@@ -865,6 +865,20 @@ int devout(unsigned dd, uint32_t port, uint64_t val)
 	struct thread *th = current_thread();
 
 	return bus_out(&th->bus, dd, port, val);
+}
+
+int devrdcfg(unsigned dd, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	struct thread *th = current_thread();
+
+	return bus_rdcfg(&th->bus, dd, off, sz, val);
+}
+
+int devwrcfg(unsigned dd, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	struct thread *th = current_thread();
+
+	return bus_wrcfg(&th->bus, dd, off, sz, val);
 }
 
 int deviomap(unsigned dd, vaddr_t va, paddr_t mmioaddr, pmap_prot_t prot)

@@ -215,12 +215,30 @@ int sys_out(unsigned ddno, uint32_t  port, uint64_t val)
 	return ret;
 }
 
-int sys_rdcfg(unsigned ddno, struct sys_rdcfg_cfg *cfg)
+int sys_info(unsigned ddno, struct sys_info_cfg *cfg)
 {
 	int ret;
 
-	__syscall2(SYS_RDCFG, (unsigned long) ddno, (unsigned long) cfg,
+	__syscall2(SYS_INFO, (unsigned long) ddno, (unsigned long) cfg,
 		   ret);
+	return ret;
+}
+
+int sys_rdcfg(unsigned ddno, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	int ret;
+
+	__syscall4(SYS_RDCFG, (unsigned long)ddno, (unsigned long)off,
+		   (unsigned long)sz, (unsigned long)val, ret);
+	return ret;
+}
+
+int sys_wrcfg(unsigned ddno, uint32_t off, uint8_t sz, uint64_t *val)
+{
+	int ret;
+
+	__syscall4(SYS_WRCFG, (unsigned long)ddno, (unsigned long)off,
+		   (unsigned long)sz, (unsigned long)val, ret);
 	return ret;
 }
 

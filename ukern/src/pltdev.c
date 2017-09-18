@@ -189,14 +189,14 @@ static int _pltdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 	return -ENOENT;
 }
 
-static int _pltdev_rdcfg(void *devopq, unsigned id,
-			 struct sys_rdcfg_cfg *cfg)
+static int _pltdev_info(void *devopq, unsigned id,
+			 struct sys_info_cfg *cfg)
 {
 	cfg->nameid = PLATFORM_NAMEID;
 	cfg->vendorid = PLATFORM_VENDORID;
 
 	memset(cfg->deviceids, 0, sizeof(cfg->deviceids));
-	cfg->flags |= SYS_RDCFG_FLAGS_HW;
+	cfg->flags |= SYS_INFO_FLAGS_HW;
 	cfg->niopfns = -1;
 	cfg->nirqsegs = -1;
 	cfg->npiosegs = -1;
@@ -253,7 +253,7 @@ static struct devops pltdev_ops = {
 	.export = _pltdev_export,
 	.iomap = _pltdev_iomap,
 	.iounmap = _pltdev_iounmap,
-	.rdcfg = _pltdev_rdcfg,
+	.info = _pltdev_info,
 	.irqmap = _pltdev_irqmap,
 };
 

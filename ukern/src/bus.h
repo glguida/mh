@@ -50,7 +50,7 @@ struct bus {
 };
 
 struct thread;
-struct sys_rdcfg_cfg;
+struct sys_info_cfg;
 struct devops {
 	int (*open) (void *devopq, uint64_t did);
 	int (*clone) (void *devopq, unsigned id, struct thread *nth);
@@ -63,8 +63,12 @@ struct devops {
 	int (*iounmap) (void *devopq, unsigned id, vaddr_t va);
 	int (*export) (void *devopq, unsigned id, vaddr_t va,
 		       unsigned long *iopfn);
-	int (*rdcfg) (void *devopq, unsigned id,
-		      struct sys_rdcfg_cfg * cfg);
+	int (*info) (void *devopq, unsigned id,
+			struct sys_info_cfg * cfg);
+	int (*rdcfg) (void *devopq, unsigned id, uint32_t off,
+		     uint8_t sz, uint64_t *val);
+	int (*wrcfg) (void *devopq, unsigned id, uint32_t off,
+		     uint8_t sz, uint64_t *val);
 	int (*irqmap) (void *devopq, unsigned id, unsigned intr,
 		       unsigned sig);
 	void (*close) (void *devopq, unsigned id);
@@ -97,7 +101,7 @@ int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	      paddr_t mmioaddr, pmap_prot_t prot);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);
 int bus_unplug(struct bus *b, unsigned desc);
-int bus_rdcfg(struct bus *b, unsigned desc, struct sys_rdcfg_cfg *cfg);
+int bus_info(struct bus *b, unsigned desc, struct sys_info_cfg *cfg);
 void bus_remove(struct bus *b);
 
 void dev_init(struct dev *d, uint64_t id, void *opq, struct devops *ops,

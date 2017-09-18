@@ -119,18 +119,24 @@ int vtdrv_init(void)
 
 short vtdrv_lines(void)
 {
+	int ret;
   	uint64_t val = 0;
 
-	val = dusercfg(cons, 0);
-	return (val >> 8) & 0xff;
+	ret = drdcfg(cons, 1, 1, &val);
+	if (ret != 0)
+		return -1;
+	return (short)val;
 }
 
 short vtdrv_columns(void)
 {
+	int ret;
     	uint64_t val = 0;
 
-	val = dusercfg(cons, 0);
-	return val & 0xff;
+	ret = drdcfg(cons, 0, 1, &val);
+	if (ret != 0)
+		return -1;
+	return (short)val;
 }
 
 void  vtdrv_exit(void)

@@ -40,7 +40,7 @@
 #include <uk/errno.h>
 #include <lib/lib.h>
 
-#define MAXHWDEVIDS SYS_RDCFG_MAX_DEVIDS
+#define MAXHWDEVIDS SYS_INFO_MAX_DEVIDS
 #define MAXHWDEVREMS 256
 
 struct hwdma {
@@ -324,8 +324,8 @@ static int _hwdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 }
 
 
-static int _hwdev_rdcfg(void *devopq, unsigned id,
-			struct sys_rdcfg_cfg *cfg)
+static int _hwdev_info(void *devopq, unsigned id,
+			struct sys_info_cfg *cfg)
 {
 	int i;
 	struct hwdev *hd = (struct hwdev *) devopq;
@@ -335,7 +335,7 @@ static int _hwdev_rdcfg(void *devopq, unsigned id,
 	for (i = 0; i < MAXHWDEVIDS; i++)
 		cfg->deviceids[i] = hdcfg->did[i];
 
-	cfg->flags |= SYS_RDCFG_FLAGS_HW;
+	cfg->flags |= SYS_INFO_FLAGS_HW;
 	cfg->niopfns = -1;
 	cfg->nirqsegs = hdcfg->nirqsegs;
 	cfg->npiosegs = hdcfg->npiosegs;
@@ -428,7 +428,7 @@ static struct devops hwdev_ops = {
 	.export = _hwdev_export,
 	.iomap = _hwdev_iomap,
 	.iounmap = _hwdev_iounmap,
-	.rdcfg = _hwdev_rdcfg,
+	.info = _hwdev_info,
 	.irqmap = _hwdev_irqmap,
 };
 

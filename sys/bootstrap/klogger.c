@@ -48,8 +48,8 @@ void screen_init(void)
 	int viewoff = 1;
 
 	vtty_init(BLACK, YELLOW, XA_NORMAL);
-	slines = vtty_lines() - 1;
-	scols = vtty_cols() - 1;
+	slines = vtty_lines();
+	scols = vtty_cols();
 	viewlines = slines - viewoff;
 	viewcols = scols;
 	viewstart = 0;

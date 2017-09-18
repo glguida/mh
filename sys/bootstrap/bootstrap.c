@@ -50,7 +50,7 @@ void devadd(struct sys_hwcreat_cfg *cfg)
 	assert(d != NULL);
 	d->nameid = cfg->nameid;
 	d->vendorid = cfg->vendorid;
-	for (i = 0; i < MIN(DEVICEIDS, SYS_RDCFG_MAX_DEVIDS); i++)
+	for (i = 0; i < MIN(DEVICEIDS, SYS_INFO_MAX_DEVIDS); i++)
 		d->deviceids[i] = cfg->deviceids[i];
 	SLIST_INSERT_HEAD(&devices, d, list);
 }
@@ -116,7 +116,7 @@ int main()
 	/* Initialize Window System */
 	vtty_init(BLACK, WHITE, XA_NORMAL);
 	WIN *ws;
-	ws = vtty_wopen(0, 0, 79, 24,
+	ws = vtty_wopen(0, 0, vtty_cols() - 1, vtty_lines() - 1,
 			BNONE, XA_NORMAL, BLACK, WHITE, 0, 1);
 	vtty_wredraw(ws, 1);
 	

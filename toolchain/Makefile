@@ -86,7 +86,7 @@ populate:
 	$(FTP) ftp.gnu.org:/pub/gnu/mpc/$(MPC).tar.gz; \
 	$(FTP) ftp.gnu.org:/pub/gnu/binutils/$(BINUTILS).tar.bz2; \
 	$(FTP) ftp.gnu.org:/pub/gnu/gcc/$(GCC)/$(GCC).tar.bz2; \
-	$(FTP) ftp://sourceware.org/pub/newlib/$(NEWLIB).tar.gz)
+	$(FTP) sourceware.org/pub/newlib/$(NEWLIB).tar.gz)
 
 gmp:
 	mkdir -p $(TOOLBUILDDIR)/gmp;

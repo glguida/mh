@@ -16,15 +16,13 @@ struct _DEVICE {
 	uint64_t *devids;
 
 	int nirqsegs;
-	struct sys_rdcfg_seg *irqsegs;
+	struct sys_info_seg *irqsegs;
 
 	int niosegs;
-	struct sys_rdcfg_seg *iosegs;
+	struct sys_info_seg *iosegs;
 
 	int nmemsegs;
-	struct sys_rdcfg_memseg *memsegs;
-
-	uint64_t usercfg[SYS_RDCFG_MAXUSERCFG];
+	struct sys_info_memseg *memsegs;
 };
 
 static void __irq_handler(int irqint, void *arg)
@@ -39,7 +37,7 @@ DEVICE *dopen(char *devname)
 	DEVICE *d;
 	int i, ret, dd;
 	uint64_t nameid;
-	struct sys_rdcfg_cfg cfg;
+	struct sys_info_cfg cfg;
 
 	d = malloc(sizeof(*d));
 	if (d == NULL) {
@@ -57,19 +55,15 @@ DEVICE *dopen(char *devname)
 	}
 	d->dd = dd;
 
-	ret = sys_rdcfg(dd, &cfg);
+	ret = sys_info(dd, &cfg);
 	if (ret < 0) {
-		perror("sys_rdcfg");
+		perror("sys_info");
 		sys_close(dd);
 		free(d);
 		return NULL;
 	}
 
 	assert(nameid == cfg.nameid);
-
-	assert(sizeof(d->usercfg) == sizeof(cfg.usercfg));
-	memcpy(d->usercfg, cfg.usercfg, sizeof(cfg.usercfg));
-
 
 	/*
 	 * Fill info
@@ -78,7 +72,7 @@ DEVICE *dopen(char *devname)
 	d->info.nameid = cfg.nameid;
 	d->info.vendorid = cfg.vendorid;
 	/* count device ids */
-	for (i = 0; i < SYS_RDCFG_MAX_DEVIDS; i++)
+	for (i = 0; i < SYS_INFO_MAX_DEVIDS; i++)
 		if (cfg.deviceids[i] == 0)
 			break;
 	d->info.ndevids = i;
@@ -86,12 +80,12 @@ DEVICE *dopen(char *devname)
 	d->info.nirqs = 0;
 	if (cfg.nirqsegs != (uint8_t) - 1)
 		for (i = 0; i < cfg.nirqsegs; i++)
-			d->info.nirqs += SYS_RDCFG_IRQSEG(&cfg, i).len;
+			d->info.nirqs += SYS_INFO_IRQSEG(&cfg, i).len;
 	/* count pios */
 	d->info.npios = 0;
 	if (cfg.npiosegs != (uint8_t) - 1)
 		for (i = 0; i < cfg.npiosegs; i++)
-			d->info.npios += SYS_RDCFG_IOSEG(&cfg, i).len;
+			d->info.npios += SYS_INFO_IOSEG(&cfg, i).len;
 	d->info.nmemsegs = cfg.nmemsegs;
 
 
@@ -117,7 +111,7 @@ DEVICE *dopen(char *devname)
 	d->nirqsegs = (cfg.nirqsegs == (uint8_t) - 1 ? -1 : cfg.nirqsegs);
 	if (d->nirqsegs == -1)
 		goto skip_irqsegs;
-	d->irqsegs = malloc(sizeof(struct sys_rdcfg_seg) * d->nirqsegs);
+	d->irqsegs = malloc(sizeof(struct sys_info_seg) * d->nirqsegs);
 	if (d->irqsegs == NULL) {
 		perror("malloc");
 		free(d->devids);
@@ -125,7 +119,7 @@ DEVICE *dopen(char *devname)
 		return NULL;
 	}
 	for (i = 0; i < d->nirqsegs; i++)
-		d->irqsegs[i] = SYS_RDCFG_IRQSEG(&cfg, i);
+		d->irqsegs[i] = SYS_INFO_IRQSEG(&cfg, i);
       skip_irqsegs:
 
 	/*
@@ -134,7 +128,7 @@ DEVICE *dopen(char *devname)
 	d->niosegs = (cfg.npiosegs == (uint8_t) - 1 ? -1 : cfg.npiosegs);
 	if (d->niosegs == -1)
 		goto skip_iosegs;
-	d->iosegs = malloc(sizeof(struct sys_rdcfg_seg) * d->niosegs);
+	d->iosegs = malloc(sizeof(struct sys_info_seg) * d->niosegs);
 	if (d->iosegs == NULL) {
 		perror("malloc");
 		free(d->irqsegs);
@@ -143,7 +137,7 @@ DEVICE *dopen(char *devname)
 		return NULL;
 	}
 	for (i = 0; i < d->niosegs; i++)
-		d->iosegs[i] = SYS_RDCFG_IOSEG(&cfg, i);
+		d->iosegs[i] = SYS_INFO_IOSEG(&cfg, i);
       skip_iosegs:
 
 	/*
@@ -153,7 +147,7 @@ DEVICE *dopen(char *devname)
 	if (d->nmemsegs == -1)
 		goto skip_memsegs;
 	d->memsegs =
-		malloc(sizeof(struct sys_rdcfg_memseg) * d->info.nmemsegs);
+		malloc(sizeof(struct sys_info_memseg) * d->info.nmemsegs);
 	if (d->memsegs == NULL) {
 		perror("malloc");
 		free(d->iosegs);
@@ -234,7 +228,7 @@ int dgetpio(DEVICE * d, int piono)
 ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base)
 {
 	int i, rem;
-	struct sys_rdcfg_memseg *seg;
+	struct sys_info_memseg *seg;
 
 	if (rangeno >= d->nmemsegs)
 		return -ENOENT;
@@ -246,12 +240,14 @@ ssize_t dgetmemrange(DEVICE * d, unsigned rangeno, uint64_t * base)
 	return seg->len;
 }
 
-uint64_t dusercfg(DEVICE * d, unsigned i)
+int drdcfg(DEVICE * d, unsigned off, uint8_t sz, uint64_t *val)
 {
-	if (i >= SYS_RDCFG_MAXUSERCFG)
-		return 0;
+	return sys_rdcfg(d->dd, off, sz, val);
+}
 
-	return d->usercfg[i];
+int dwrcfg(DEVICE *d, unsigned off, uint8_t sz, uint64_t val)
+{
+	return sys_wrcfg(d->dd, off, sz, &val);
 }
 
 int dgetinfo(DEVICE * d, struct dinfo *i)

@@ -206,16 +206,16 @@ static int sys_export(unsigned ddno, u_long va, uaddr_t uiopfnptr)
 	return ret;
 }
 
-static int sys_rdcfg(unsigned ddno, uaddr_t ucfg)
+static int sys_info(unsigned ddno, uaddr_t ucfg)
 {
 	int ret;
-	struct sys_rdcfg_cfg cfg;
+	struct sys_info_cfg cfg;
 
 	if (!__chkuaddr(ucfg, sizeof(cfg)))
 		return -EFAULT;
 
-	memset(&cfg, 0, sizeof(struct sys_rdcfg_cfg));
-	ret = devrdcfg(ddno, &cfg);
+	memset(&cfg, 0, sizeof(struct sys_info_cfg));
+	ret = devinfo(ddno, &cfg);
 	if (ret)
 		return ret;
 	if (copy_to_user(ucfg, &cfg, sizeof(cfg)))
@@ -257,6 +257,58 @@ static int sys_out(unsigned ddno, uint32_t port, uint64_t val)
 {
 
 	return devout(ddno, port, val);
+}
+
+static int sys_rdcfg(unsigned ddno, uint32_t off, uint8_t sz, uaddr_t valptr)
+{
+	int ret;
+	uint64_t val = 0;
+
+	switch (sz) {
+	case 1:
+	case 2:
+	case 4:
+	case 8:
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (!__chkuaddr(valptr, sizeof(val)))
+		return -EFAULT;
+
+	ret = devrdcfg(ddno, off, sz, &val);
+	if (ret)
+		return ret;
+
+	ret = copy_to_user(valptr, &val, sizeof(val));
+	return ret;
+}
+
+static int sys_wrcfg(unsigned ddno, uint32_t off, uint8_t sz, uaddr_t valptr)
+{
+	int ret;
+	uint64_t val = 0;
+
+	switch (sz) {
+	case 1:
+	case 2:
+	case 4:
+	case 8:
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (!__chkuaddr(valptr, sizeof(val)))
+		return -EFAULT;
+
+	ret = copy_from_user(&val, valptr, sizeof(val));
+	if (ret)
+		return ret;
+
+	ret = devwrcfg(ddno, off, sz, val);
+	return ret;
 }
 
 static int sys_close(unsigned ddno)
@@ -499,8 +551,10 @@ int sys_call(int sc,
 		return sys_open32(a1, a2);
 	case SYS_EXPORT:
 		return sys_export(a1, a2, a3);
+	case SYS_INFO:
+		return sys_info(a1, a2);
 	case SYS_RDCFG:
-		return sys_rdcfg(a1, a2);
+		return sys_rdcfg(a1, a2, a3, a4);
 	case SYS_MAPIRQ:
 		return sys_mapirq(a1, a2, a3);
 	case SYS_IN:
