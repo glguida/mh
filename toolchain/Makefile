@@ -3,10 +3,11 @@ MKDIR=$(SRCROOT)/mk
 MK_CONF_NO_RULES_MK_INCLUDE=y
 include $(MKDIR)/mk.conf
 
+CP=? cp
 MAKEOPT?=-j4
 FTP?=curl -O
 
-TOOLDIR= $(SRCROOT)/toolchain
+TOOLDIR= $(PWD)/$(SRCROOT)/toolchain
 TOOLBUILDDIR= $(TOOLDIR)/build
 TOOLPREFIXDIR?= $(PWD)/install
 
@@ -76,7 +77,7 @@ ALL_TARGET+= binutils gcc
 help:
 	@echo "Run 'make populate' to download the toolchain sources, 'make all'"
 	@echo "to compile, 'make install' to install."
-	@echo "Be sure to run 'make include' in the main source directory"
+	@echo "Be sure to run 'make headers' in the main source directory"
 	@echo "before compiling the tools."
 
 populate:

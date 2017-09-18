@@ -5,13 +5,11 @@ INSTALL_TARGET+= install_subdirs
 
 all: subdirs 
 
-subdirs: $(SUBDIRS)
-
-$(SUBDIRS):
-	$(MAKE) -C $@ all
+subdirs:
+	for dir in $(SUBDIRS); do (cd $$dir; $(MAKE) all) ; done
 
 clean_subdirs:
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean ; done
+	for dir in $(SUBDIRS); do (cd $$dir; $(MAKE) clean) ; done
 
 install_subdirs: subdirs
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir install; done
+	for dir in $(SUBDIRS); do (cd $$dir; $(MAKE) install); done

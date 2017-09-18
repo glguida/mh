@@ -18,4 +18,4 @@ ukincs:
 
 
 ukincludes:
-	for dir in $(UKINCSUBDIRS); do $(MAKE) -C $$dir; done
+	for dir in $(UKINCSUBDIRS); do (cd $$dir; $(MAKE)); done

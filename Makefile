@@ -10,3 +10,6 @@ SUBDIRS+= ukern
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/def.mk
+
+headers: include
+	make -C include

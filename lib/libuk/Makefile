@@ -11,8 +11,8 @@ INCS= microkernel.h
 INCDIR=
 INCSUBDIRS= $(MACHINE)
 
-CFLAGS+= -I $(MACHINE)
-ASFLAGS+= -I $(MACHINE)
+CFLAGS+= -I. -I$(MACHINE)
+ASFLAGS+= -I. -I$(MACHINE)
 
 include $(MKDIR)/subdir.mk
 include $(MKDIR)/inc.mk
