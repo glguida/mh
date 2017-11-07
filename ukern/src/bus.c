@@ -238,9 +238,8 @@ int bus_unplug(struct bus *b, unsigned desc)
 	return ret;
 }
 
-int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr)
+static int bus_get_dev(struct bus *b, unsigned desc, struct dev **dp)
 {
-	int ret;
 	struct dev *d;
 
 	if (desc >= MAXBUSDEVS)
@@ -249,302 +248,107 @@ int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr)
 	spinlock(&b->lock);
 	d = b->devs[desc].dev;
 	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto out_io_in;
+		spinunlock(&b->lock);
+		return -ENOENT;
 	}
 	assert(d != NULL);
-
-	if (d->ops->in == NULL) {
-		ret = -ENODEV;
-		goto out_io_in;
-	}
 
 	spinlock(&d->lock);
 	if (d->offline) {
 		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_io_in;
+		spinunlock(&b->lock);
+		return -ESRCH;
 	}
-	ret = d->ops->in(d->devopq, b->devs[desc].devid, port, valptr);
+
+	*dp = d;
+	return 0;
+}
+
+static void bus_put_dev(struct bus *b, struct dev *d)
+{
 	spinunlock(&d->lock);
-      out_io_in:
 	spinunlock(&b->lock);
-	return ret;
+}
+
+#define OP_CALL(_op, ...) do						\
+	{								\
+		int ret;						\
+		struct dev *d;						\
+									\
+		ret = bus_get_dev(b, desc, &d);				\
+		if (ret != 0)						\
+			return ret;					\
+									\
+		if (d->ops->_op == NULL) {				\
+			bus_put_dev(b, d);				\
+			return ret;					\
+		}							\
+									\
+		d->ops->_op(d->devopq, b->devs[desc].devid, __VA_ARGS__); \
+		bus_put_dev(b,d);					\
+		return ret;						\
+	} while(0)
+
+int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr)
+{
+	OP_CALL(in, port, valptr);
 }
 
 int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto out_io_out;
-	}
-	assert(d != NULL);
-
-	if (d->ops->out == NULL) {
-		ret = -ENODEV;
-		goto out_io_out;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_io_out;
-	}
-	ret = d->ops->out(d->devopq, b->devs[desc].devid, port, val);
-	spinunlock(&d->lock);
-      out_io_out:
-	spinunlock(&b->lock);
-	return ret;
+	OP_CALL(out, port, val);
 }
 
 int bus_rdcfg(struct bus *b, unsigned desc, uint32_t off, uint8_t sz, uint64_t *val)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto rdcfg_out;
-	}
-	assert(d != NULL);
-
-	if (d->ops->rdcfg == NULL) {
-		ret = -ENODEV;
-		goto rdcfg_out;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto rdcfg_out;
-	}
-	ret = d->ops->rdcfg(d->devopq, b->devs[desc].devid, off, sz, val);
-	spinunlock(&d->lock);
-      rdcfg_out:
-	spinunlock(&b->lock);
-	return ret;
+	OP_CALL(rdcfg, off, sz, val);
 }
 
 int bus_wrcfg(struct bus *b, unsigned desc, uint32_t off, uint8_t sz, uint64_t *val)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto wrcfg_out;
-	}
-	assert(d != NULL);
-
-	if (d->ops->wrcfg == NULL) {
-		ret = -ENODEV;
-		goto wrcfg_out;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto wrcfg_out;
-	}
-	ret = d->ops->wrcfg(d->devopq, b->devs[desc].devid, off, sz, val);
-	spinunlock(&d->lock);
-      wrcfg_out:
-	spinunlock(&b->lock);
-	return ret;
+	OP_CALL(wrcfg, off, sz, val);
 }
 
-int bus_export(struct bus *b, unsigned desc, vaddr_t va,
-	       unsigned long *iopfn)
+int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iova)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinunlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		printf("Uh? %d\n", desc);
-		ret = -ENOENT;
-		goto out_io;
-	}
-	assert(d != NULL);
-
-	if (d->ops->export == NULL) {
-		ret = -ENODEV;
-		goto out_io;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_io;
-	}
-	ret = d->ops->export(d->devopq, b->devs[desc].devid, va, iopfn);
-	spinunlock(&d->lock);
-      out_io:
-	return ret;
+	OP_CALL(export, va, iova);
 }
 
 int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	      paddr_t mmioaddr, pmap_prot_t prot)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto out_iomap;
-	}
-	assert(d != NULL);
-
-	if (d->ops->iomap == NULL) {
-		ret = -ENODEV;
-		goto out_iomap;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_iomap;
-	}
-	ret = d->ops->iomap(d->devopq, b->devs[desc].devid, va, mmioaddr,
-			    prot);
-	spinunlock(&d->lock);
-      out_iomap:
-	spinunlock(&b->lock);
-	return ret;
+	OP_CALL(iomap, va, mmioaddr, prot);
 }
 
 int bus_iounmap(struct bus *b, unsigned desc, vaddr_t va)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto out_iounmap;
-	}
-	assert(d != NULL);
-
-	if (d->ops->iounmap == NULL) {
-		ret = -ENODEV;
-		goto out_iounmap;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_iounmap;
-	}
-	ret = d->ops->iounmap(d->devopq, b->devs[desc].devid, va);
-	spinunlock(&d->lock);
-      out_iounmap:
-	spinunlock(&b->lock);
-	return ret;
+	OP_CALL(iounmap, va);
 }
 
 int bus_info(struct bus *b, unsigned desc, struct sys_info_cfg *cfg)
 {
+
 	int ret;
-	struct dev *d;
+	struct dev *d;				
 
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinunlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		printf("Uh? %d\n", desc);
-		ret = -ENOENT;
-		goto out_info;
-	}
-	assert(d != NULL);
+	ret = bus_get_dev(b, desc, &d);
+	if (ret != 0)
+		return ret;
 
 	if (d->ops->info == NULL) {
-		ret = -ENODEV;
-		goto out_info;
+		bus_put_dev(b, d);
+		return -ENODEV;
 	}
 
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_info;
-	}
-	ret = d->ops->info(d->devopq, b->devs[desc].devid, cfg);
+	d->ops->info(d->devopq, b->devs[desc].devid, cfg);
 	cfg->nameid = d->did;
-	spinunlock(&d->lock);
-      out_info:
+	bus_put_dev(b, d);
 	return ret;
 }
 
 int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 {
-	int ret;
-	struct dev *d;
-
-	if (desc >= MAXBUSDEVS)
-		return -EBADF;
-
-	spinunlock(&b->lock);
-	d = b->devs[desc].dev;
-	if (!b->devs[desc].plg) {
-		ret = -ENOENT;
-		goto out_irqmap;
-	}
-	assert(d != NULL);
-
-	if (d->ops->irqmap == NULL) {
-		ret = -ENODEV;
-		goto out_irqmap;
-	}
-
-	spinlock(&d->lock);
-	if (d->offline) {
-		spinunlock(&d->lock);
-		ret = -ESRCH;
-		goto out_irqmap;
-	}
-	ret = d->ops->irqmap(d->devopq, b->devs[desc].devid, irq, sig);
-	spinunlock(&d->lock);
-      out_irqmap:
-	return ret;
+	OP_CALL(irqmap, irq, sig);
 }
 
 void bus_remove(struct bus *b)
