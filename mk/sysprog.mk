@@ -13,5 +13,5 @@ clean_$(PROGNAME):
 
 install_$(PROGNAME): $(PROGNAME)
 	install -d $(INSTALLDIR)/$(PROGDIR)
-	install -m 0544 $(PROGNAME) $(INSTALLDIR)/$(PROGDIR)/$(PROGNAME)
+	install -m 0744 $(PROGNAME) $(INSTALLDIR)/$(PROGDIR)/$(PROGNAME)
 

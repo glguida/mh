@@ -29,12 +29,16 @@ endif
 
 
 ukern: $(OBJS)
+	$(CP) $(INIT_BINARY) $(INIT_BINARY).sym
+	$(STRIP) -s $(INIT_BINARY)
 	$(OBJCOPY) -I elf32-i386 -O elf32-i386 \
 		--remove-section .init.elf \
 		--add-section .init.elf=$(INIT_BINARY) \
 		--set-section-flags .init.elf=alloc,load,data \
 		$(OBJDIR)/empty.o 
 	$(LD) $(LDFLAGS) $(KERNLDFLAGS) -o $(INSTALLDIR)/$@ $(OBJS) $(LIBS) $(LDADD)
+	$(CP) $(INSTALLDIR)/$@ $(INSTALLDIR)/$@.sym
+	$(STRIP) -s $(INSTALLDIR)/$@
 
 
 ALL_TARGET+= ukern
