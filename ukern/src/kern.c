@@ -27,7 +27,11 @@
  */
 
 
+#include <uk/stddef.h>
 #include <uk/types.h>
+#include <uk/setjmp.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/param.h>
 #include <uk/elf.h>
 #include <uk/locks.h>
@@ -43,7 +47,6 @@
 #include <machine/uk/pmap.h>
 #include <uk/bus.h>
 #include <uk/usrdev.h>
-#include <lib/lib.h>
 #include <uk/sys.h>
 #include "kern.h"
 

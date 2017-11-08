@@ -2,9 +2,9 @@ SRCROOT=../..
 include $(SRCROOT)/mk/mk.conf
 
 # Microkernel headers
-UKINCS= lib.h
+UKINCS+= uk/logio.h uk/string.h uk/setjmp.h uk/stddef.h
 #From NetBSD
-UKINCS+= queue.h rbtree.h
+UKINCS+= uk/queue.h uk/rbtree.h
 UKINCDIR= uk
 
 include $(MAKEDIR)/ukinc.mk

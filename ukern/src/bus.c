@@ -27,13 +27,14 @@
  */
 
 
+#include <uk/stddef.h>
 #include <uk/types.h>
+#include <uk/logio.h>
 #include <uk/rbtree.h>
 #include <uk/structs.h>
 #include <uk/assert.h>
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
-#include <lib/lib.h>
 #include <uk/sys.h>
 #include <uk/bus.h>
 

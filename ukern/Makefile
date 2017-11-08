@@ -3,11 +3,11 @@ SRCROOT= ..
 MKDIR= $(SRCROOT)/mk
 MK_CONF_NO_RULES_MK_INCLUDE=1
 include $(MKDIR)/mk.conf
-include $(SRCROOT)/common/lib/libc/Makefile.inc
 OBJDIR=$(SRCROOT)/ukern/.objs
 
 include ukern.config
 include $(MACHINE)/Makefile.inc
+include lib/Makefile.inc
 SUBDIRS_MKINC+= lib/ src/
 SUBDIRS+= src lib acpica
 include $(MAKEDIR)/ukern.mk

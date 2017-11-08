@@ -134,7 +134,7 @@ int __sys_pgfaulthandler(vaddr_t va, u_long err, struct intframe *f)
 
 	if (prot == VM_PROT_PASSTHROUGH
 	    && lwt_current != NULL
-	    && (membar_consumer(), lwt_current->flags & LWTF_XCPT)) {
+	    && lwt_current->flags & LWTF_XCPT) {
 		framelongjmp(f, &lwt_current->xcptbuf);
 		return 0;
 	}

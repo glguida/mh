@@ -27,6 +27,7 @@
  */
 
 
+#include <uk/stddef.h>
 #include <uk/types.h>
 #include <uk/rbtree.h>
 #include <uk/assert.h>
@@ -35,8 +36,6 @@
 #include <uk/locks.h>
 #include <uk/structs.h>
 #include <uk/vmap.h>
-#include <lib/lib.h>
-
 
 /*
  * VM map db.

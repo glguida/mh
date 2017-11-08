@@ -29,6 +29,7 @@
 
 #include <uk/types.h>
 #include <uk/param.h>
+#include <uk/logio.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/i386.h>
@@ -37,7 +38,6 @@
 #include <uk/heap.h>
 #include <uk/vmap.h>
 #include <acpica/acpica.h>
-#include <lib/lib.h>
 #include <uk/kern.h>
 
 char *_boot_cmdline = NULL;

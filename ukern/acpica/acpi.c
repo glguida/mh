@@ -28,7 +28,7 @@
 
 
 #include <uk/types.h>
-#include "../lib/lib.h"
+#include <uk/logio.h>
 #include "acpica.h"
 
 /* ACPICA includes */

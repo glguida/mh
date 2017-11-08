@@ -28,12 +28,13 @@
 
 
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <machine/uk/apic.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <machine/uk/i386.h>
 #include <uk/heap.h>
-#include <lib/lib.h>
 
 cpumask_t cpus_active = 0;
 

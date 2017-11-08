@@ -30,12 +30,13 @@
 #include <uk/cdefs.h>
 #include <uk/param.h>
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/queue.h>
 #include <uk/locks.h>
 #include <uk/assert.h>
 #include <uk/pfndb.h>
 #include <uk/pgalloc.h>
-#include <lib/lib.h>
 
 
 #define MAGIC_SIZE 16

@@ -28,10 +28,11 @@
 
 #include <uk/assert.h>
 #include <uk/types.h>
+#include <uk/logio.h>
+#include <uk/string.h>
 #include <uk/vmap.h>
 #include <uk/kern.h>
 #include <machine/uk/machdep.h>
-#include <lib/lib.h>
 
 #include "apic.h"
 #include "i386.h"

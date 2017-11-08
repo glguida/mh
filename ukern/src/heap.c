@@ -27,12 +27,12 @@
  */
 
 
+#include <uk/stddef.h>
 #include <uk/types.h>
 #include <uk/param.h>
 #include <uk/assert.h>
 #include <uk/locks.h>
 #include <uk/pfndb.h>
-#include <lib/lib.h>
 
 #define LIST_PREV(elm, type, field) ((elm)->field.le_prev ?		\
 			      (struct type *)((char *)(elm)->field.le_prev - \

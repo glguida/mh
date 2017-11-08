@@ -28,12 +28,13 @@
 
 #include <uk/errno.h>
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/bus.h>
 #include <uk/sys.h>
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/machdep.h>
-#include <lib/lib.h>
 
 #define SYSDEV_OWNER 0
 

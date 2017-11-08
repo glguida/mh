@@ -28,6 +28,8 @@
 
 
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/bus.h>
 #include <uk/structs.h>
 #include <uk/kern.h>
@@ -38,7 +40,6 @@
 #include <uk/pgalloc.h>
 #include <uk/heap.h>
 #include <uk/errno.h>
-#include <lib/lib.h>
 
 #define MAXHWDEVIDS SYS_INFO_MAX_DEVIDS
 #define MAXHWDEVREMS 256

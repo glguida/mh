@@ -1,5 +1,5 @@
 #include <uk/types.h>
-#include <lib/lib.h>
+#include <uk/logio.h>
 #include "i386.h"
 
 #define PCI_CFG_STS_INTS (1 << 3)

@@ -28,6 +28,8 @@
 
 
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/bus.h>
 #include <uk/sys.h>
 #include <uk/pfndb.h>
@@ -35,7 +37,6 @@
 #include <machine/uk/platform.h>
 #include <uk/heap.h>
 #include <uk/kern.h>
-#include <lib/lib.h>
 
 #define PLATFORM_NAMEID squoze("PLATFORM")
 #define PLATFORM_VENDORID squoze("MHSYS");

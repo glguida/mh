@@ -1,11 +1,10 @@
 SRCROOT=../..
 MKDIR=$(SRCROOT)/mk
 include $(MKDIR)/mk.conf
-include $(SRCROOT)/common/lib/misc/Makefile.inc
 
 LIBNAME=squoze
 LIBDIR=/usr/lib
-SRCS+= unsquoze.c
+SRCS+= squoze.c unsquoze.c
 
 INCS= squoze.h
 INCDIR= 

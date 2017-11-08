@@ -28,7 +28,9 @@
 
 
 #include <uk/types.h>
+#include <uk/stddef.h>
 #include <uk/assert.h>
+#include <uk/logio.h>
 #include <uk/locks.h>
 #include <machine/uk/pmap.h>
 #include <machine/uk/pae.h>
@@ -38,7 +40,6 @@
 #include <uk/structs.h>
 #include <uk/pfndb.h>
 #include <uk/kern.h>
-#include <lib/lib.h>
 
 struct slab pmap_cache;
 l1e_t *pmap_kernel_l1;

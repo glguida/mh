@@ -27,7 +27,10 @@
  */
 
 
+#include <uk/stddef.h>
 #include <uk/types.h>
+#include <uk/logio.h>
+#include <uk/string.h>
 #include <uk/bus.h>
 #include <uk/structs.h>
 #include <uk/kern.h>
@@ -35,7 +38,6 @@
 #include <machine/uk/cpu.h>
 #include <uk/pgalloc.h>
 #include <uk/heap.h>
-#include <lib/lib.h>
 
 /* User devices and OP serialization:
  *

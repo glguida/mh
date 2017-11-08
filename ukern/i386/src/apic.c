@@ -28,11 +28,11 @@
 
 
 #include <uk/types.h>
+#include <uk/logio.h>
 #include <uk/heap.h>
 #include <uk/vmap.h>
 #include "i386.h"
 #include "apic.h"
-#include <lib/lib.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/apic.h>
 #include <machine/uk/param.h>

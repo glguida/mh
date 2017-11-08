@@ -28,12 +28,14 @@
 
 
 #include <uk/types.h>
+#include <uk/string.h>
+#include <uk/setjmp.h>
+#include <uk/logio.h>
 #include <machine/uk/cpu.h>
 #include <machine/uk/param.h>
 #include <machine/uk/machdep.h>
 #include <uk/locks.h>
 #include <uk/kern.h>
-#include <lib/lib.h>
 
 #include "i386.h"
 #include "tlb.h"

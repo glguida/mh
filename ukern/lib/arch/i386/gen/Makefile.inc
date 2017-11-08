@@ -1,0 +1,1 @@
+VPATH+= lib/arch/$(MACHINE)/gen

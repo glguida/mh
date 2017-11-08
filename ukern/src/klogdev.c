@@ -27,14 +27,15 @@
  */
 
 
+#include <uk/types.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 #include <uk/assert.h>
 #include <uk/locks.h>
 #include <uk/bus.h>
 #include <uk/sys.h>
 #include <uk/kern.h>
 #include <machine/uk/cpu.h>
-#include <lib/lib.h>
-
 
 /*
  * Kernel Log Ring Buffer.

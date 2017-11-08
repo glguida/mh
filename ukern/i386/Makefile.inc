@@ -1,4 +1,5 @@
+
 SUBDIRS+= i386/src
-SUBDIRS_MKINC+= i386/src/ i386/lib/
+SUBDIRS_MKINC+= i386/src/
 
 CFLAGS+= -I $(EXTSDIR)/acpica/include

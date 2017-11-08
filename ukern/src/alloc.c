@@ -31,7 +31,8 @@
 #include <uk/types.h>
 #include <uk/assert.h>
 #include <uk/queue.h>
-#include <lib/lib.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 
 #ifndef ALLOCFUNC
 #define ALLOCFUNC(...) zone_##__VA_ARGS__

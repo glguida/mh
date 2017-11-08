@@ -31,7 +31,8 @@
 #include <uk/assert.h>
 #include <uk/locks.h>
 #include <uk/param.h>
-#include <lib/lib.h>
+#include <uk/string.h>
+#include <uk/logio.h>
 
 #include <uk/pfndb.h>
 
