@@ -1,5 +1,10 @@
 exts/acpica
 *~
+*#
+.#*
 dist/*
 *.a
 .objdir
+exts/*
+toolchain/build
+toolchain/install
