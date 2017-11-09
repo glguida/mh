@@ -206,52 +206,63 @@ static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 	return 0;
 }
 
-static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
-			 unsigned long *iopfn)
+static int _hwdev_export(void *devopq, unsigned id, vaddr_t va, size_t sz, unsigned long *iova)
 {
 	struct hwdev *hd = (struct hwdev *) devopq;
-	struct hwdma *pd, *found;
+	struct hwdma *pd;
 	pfn_t pfn = 0;
 	l1e_t l1e;
 	int ret;
 
 	spinlock(&hd->lock);
-	if (va) {
-		/* Export VA address */
-		ret = pmap_uwire(NULL, va);
-		if (ret)
-			goto export_err;
-		ret = pmap_phys(NULL, va, &pfn);
-		if (ret) {
-			assert(!pmap_uunwire(NULL, va));
-			goto export_err;
-		}
-		pd = heap_alloc(sizeof(*pd));
-		pd->va = va;
-		pd->iopfn = pfn;
-		LIST_INSERT_HEAD(&hd->remths[id].hwdmas, pd, list);
-		*iopfn = pfn;
-	} else {
-		/* Cancel export. Use *iopfn to find the va */
-		pfn = *iopfn;
-		LIST_FOREACH(pd, &hd->remths[id].hwdmas, list) {
-			if (pd->iopfn == pfn) {
-				found = pd;
-				break;
-			}
-		}
-		if (!found) {
-			ret = -ENOENT;
-			goto export_err;
-		}
 
+	/* We don't support multiple pages without IOMMU. */
+	if (trunc_page(va + sz) != trunc_page(va))
+		return -EINVAL;
 
-		LIST_REMOVE(found, list);
-		ret = pmap_uunwire(NULL, pd->va);
-		assert(!ret);
-		heap_free(found);
+	/* Export VA addresses */
+	ret = pmap_uwire(NULL, va);
+	if (ret)
+		goto export_err;
+	ret = pmap_phys(NULL, va, &pfn);
+	if (ret) {
+		assert(!pmap_uunwire(NULL, va));
+		goto export_err;
 	}
+	pd = heap_alloc(sizeof(*pd));
+	pd->va = va;
+	pd->iopfn = pfn;
+	LIST_INSERT_HEAD(&hd->remths[id].hwdmas, pd, list);
+	*iova = ptoa(pfn) + (va & PAGE_MASK);
       export_err:
+	spinunlock(&hd->lock);
+	return ret;
+}
+
+static int _hwdev_unexport(void *devopq, unsigned id, vaddr_t va)
+{
+	int ret;
+	struct hwdma *pd, *found;
+	struct hwdev *hd = (struct hwdev *) devopq;
+
+	spinlock(&hd->lock);
+	found = NULL;
+	LIST_FOREACH(pd, &hd->remths[id].hwdmas, list) {
+		if (pd->va == va) {
+			found = pd;
+			break;
+		}
+	}
+
+	if (!found) {
+		ret = -ENOENT;
+		goto unexport_err;
+	}
+	LIST_REMOVE(found, list);
+	ret = pmap_uunwire(NULL, pd->va);
+	assert(!ret);
+	heap_free(found);
+ unexport_err:
 	spinunlock(&hd->lock);
 	return ret;
 }
