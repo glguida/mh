@@ -27,7 +27,7 @@ devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt)
 		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 int
