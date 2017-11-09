@@ -90,10 +90,8 @@ struct usrioreq {
 };
 
 struct apert {
-	vaddr_t procva;
-	unsigned procid;
-	vaddr_t devva;
-	l1e_t l1e;
+	vaddr_t va;
+	size_t sz;
 };
 
 struct remth {
@@ -293,51 +291,59 @@ static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 }
 
 static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
-			  unsigned long *iopfnptr)
+			  size_t sz, unsigned long *iova)
 {
 	/* Current thread: Process */
-	int ret;
-	l1e_t expl1e;
+	int i;
 	struct apert *apt;
-	unsigned long iopfn = *iopfnptr;
 	struct usrdev *ud = (struct usrdev *) devopq;
 
-	assert(__isuaddr(va));
 	assert(id < MAXUSRDEVREMS);
 
-	if (iopfn >= MAXUSRDEVAPERTS)
+	if (sz == 0)
 		return -EINVAL;
-
-	ret = pmap_uexport(NULL, va, &expl1e);
-	if (ret)
-		return ret;
 
 	spinlock(&ud->lock);
 	apt = ud->remths[id].apertbl;
-	if (apt[iopfn].procva) {
-		ret = pmap_uexport_cancel(NULL, apt[iopfn].procva);
-		assert(!ret);
-	}
-	if (apt[iopfn].devva) {
-		pfn_t pfn;
 
-		ret = pmap_uimport_swap(ud->th->pmap,
-					apt[iopfn].devva,
-					apt[iopfn].l1e,
-					expl1e, &pfn);
-		assert(!ret);
+	for (i = 0; i < MAXUSRDEVAPERTS; i++)
+		if (apt[i].sz == 0)
+			break;
 
-		if (pfn != PFN_INVALID) {
-			dprintf("Freeing where imported %x\n", pfn);
-			__freepage(pfn);
-			ret++;
-		}
-		pmap_commit(ud->th->pmap);
+	if (i >= MAXUSRDEVAPERTS) {
+		spinunlock(&ud->lock);
+		return -EBUSY;
 	}
-	pmap_commit(NULL);
-	apt[iopfn].procva = va;
-	apt[iopfn].procid = id;
-	apt[iopfn].l1e = expl1e;
+
+	apt[i].va = va;
+	apt[i].sz = sz;
+	spinunlock(&ud->lock);
+
+	*iova = va;
+	return 0;
+}
+
+static int _usrdev_unexport(void *devopq, unsigned id, vaddr_t va)
+{
+	/* Current thread: Process */
+	int i;
+	struct apert *apt;
+	struct usrdev *ud = (struct usrdev *) devopq;
+
+	spinlock(&ud->lock);
+	apt = ud->remths[id].apertbl;
+
+	for (i = 0; i < MAXUSRDEVAPERTS; i++)
+		if (apt[i].va == va)
+			break;
+
+	if (i >= MAXUSRDEVAPERTS) {
+		spinunlock(&ud->lock);
+		return -ENOENT;
+	}
+
+	apt[i].va = 0;
+	apt[i].sz = 0;
 	spinunlock(&ud->lock);
 	return 0;
 }
@@ -430,8 +436,6 @@ static void _usrdev_close(void *devopq, unsigned id)
 	int i, ret;
 	struct thread *th = current_thread();
 	struct apert *apt;
-	vaddr_t procva, devva;
-	unsigned procid;
 	struct usrioreq *ior;
 	int unused_ior = 0;
 	struct usrdev *ud = (struct usrdev *) devopq;
@@ -447,26 +451,8 @@ static void _usrdev_close(void *devopq, unsigned id)
 	spinlock(&ud->lock);
 	apt = ud->remths[id].apertbl;
 	for (i = 0; i < MAXUSRDEVAPERTS; i++) {
-		procid = apt[i].procid;
-		procva = apt[i].procva;
-		devva = apt[i].devva;
-		if (procid != id)
-			continue;
-		if (devva) {
-			assert(procva);
-			dprintf("canceling dev %lx\n", devva);
-			ret = pmap_uimport_cancel(ud->th->pmap, devva);
-			assert(!ret);
-		}
-		if (procva) {
-			dprintf("canceling prog %lx\n", procva);
-			ret = pmap_uexport_cancel(ud->remths[id].th->pmap,
-						  procva);
-			assert(!ret);
-		}
-		apt[i].procid = 0;
-		apt[i].procva = 0;
-		apt[i].l1e = 0;
+		apt[i].va = 0;
+		apt[i].sz = 0;
 	}
 	ud->remths[id].use = 0;
 
@@ -492,6 +478,7 @@ static struct devops usrdev_ops = {
 	.in = _usrdev_in,
 	.out = _usrdev_out,
 	.export = _usrdev_export,
+	.unexport = _usrdev_unexport,
 	.info = _usrdev_info,
 	.rdcfg = _usrdev_rdcfg,
 	.irqmap = _usrdev_irqmap,
@@ -608,36 +595,74 @@ int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq)
 	return 0;
 }
 
-int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
-		  unsigned va)
+int usrdev_read(struct usrdev *ud, unsigned id, unsigned long iova, size_t sz, vaddr_t va)
 {
-	int ret;
-	pfn_t pfn;
+	int i, ret;
 	struct apert *apt;
 
-	assert(__isuaddr(va));
 	if (id >= MAXUSRDEVREMS)
 		return -EINVAL;
-	if (iopfn >= MAXUSRDEVAPERTS)
-		return -EINVAL;
+
 	spinlock(&ud->lock);
-	apt = ud->remths[id].apertbl;
-	if (apt[iopfn].devva) {
-		ret = pmap_uimport_cancel(NULL, apt[iopfn].devva);
-		assert(!ret);
+	if (!ud->remths[id].use) {
+		spinunlock(&ud->lock);
+		return -ENOENT;
 	}
-	apt[iopfn].devva = va;
-	ret = pmap_uimport(NULL, va, apt[iopfn].l1e, &pfn);
-	assert(!ret);
-	pmap_commit(NULL);
+
+	apt = ud->remths[id].apertbl;
+
+	for (i = 0; i < MAXUSRDEVAPERTS; i++)
+		if (iova >= apt[i].va 
+		    && iova <= apt[i].va + apt[i].sz
+		    && iova + sz >= apt[i].va
+		    && iova + sz <= apt[i].va + apt[i].sz)
+			break;
+
+	if (i >= MAXUSRDEVAPERTS) {
+		spinunlock(&ud->lock);
+		return -EINVAL;
+	}
+
+	ret = xcopy_from(va, ud->remths[id].th, iova, sz);
+
 	spinunlock(&ud->lock);
 
-	if (pfn != PFN_INVALID) {
-		dprintf("freeing where imported %x\n", pfn);
-		__freepage(pfn);
-		ret++;
+	return ret;
+}
+
+int usrdev_write(struct usrdev *ud, unsigned id, vaddr_t va, size_t sz, unsigned long iova)
+{
+	int i, ret;
+	struct apert *apt;
+
+	if (id >= MAXUSRDEVREMS)
+		return -EINVAL;
+
+	spinlock(&ud->lock);
+	if (!ud->remths[id].use) {
+		spinunlock(&ud->lock);
+		return -ENOENT;
 	}
-	return 0;
+
+	apt = ud->remths[id].apertbl;
+
+	for (i = 0; i < MAXUSRDEVAPERTS; i++)
+		if (iova >= apt[i].va 
+		    && iova <= apt[i].va + apt[i].sz
+		    && iova + sz >= apt[i].va
+		    && iova + sz <= apt[i].va + apt[i].sz)
+			break;
+
+	if (i >= MAXUSRDEVAPERTS) {
+		spinunlock(&ud->lock);
+		return -EINVAL;
+	}
+
+	ret = xcopy_to(ud->remths[id].th, iova, va, sz);
+
+	spinunlock(&ud->lock);
+
+	return ret;
 }
 
 void usrdev_destroy(struct usrdev *ud)

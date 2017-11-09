@@ -98,9 +98,6 @@ static vm_prot_t _resolve_va(vaddr_t va)
 		return VM_PROT_RX;
 	case VFNT_WREXEC:
 		return VM_PROT_WX;
-	case VFNT_IMPORT:
-		printf("<External Fault>");
-		return VM_PROT_PASSTHROUGH;
 	default:
 		break;
 	}

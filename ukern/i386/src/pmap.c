@@ -30,6 +30,7 @@
 #include <uk/types.h>
 #include <uk/stddef.h>
 #include <uk/assert.h>
+#include <uk/string.h>
 #include <uk/logio.h>
 #include <uk/locks.h>
 #include <machine/uk/pmap.h>
@@ -383,6 +384,46 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 	spinunlock(&pmap->lock);
 
 	return 0;
+}
+
+int pmap_hmap(struct pmap *pmap, vaddr_t va)
+{
+	l1e_t xl1e, ol1e, *l1p;
+
+	assert(__isuaddr(va));
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
+
+	spinlock(&pmap->lock);
+	xl1e = *l1p;
+
+	l1p = __val1tbl(KVA_HYPER) + L1OFF(KVA_HYPER);
+	ol1e = *l1p;
+	assert(!l1e_present(ol1e));
+	__setl1e(l1p, xl1e);
+	__flush_local_tlbs(); // invalidate single entry!
+
+	/* Keep pmap lock on! */
+}
+
+int pmap_hunmap(struct pmap *pmap)
+{
+	l1e_t nl1e, *l1p;
+
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	l1p = __val1tbl(KVA_HYPER) + L1OFF(KVA_HYPER);
+	nl1e = mkl1e(PFN_INVALID, 0);
+	__setl1e(l1p, nl1e);
+	__flush_local_tlbs(); // invalidate single entry!
+
+	spinunlock(&pmap->lock);
 }
 
 int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)

@@ -43,6 +43,9 @@
 #define copy_to_user(uaddr, src, sz) __usrcpy(uaddr, (void *)uaddr, src, sz)
 #define copy_from_user(dst, uaddr, sz) __usrcpy(uaddr, dst, (void *)uaddr, sz)
 
+int xcopy_from(vaddr_t va, struct thread *th, vaddr_t xva, size_t sz);
+int xcopy_to(struct thread *th, vaddr_t xva, vaddr_t va, size_t sz);
+
 #define THST_RUNNING 0
 #define THST_RUNNABLE 1
 #define THST_STOPPED 2
@@ -153,11 +156,14 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t mode);
 int devpoll(unsigned did, struct sys_poll_ior *ior);
 int devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val);
 int devirq(unsigned did, unsigned id, unsigned irq);
-int devimport(unsigned did, unsigned id, unsigned iopfn, unsigned va);
+int devread(unsigned did, unsigned id, unsigned long iova, size_t sz, unsigned long va);
+int devwrite(unsigned did, unsigned id, unsigned long va, size_t sz, unsigned long iova);
 void devremove(unsigned did);
+
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);
-int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn);
+int devexport(unsigned dd, vaddr_t va, size_t sz, unsigned long *iopfn);
+int devunexport(unsigned dd, vaddr_t va);
 int devin(unsigned dd, uint32_t port, uint64_t * valptr);
 int devout(unsigned dd, uint32_t port, uint64_t val);
 int devinfo(unsigned dd, struct sys_info_cfg *cfg);

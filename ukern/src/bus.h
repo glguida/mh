@@ -62,7 +62,8 @@ struct devops {
 		      paddr_t mmioaddr, pmap_prot_t prot);
 	int (*iounmap) (void *devopq, unsigned id, vaddr_t va);
 	int (*export) (void *devopq, unsigned id, vaddr_t va,
-		       unsigned long *iopfn);
+		       size_t sz, unsigned long *iova);
+	int (*unexport) (void *devopq, unsigned id, vaddr_t va);
 	int (*info) (void *devopq, unsigned id,
 			struct sys_info_cfg * cfg);
 	int (*rdcfg) (void *devopq, unsigned id, uint32_t off,
@@ -96,7 +97,9 @@ int bus_copy(struct bus *b, unsigned desc,
 	     struct thread *dstth, struct bus *dstb, unsigned dstdesc);
 int bus_in(struct bus *b, unsigned desc, uint32_t port, uint64_t * valptr);
 int bus_out(struct bus *b, unsigned desc, uint32_t port, uint64_t val);
-int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iopfn);
+int bus_export(struct bus *b, unsigned desc, vaddr_t va, size_t sz,
+	       unsigned long *iova);
+int bus_unexport(struct bus *b, unsigned desc, vaddr_t va);
 int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,
 	      paddr_t mmioaddr, pmap_prot_t prot);
 int bus_irqmap(struct bus *b, unsigned desc, unsigned intr, unsigned sig);

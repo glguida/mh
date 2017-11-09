@@ -1,7 +1,8 @@
 VPATH+= src
 
 SRCS+= kern.c sys.c bus.c usrdev.c pltdev.c pfndb.c pgalloc.c \
-       fixmems.c heap.c vmap.c hwdev.c sysdev.c klogdev.c
+       fixmems.c heap.c vmap.c hwdev.c sysdev.c klogdev.c \
+       xcopy.c
 
 CUSTOBJS+= $(OBJDIR)/fixmem.o $(OBJDIR)/structs.o
 

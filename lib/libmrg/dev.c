@@ -50,3 +50,15 @@ devraiseirq(unsigned did, unsigned id, unsigned irq)
 
 	return sys_irq(did, id, irq);
 }
+
+int
+devread(unsigned did, unsigned id, u_long iova, size_t sz, void *va)
+{
+	return sys_read(did, id, iova, sz, (unsigned long) va);
+}
+
+int
+devwrite(unsigned did, unsigned id, void *va, size_t sz, u_long iova)
+{
+	return sys_write(did, id, (unsigned long) va, sz, iova);
+}

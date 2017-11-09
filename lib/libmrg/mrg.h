@@ -47,9 +47,8 @@
 #define VFNT_RWDATA  3
 #define VFNT_EXEC    4
 #define VFNT_WREXEC  5
-#define VFNT_IMPORT  6
-#define VFNT_MMIO    7
-#define VFNT_MEM32   8
+#define VFNT_MMIO    6
+#define VFNT_MEM32   7
 
 vaddr_t vmap_alloc(size_t size, uint8_t type);
 void vmap_free(vaddr_t va, size_t size);
@@ -135,5 +134,6 @@ int devcreat(struct sys_creat_cfg *cfg, devmode_t mode, int evt);
 int devpoll(unsigned did, struct sys_poll_ior *ior);
 int devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val);
 int devraiseirq(unsigned did, unsigned id, unsigned irq);
-
+int devread(unsigned did, unsigned id, u_long iova, size_t sz, void *va);
+int devwrite(unsigned did, unsigned id, void *va, size_t sz, u_long iova);
 #endif

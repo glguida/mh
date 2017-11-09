@@ -101,6 +101,9 @@ int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 void pmap_commit(struct pmap *pmap);
 int pmap_phys(struct pmap *pmap, vaddr_t va, pfn_t *pfn);
 
+int pmap_hmap(struct pmap *pmap, vaddr_t va);
+int pmap_hunmap(struct pmap *pmap);
+
 struct pmap *pmap_copy(void);
 
 #define pmap_kclear(_pmap, _va, _pfn) pmap_kenter((_pmap), (_va), 0, 0, _pfn)

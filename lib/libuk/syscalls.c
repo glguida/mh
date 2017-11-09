@@ -173,12 +173,21 @@ int sys_iounmap(unsigned ddno, u_long va)
 	return ret;
 }
 
-int sys_export(unsigned ddno, u_long va, unsigned long *iopfn)
+int sys_export(unsigned ddno, u_long va, size_t sz, unsigned long *iova)
 {
 	int ret;
 
-	__syscall3(SYS_EXPORT, (unsigned long) ddno, (unsigned long) va,
-		   (unsigned long) iopfn, ret);
+	__syscall4(SYS_EXPORT, (unsigned long) ddno, (unsigned long) va,
+		   (unsigned long) sz, (unsigned long) iova, ret);
+	return ret;
+}
+
+int sys_unexport(unsigned ddno, vaddr_t va)
+{
+	int ret;
+
+	__syscall2(SYS_UNEXPORT, (unsigned long) ddno, (unsigned long) va, ret);
+
 	return ret;
 }
 
@@ -283,12 +292,21 @@ int sys_irq(unsigned did, unsigned id, unsigned irq)
 	return ret;
 }
 
-int sys_import(unsigned did, unsigned id, unsigned iopfn, u_long va)
+int sys_read(unsigned did, unsigned id, unsigned long iova, size_t sz, u_long va)
 {
 	int ret;
 
-	__syscall4(SYS_IMPORT, (unsigned long) did, (unsigned long) id, (unsigned long) iopfn,
-		   va, ret);
+	__syscall5(SYS_READ, (unsigned long) did, (unsigned long) id, (unsigned long) iova,
+		   (unsigned long) sz, va, ret);
+	return ret;
+}
+
+int sys_write(unsigned did, unsigned id, unsigned long va, size_t sz, u_long iova)
+{
+	int ret;
+
+	__syscall5(SYS_WRITE, (unsigned long) did, (unsigned long) id, va,
+		   (unsigned long) sz, iova, ret);
 	return ret;
 }
 

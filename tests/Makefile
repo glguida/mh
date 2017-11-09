@@ -5,7 +5,7 @@ SRCS+= test.c
 PROGNAME= test
 NOINST=y
 
-
+LDADD+= -lsquoze
 
 include $(MAKEDIR)/obj.mk
 include $(MAKEDIR)/sysprog.mk

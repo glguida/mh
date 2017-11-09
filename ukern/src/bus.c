@@ -310,9 +310,14 @@ int bus_wrcfg(struct bus *b, unsigned desc, uint32_t off, uint8_t sz, uint64_t *
 	OP_CALL(wrcfg, off, sz, val);
 }
 
-int bus_export(struct bus *b, unsigned desc, vaddr_t va, unsigned long *iova)
+int bus_export(struct bus *b, unsigned desc, vaddr_t va, size_t sz, unsigned long *iova)
 {
-	OP_CALL(export, va, iova);
+	OP_CALL(export, va, sz, iova);
+}
+
+int bus_unexport(struct bus *b, unsigned desc, unsigned long iova)
+{
+	OP_CALL(unexport, iova);
 }
 
 int bus_iomap(struct bus *b, unsigned desc, vaddr_t va,

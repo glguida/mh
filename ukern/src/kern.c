@@ -800,7 +800,7 @@ int devwriospace(unsigned did, unsigned id, uint32_t port, uint64_t val)
 	return ret;
 }
 
-int devimport(unsigned did, unsigned id, unsigned iopfn, unsigned va)
+int devread(unsigned did, unsigned id, unsigned long iova, size_t sz, unsigned long va)
 {
 	int ret = -ENOENT;
 	struct thread *th = current_thread();
@@ -809,7 +809,21 @@ int devimport(unsigned did, unsigned id, unsigned iopfn, unsigned va)
 		return -EINVAL;
 
 	if (th->usrdevs[did])
-		ret = usrdev_import(th->usrdevs[did], id, iopfn, va);
+		ret = usrdev_read(th->usrdevs[did], id, iova, sz, va);
+
+	return ret;
+}
+
+int devwrite(unsigned did, unsigned id, unsigned long va, size_t sz, unsigned long iova)
+{
+	int ret = -ENOENT;
+	struct thread *th = current_thread();
+
+	if (did >= MAXDEVS)
+		return -EINVAL;
+
+	if (th->usrdevs[did])
+		ret = usrdev_write(th->usrdevs[did], id, va, sz, iova);
 
 	return ret;
 }
@@ -837,11 +851,18 @@ int devopen(uint64_t id)
 	return dd;
 }
 
-int devexport(unsigned dd, vaddr_t va, unsigned long *iopfn)
+int devexport(unsigned dd, vaddr_t va, size_t sz, unsigned long *iova)
 {
 	struct thread *th = current_thread();
 
-	return bus_export(&th->bus, dd, va, iopfn);
+	return bus_export(&th->bus, dd, va, sz, iova);
+}
+
+int devunexport(unsigned dd, vaddr_t va)
+{
+	struct thread *th = current_thread();
+
+	return bus_unexport(&th->bus, dd, va);
 }
 
 int devinfo(unsigned dd, struct sys_info_cfg *cfg)

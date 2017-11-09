@@ -36,7 +36,7 @@ struct usrdev *usrdev_creat(struct sys_creat_cfg *cfg, unsigned sig, devmode_t m
 int usrdev_poll(struct usrdev *ud, struct sys_poll_ior *poll);
 int usrdev_wriospace(struct usrdev *ud, unsigned id, uint32_t port, uint64_t val);
 int usrdev_irq(struct usrdev *ud, unsigned id, unsigned irq);
-int usrdev_import(struct usrdev *ud, unsigned id, unsigned iopfn,
-		  unsigned va);
+int usrdev_read(struct usrdev *ud, unsigned id, unsigned long iova, size_t sz, vaddr_t va);
+int usrdev_write(struct usrdev *ud, unsigned id, vaddr_t va, size_t sz, unsigned long iova);
 void usrdev_destroy(struct usrdev *d);
 void usrdevs_init(void);

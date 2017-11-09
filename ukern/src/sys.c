@@ -161,11 +161,18 @@ static int sys_wriospace(unsigned did, unsigned id, uint32_t port,
 	return devwriospace(did, id, port, val);
 }
 
-static int sys_import(unsigned did, unsigned id, unsigned iopfn, u_long va)
+static int sys_read(unsigned did, unsigned id, unsigned long iova, size_t sz, u_long va)
 {
-	if (!__chkuaddr(trunc_page(va), PAGE_SIZE))
+     if (!__chkuaddr(trunc_page(va), sz))
 		return -EINVAL;
-	return devimport(did, id, iopfn, va);
+     return devread(did, id, iova, sz, va);
+}
+
+static int sys_write(unsigned did, unsigned id, u_long va, size_t sz, u_long iova)
+{
+     if (!__chkuaddr(trunc_page(va), sz))
+		return -EINVAL;
+     return devwrite(did, id, va, sz, iova);
 }
 
 static int sys_irq(unsigned did, unsigned id, unsigned irq)
@@ -184,27 +191,36 @@ static int sys_open(uint64_t id)
 	return devopen(id);
 }
 
-static int sys_export(unsigned ddno, u_long va, uaddr_t uiopfnptr)
+static int sys_export(unsigned ddno, u_long va, size_t sz, uaddr_t uiovaptr)
 {
 	int ret;
-	unsigned long iopfn, orig;
+	unsigned long iova;
 
-	if (!__chkuaddr(va, PAGE_SIZE))
+	if (!__chkuaddr(va, sz))
+		return -EFAULT;
+
+	if (!__chkuaddr(uiovaptr, sizeof(iova)))
 		return -EINVAL;
 
-	ret = copy_from_user(&iopfn, uiopfnptr, sizeof(iopfn));
+	ret = devexport(ddno, va, sz, &iova);
 	if (ret)
 		return ret;
 
-	orig = iopfn;
-	ret = devexport(ddno, va, &iopfn);
-
-	if (orig != iopfn)
-		ret = copy_to_user(uiopfnptr, &iopfn, sizeof(iopfn));
-	if (ret)
-		dprintf("Warning: error on final copy to user\n");
+	ret = copy_to_user(uiovaptr, &iova, sizeof(iova));
+	if (ret) {
+		devunexport(ddno, va);
+		return ret;
+	}
 
 	return ret;
+}
+
+static int sys_unexport(unsigned ddno, uaddr_t va)
+{
+	if (!__chkuaddr(va, 0))
+		return -EINVAL;
+
+	return devunexport(ddno, va);
 }
 
 static int sys_info(unsigned ddno, uaddr_t ucfg)
@@ -542,8 +558,10 @@ int sys_call(int sc,
 		return sys_poll(a1, a2);
 	case SYS_WRIOSPC:
 		return sys_wriospace(a1, a2, a3, a4);
-	case SYS_IMPORT:
-		return sys_import(a1, a2, a3, a4);
+	case SYS_READ:
+		return sys_read(a1, a2, a3, a4, a5);
+	case SYS_WRITE:
+		return sys_write(a1, a2, a3, a4, a5);
 	case SYS_IRQ:
 		return sys_irq(a1, a2, a3);
 	case SYS_OPEN:
@@ -551,7 +569,9 @@ int sys_call(int sc,
 	case SYS_OPEN32:
 		return sys_open32(a1, a2);
 	case SYS_EXPORT:
-		return sys_export(a1, a2, a3);
+		return sys_export(a1, a2, a3, a4);
+	case SYS_UNEXPORT:
+		return sys_unexport(a1, a2);
 	case SYS_INFO:
 		return sys_info(a1, a2);
 	case SYS_RDCFG:

@@ -111,13 +111,14 @@ struct sys_info_cfg {
 #define SYS_IN      0x22
 #define SYS_OUT     0x23
 #define SYS_EXPORT  0x24
-#define SYS_INFO    0x25
-#define SYS_IOMAP   0x26
-#define SYS_IOUNMAP 0x27
-#define SYS_OPEN32  0x28
-#define SYS_OUT32   0x29
-#define SYS_RDCFG   0x2A
-#define SYS_WRCFG   0x2B
+#define SYS_UNEXPORT 0x25
+#define SYS_INFO    0x26
+#define SYS_IOMAP   0x27
+#define SYS_IOUNMAP 0x28
+#define SYS_OPEN32  0x29
+#define SYS_OUT32   0x2A
+#define SYS_RDCFG   0x2B
+#define SYS_WRCFG   0x2C
 #define SYS_CLOSE  0x2F
 
 #define SYS_CREAT_CFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG
@@ -159,7 +160,8 @@ struct sys_poll_ior {
 #define SYS_POLL   0x31
 #define SYS_WRIOSPC 0x32
 #define SYS_IRQ    0x33
-#define SYS_IMPORT 0x34
+#define SYS_READ   0x34
+#define SYS_WRITE  0x35
 
 #ifndef _ASSEMBLER
 #define SYS_HWCREAT_MAX_DEVIDS SYS_DEVCFG_MAXDEVIDS
