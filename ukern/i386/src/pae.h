@@ -69,8 +69,7 @@
 
 #define PG_AVAIL_NORMAL  (0L << 9)
 #define PG_AVAIL_COW     (1L << 9)
-#define PG_AVAIL_EXPORTD (2L << 9)
-#define PG_AVAIL_IMPORTD (3L << 9)
+#define PG_AVAIL_WIRED   (2L << 9)
 #define PG_AVAIL_IOMAP   (4L << 9)
 
 #define __paeoffva(_l2,_l1,_l0) (L2VA(_l2) + L1VA(_l1) + L0VA(_l0))
@@ -94,21 +93,18 @@ typedef uint64_t l1e_t;
 
 #define l1e_mknormal(_l1e) ((_l1e) & ~PG_AVAIL)
 #define l1e_mkcow(_l1e) (((_l1e) & ~(PG_AVAIL|PG_W)) | PG_AVAIL_COW)
-#define l1e_mkexported(_l1e) (l1e_mknormal(_l1e) | PG_AVAIL_EXPORTD)
-#define l1e_mkimported(_l1e) (l1e_mknormal(_l1e) | PG_AVAIL_IMPORTD)
+#define l1e_mkwired(_l1e) (l1e_mknormal(_l1e) | PG_AVAIL_WIRED)
 #define l1e_mkiomap(_l1e) (l1e_mknormal(_l1e) | PG_AVAIL_IOMAP)
 
 #define l1e_present(_l1e) ((_l1e) & PG_P)
 #define l1e_normal(_l1e)					\
 	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_NORMAL|PG_P))
-#define l1e_imported(_l1e)					\
-	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_IMPORTD|PG_P))
-#define l1e_exported(_l1e)					\
-	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_EXPORTD|PG_P))
+#define l1e_wired(_l1e)					\
+	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_WIRED|PG_P))
 #define l1e_cow(_l1e)						\
 	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_COW|PG_P))
 #define l1e_iomap(_l1e)						\
 	(((_l1e) & (PG_AVAIL|PG_P)) == (PG_AVAIL_IOMAP|PG_P))
-#define l1e_external(_l1e) (l1e_imported(_l1e) || l1e_exported(_l1e))
+#define l1e_external(_l1e) (l1e_wired(_l1e) || l1e_iomap(_l1e))
 
 #endif

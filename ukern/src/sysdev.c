@@ -45,7 +45,6 @@ static struct dev system_dev;
 
 static int _sysdev_open(void *devopq, uint64_t did)
 {
-	dprintf("systemdev: opening");
 	return 0;
 }
 

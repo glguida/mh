@@ -188,7 +188,7 @@ void AcpiOsUnmapMemory(void *ptr, ACPI_SIZE len)
 	va = (vaddr_t) (uintptr_t) ptr;
 	pages = (len + PAGE_SIZE - 1) >> PAGE_SHIFT;
 	for (i = 0; i < pages; i++)
-		sys_iounmap(acpi_pltfd, va + (i << PAGE_SHIFT));
+		sys_iounmap(acpi_pltfd, trunc_page(va) + (i << PAGE_SHIFT));
 	vmap_free(trunc_page(va), len);
 }
 

@@ -602,6 +602,15 @@ int iomap(vaddr_t vaddr, pfn_t mmiopfn, pmap_prot_t prot)
 	return ret;
 }
 
+int iounmap(vaddr_t vaddr)
+{
+	int ret = 0;
+
+	ret = pmap_uiounmap(NULL, vaddr);
+	pmap_commit(NULL);
+	return ret;
+}
+
 unsigned vmpopulate(vaddr_t addr, size_t sz, pmap_prot_t prot)
 {
 	int i, ret = 0;
@@ -754,8 +763,6 @@ int devcreat(struct sys_creat_cfg *cfg, unsigned sig, mode_t mode)
 		return -EBUSY;
 
 	th->usrdevs[i] = usrdev_creat(cfg, sig, mode);
-	dprintf("cfg: %llx, %lx, %lx\n", cfg->nameid, cfg->deviceid,
-		cfg->vendorid);
 	if (th->usrdevs[i] == NULL)
 		return -EEXIST;
 	return i;
@@ -1124,8 +1131,6 @@ static vaddr_t elfld(void *elfimg)
 			current_cpu()->usrpgfault = 1;
 			__insn_barrier();
 			if (_setjmp(current_cpu()->usrpgfaultctx)) {
-				dprintf("elf: pop %lx\n",
-					current_cpu()->usrpgaddr);
 				vmpopulate(current_cpu()->usrpgaddr,
 					   PAGE_SIZE, PROT_USER_WRX);
 				current_cpu()->usrpgaddr = 0;
@@ -1145,8 +1150,6 @@ static vaddr_t elfld(void *elfimg)
 			current_cpu()->usrpgfault = 1;
 			__insn_barrier();
 			if (_setjmp(current_cpu()->usrpgfaultctx)) {
-				dprintf("elf: pop %lx\n",
-					current_cpu()->usrpgaddr);
 				vmpopulate(current_cpu()->usrpgaddr,
 					   PAGE_SIZE, PROT_USER_WRX);
 				current_cpu()->usrpgaddr = 0;

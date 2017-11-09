@@ -141,7 +141,6 @@ static int _klogdev_open(void *devopq, uint64_t did)
 	avl_sig = 0;
 	bsy = 1;
 	spinunlock(&kloglock);
-	dprintf("klogdev: opened");
 	return 0;
 }
 
@@ -156,7 +155,6 @@ static void _klogdev_close(void *devopq, unsigned id)
 	avl_ie = 0;
 	klogth = NULL;
 	spinunlock(&kloglock);
-	dprintf("klogdev: closed\n");
 }
 
 

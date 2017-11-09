@@ -218,12 +218,12 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 	spinlock(&hd->lock);
 	if (va) {
 		/* Export VA address */
-		ret = pmap_uexport(NULL, va, &l1e);
+		ret = pmap_uwire(NULL, va);
 		if (ret)
 			goto export_err;
 		ret = pmap_phys(NULL, va, &pfn);
 		if (ret) {
-			assert(!pmap_uexport_cancel(NULL, va));
+			assert(!pmap_uunwire(NULL, va));
 			goto export_err;
 		}
 		pd = heap_alloc(sizeof(*pd));
@@ -247,7 +247,7 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va,
 
 
 		LIST_REMOVE(found, list);
-		ret = pmap_uexport_cancel(NULL, pd->va);
+		ret = pmap_uunwire(NULL, pd->va);
 		assert(!ret);
 		heap_free(found);
 	}
@@ -314,7 +314,7 @@ static int _hwdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 	LIST_FOREACH_SAFE(pm, &hd->remths[id].hwmaps, list, tpm) {
 		if (pm->va == va) {
 			LIST_REMOVE(pm, list);
-			vmunmap(va);
+			iounmap(va);
 			heap_free(pm);
 			spinunlock(&hd->lock);
 			return 0;
@@ -378,8 +378,6 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 		return -EPERM;
 
 	hwsig = heap_alloc(sizeof(struct hwsig));
-	dprintf("hwdev: registering irq %d at thread %p with signal %d\n",
-		irq, th, sig);
 	ret = irqregister(&hwsig->irqsig, irq, th, sig,
 			  0 /* No filter */ );
 	if (ret < 0) {
@@ -404,7 +402,7 @@ static void _hwdev_close(void *devopq, unsigned id)
 	assert(hd->remths[id].use);
 	LIST_FOREACH_SAFE(pm, &hd->remths[id].hwmaps, list, tpm) {
 		LIST_REMOVE(pm, list);
-		vmunmap(pm->va);
+		iounmap(pm->va);
 		heap_free(pm);
 	}
 	LIST_FOREACH_SAFE(ps, &hd->remths[id].hwsigs, list, tps) {
@@ -414,7 +412,7 @@ static void _hwdev_close(void *devopq, unsigned id)
 	}
 	LIST_FOREACH_SAFE(pd, &hd->remths[id].hwdmas, list, tpd) {
 		LIST_REMOVE(pd, list);
-		assert(!pmap_uexport_cancel(NULL, pd->va));
+		assert(!pmap_uunwire(NULL, pd->va));
 		heap_free(pd);
 	}
 	hd->remths[id].use = 0;

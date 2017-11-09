@@ -586,6 +586,8 @@ int sys_call(int sc,
 		return sys_out(a1, a2, a3);
 	case SYS_IOMAP:
 		return sys_iomap(a1, a2, a3);
+	case SYS_IOUNMAP:
+		return sys_iounmap(a1, a2);
 	case SYS_CLOSE:
 		return sys_close(a1);
 	case SYS_HWCREAT:

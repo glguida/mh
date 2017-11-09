@@ -90,19 +90,17 @@ int pmap_uenter(struct pmap *pmap, vaddr_t va, pfn_t pa,
 int pmap_uchaddr(struct pmap *pmap, vaddr_t oldva, vaddr_t newva,
 		 pfn_t * pfn);
 int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot);
-int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e);
-int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va);
-int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn);
-int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
-		      l1e_t extl1e, pfn_t * pfn);
-int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va);
 int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 		pmap_prot_t prot, pfn_t * opfn);
+int pmap_uiounmap(struct pmap *pmap, vaddr_t va);
 void pmap_commit(struct pmap *pmap);
 int pmap_phys(struct pmap *pmap, vaddr_t va, pfn_t *pfn);
 
 int pmap_hmap(struct pmap *pmap, vaddr_t va);
 int pmap_hunmap(struct pmap *pmap);
+
+int pmap_uwire(struct pmap *pmap, vaddr_t va);
+int pmap_uunwire(struct pmap *pmap, vaddr_t va);
 
 struct pmap *pmap_copy(void);
 

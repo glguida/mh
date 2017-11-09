@@ -99,7 +99,6 @@ static int _pltdev_in(void *devopq, unsigned id, uint32_t port,
 		*val = platform_inl(port >> IOPORT_SIZESHIFT);
 		break;
 	default:
-		printf("Meh: %llx\n", port);
 		return -EINVAL;
 	}
 	return 0;
@@ -180,7 +179,7 @@ static int _pltdev_iounmap(void *devopq, unsigned id, vaddr_t va)
 	LIST_FOREACH_SAFE(pm, &platform_rems[id].pltmaps, list, tpm) {
 		if (pm->va == va) {
 			LIST_REMOVE(pm, list);
-			vmunmap(va);
+			iounmap(va);
 			heap_free(pm);
 			spinunlock(&platform_lock);
 			return 0;
@@ -213,8 +212,6 @@ static int _pltdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	struct pltsig *pltsig;
 
 	pltsig = heap_alloc(sizeof(struct pltsig));
-	printf("Registering irq %d at thread %p with signal %d\n", irq, th,
-	       sig);
 	ret = irqregister(&pltsig->irqsig, irq, th, sig,
 			  0 /* No filter */ );
 	if (ret < 0)
@@ -234,7 +231,7 @@ static void _pltdev_close(void *devopq, unsigned id)
 	assert(platform_rems[id].in_use);
 	LIST_FOREACH_SAFE(pm, &platform_rems[id].pltmaps, list, tpm) {
 		LIST_REMOVE(pm, list);
-		vmunmap(pm->va);
+		iounmap(pm->va);
 		heap_free(pm);
 	}
 	LIST_FOREACH_SAFE(ps, &platform_rems[id].pltsigs, list, tps) {

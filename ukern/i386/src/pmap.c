@@ -231,6 +231,34 @@ int pmap_uiomap(struct pmap *pmap, vaddr_t va, pfn_t pfn,
 	return 0;
 }
 
+int pmap_uiounmap(struct pmap *pmap, vaddr_t va)
+{
+	l1e_t *l1p, nl1e, ol1e;
+
+	assert(__isuaddr(va));
+	if (pmap == NULL)
+		pmap = pmap_current();
+
+	if (pmap == pmap_current())
+		l1p = __val1tbl(va) + L1OFF(va);
+	else
+		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
+
+	spinlock(&pmap->lock);
+	ol1e = *l1p;
+	if (!l1e_iomap(ol1e)) {
+		/* Not iomap! */
+		spinunlock(&pmap->lock);
+		return -1;
+	}
+	nl1e = mkl1e(PFN_INVALID, 0);
+	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+	__setl1e(l1p, nl1e);
+	spinunlock(&pmap->lock);
+
+	return 0;
+}
+
 int pmap_phys(struct pmap *pmap, vaddr_t va, pfn_t *pfn)
 {
 	int ret;
@@ -246,7 +274,7 @@ int pmap_phys(struct pmap *pmap, vaddr_t va, pfn_t *pfn)
 	ret = -EFAULT;
 	spinlock(&pmap->lock);
 	l1e = *l1p;
-	if (l1e_present(l1e)) {
+	if (l1e_external(l1e) && l1e_present(l1e)) {
 		*pfn = l1epfn(l1e);
 		ret = 0;
 	}
@@ -378,7 +406,9 @@ int pmap_uchprot(struct pmap *pmap, vaddr_t va, pmap_prot_t prot)
 		return -EINVAL;
 	}
 
+	assert(l1e_normal(ol1e));
 	nl1e = l1e_mknormal(mkl1e(ptoa(l1epfn(ol1e)), prot));
+
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
@@ -426,11 +456,10 @@ int pmap_hunmap(struct pmap *pmap)
 	spinunlock(&pmap->lock);
 }
 
-int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)
+int pmap_uwire(struct pmap *pmap, vaddr_t va)
 {
 	l1e_t ol1e, nl1e, *l1p;
 
-	assert(l1e);
 	assert(__isuaddr(va));
 	if (pmap == NULL)
 		pmap = pmap_current();
@@ -438,26 +467,25 @@ int pmap_uexport(struct pmap *pmap, vaddr_t va, l1e_t * l1e)
 	if (pmap == pmap_current())
 		l1p = __val1tbl(va) + L1OFF(va);
 	else
-		panic("set to different pmap voluntarily not supported.");
+		panic("wire to different pmap voluntarily not supported.");
 
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
 	if (l1e_external(ol1e)) {
 		/* Externally controlled already. */
 		spinunlock(&pmap->lock);
-		*l1e = mkl1e(PFN_INVALID, 0);
 		return -EBUSY;
 	}
-	nl1e = l1e_mkexported(ol1e);
+	pfn_incwir(l1epfn(ol1e));
+	nl1e = l1e_mkwired(ol1e);
 	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
 	__setl1e(l1p, nl1e);
 	spinunlock(&pmap->lock);
 
-	*l1e = nl1e;
 	return 0;
 }
 
-int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va)
+int pmap_uunwire(struct pmap *pmap, vaddr_t va)
 {
 	l1e_t ol1e, nl1e, *l1p;
 
@@ -472,118 +500,16 @@ int pmap_uexport_cancel(struct pmap *pmap, vaddr_t va)
 
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
-	if (!l1e_exported(ol1e)) {
-		/* Not exported! */
+	if (!l1e_wired(ol1e)) {
+		/* Not wired! */
 		spinunlock(&pmap->lock);
 		return -1;
 	}
-	nl1e = l1e_mknormal(ol1e);
-	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
-	__setl1e(l1p, nl1e);
-
-
-	spinunlock(&pmap->lock);
-
-	return 0;
-}
-
-int pmap_uimport(struct pmap *pmap, vaddr_t va, l1e_t extl1e, pfn_t * pfn)
-{
-	l1e_t ol1e, nl1e, *l1p;
-
-	assert(l1e_exported(extl1e) && "can't import non exported l1e");
-	if (pmap == NULL)
-		pmap = pmap_current();
-
-	if (pmap == pmap_current())
-		l1p = __val1tbl(va) + L1OFF(va);
-	else
-		panic("set to different pmap voluntarily not supported.");
-
-	spinlock(&pmap->lock);
-
-	ol1e = *l1p;
-	if (l1e_external(ol1e)) {
-		/* If you have the bad idea of allowing import mapping
-		 * to be removed, be sure to decref only non-import
-		 * ol1es later on this function. */
-		/* Externally controlled  */
-		spinunlock(&pmap->lock);
-		return -1;
+	if (!pfn_decwir(l1epfn(ol1e))) {
+		nl1e = l1e_mknormal(ol1e);
+		pmap->tlbflush = __tlbflushp(ol1e, nl1e);
+		__setl1e(l1p, nl1e);
 	}
-	nl1e = l1e_mkimported(extl1e);
-	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
-	__setl1e(l1p, nl1e);
-
-	spinunlock(&pmap->lock);
-
-	if (l1e_normal(ol1e) && !pfn_decref(l1epfn(ol1e))) {
-		*pfn = l1epfn(ol1e);
-	} else {
-		*pfn = PFN_INVALID;
-	}
-	return 0;
-}
-
-int pmap_uimport_swap(struct pmap *pmap, vaddr_t va, l1e_t curl1e,
-		      l1e_t extl1e, pfn_t * pfn)
-{
-	l1e_t ol1e, nl1e, *l1p;
-
-	assert(l1e_exported(extl1e) && "can't import non exported l1e");
-	if (pmap == NULL)
-		pmap = pmap_current();
-
-	if (pmap == pmap_current())
-		l1p = __val1tbl(va) + L1OFF(va);
-	else
-		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
-
-	spinlock(&pmap->lock);
-	ol1e = *l1p;
-	if (!l1e_imported(ol1e)
-	    || l1epfn(ol1e) != l1epfn(curl1e)
-	    || l1eprotfl(ol1e) != l1eprotfl(ol1e))
-		return -1;
-	/* Expected l1e found. Can continume with the import */
-	nl1e = l1e_mkexported(extl1e);
-	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
-	__setl1e(l1p, nl1e);
-	spinunlock(&pmap->lock);
-
-	assert(l1e_normal(ol1e));
-	if (l1e_present(ol1e) && !pfn_decref(l1epfn(ol1e))) {
-		*pfn = l1epfn(ol1e);
-	} else {
-		*pfn = PFN_INVALID;
-	}
-	return 0;
-}
-
-int pmap_uimport_cancel(struct pmap *pmap, vaddr_t va)
-{
-	l1e_t ol1e, nl1e, *l1p;
-
-	if (pmap == NULL)
-		pmap = pmap_current();
-
-	if (pmap == pmap_current())
-		l1p = __val1tbl(va) + L1OFF(va);
-	else
-		l1p = pmap->l1s + NPTES * L2OFF(va) + L1OFF(va);
-
-	spinlock(&pmap->lock);
-
-	ol1e = *l1p;
-	if (!l1e_imported(ol1e)) {
-		/* Not imported! */
-		spinunlock(&pmap->lock);
-		return -1;
-	}
-	nl1e = mkl1e(PFN_INVALID, 0);
-	pmap->tlbflush = __tlbflushp(ol1e, nl1e);
-	__setl1e(l1p, nl1e);
-
 	spinunlock(&pmap->lock);
 
 	return 0;
@@ -613,7 +539,7 @@ struct pmap *pmap_copy(void)
 		if (!(l1e & PG_P)) {
 			/* Not present, copy */
 			__setl1e(copy, l1e);
-		} else if (l1e_imported(l1e) || l1e_iomap(l1e) || l1e_exported(l1e)) {
+		} else if (l1e_external(l1e)) {
 			/* Do not inherit I/O mappings */
 			__setl1e(copy, 0);
 		} else {

@@ -39,7 +39,10 @@ typedef struct {
 		char ptr[0];
 		struct pgzentry pz;
 		struct slab sh;
-		uint64_t ref;
+		struct {
+			uint64_t ref;
+			uint64_t wir;
+		} usr;
 	};
 } __packed ipfn_t;
 
@@ -81,11 +84,15 @@ uint64_t pfndb_incref(unsigned pfn);
 uint64_t pfndb_decref(unsigned pfn);
 uint64_t pfndb_getref(unsigned pfn);
 uint64_t pfndb_clrref(unsigned pfn);
+uint64_t pfndb_incwir(unsigned pfn);
+uint64_t pfndb_decwir(unsigned pfn);
+uint64_t pfndb_getwir(unsigned pfn);
+uint64_t pfndb_clrwir(unsigned pfn);
 
 #define pfn_is_valid(_pfn) (pfndb_valid((_pfn)))
 #define pfn_is_mmio(_pfn) (pfndb_type((_pfn)) == PFNT_MMIO)
 
-/* Reference count of user pages uses in user mappings.  The kernel,
+/* Reference count of user pages uses in user mappings.  The kernel
  * should never map user pages if mapped and used by a process which
  * is non-current.  */
 #define pfn_is_userpage(_pfn) (pfndb_type((_pfn)) == PFNT_USER)
@@ -93,6 +100,11 @@ uint64_t pfndb_clrref(unsigned pfn);
 #define pfn_decref(_pfn) pfndb_decref((_pfn))
 #define pfn_clrref(_pfn) pfndb_clrref((_pfn))
 #define pfn_getref(_pfn) pfndb_getref((_pfn))
+/* Wiring count of user pages in user mappings. */
+#define pfn_incwir(_pfn) pfndb_incwir((_pfn))
+#define pfn_decwir(_pfn) pfndb_decwir((_pfn))
+#define pfn_clrwir(_pfn) pfndb_clrwir((_pfn))
+#define pfn_getwir(_pfn) pfndb_getwir((_pfn))
 
 static inline pfn_t __allocuser(void)
 {
@@ -100,6 +112,7 @@ static inline pfn_t __allocuser(void)
 
 	pfn = pgalloc(1, PFNT_USER, GFP_HIGH);
 	pfn_clrref(pfn);
+	pfn_clrwir(pfn);
 	return pfn;
 }
 
@@ -109,6 +122,7 @@ static inline pfn_t __allocuser32(void)
 
 	pfn = pgalloc(1, PFNT_USER, GFP_MEM32);
 	pfn_clrref(pfn);
+	pfn_clrwir(pfn);
 	return pfn;
 }
 
