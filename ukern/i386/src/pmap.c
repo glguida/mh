@@ -471,7 +471,7 @@ int pmap_uwire(struct pmap *pmap, vaddr_t va)
 
 	spinlock(&pmap->lock);
 	ol1e = *l1p;
-	if (l1e_external(ol1e)) {
+	if (l1e_iomap(ol1e)) {
 		/* Externally controlled already. */
 		spinunlock(&pmap->lock);
 		return -EBUSY;
@@ -540,7 +540,9 @@ struct pmap *pmap_copy(void)
 			/* Not present, copy */
 			__setl1e(copy, l1e);
 		} else if (l1e_external(l1e)) {
-			/* Do not inherit I/O mappings */
+			/* Do not inherit I/O mappings. This means
+			 * that wired memory (exported by hwdev) will
+			 * be lost on fork's child. */
 			__setl1e(copy, 0);
 		} else {
 			/* COW, even for readonly pages */
