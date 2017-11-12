@@ -79,7 +79,7 @@ int sys_open32(u_long hi, u_long lo);
 int sys_iomap(unsigned ddno, u_long va, uint64_t mmioaddr);
 int sys_iounmap(unsigned ddno, u_long va);
 int sys_info(unsigned ddno, struct sys_info_cfg *cfg);
-int sys_export(unsigned ddno, u_long va, size_t sz, unsigned long *iova);
+int sys_export(unsigned ddno, u_long va, size_t sz, iova_t *iova);
 int sys_mapirq(unsigned ddno, unsigned id, unsigned sig);
 int sys_in(unsigned ddno, u_long port, uint64_t * val);
 int sys_out(unsigned ddno, uint32_t port, uint64_t val);

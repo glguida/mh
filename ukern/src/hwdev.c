@@ -206,7 +206,7 @@ static int _hwdev_out(void *devopq, unsigned id, uint32_t port,
 	return 0;
 }
 
-static int _hwdev_export(void *devopq, unsigned id, vaddr_t va, size_t sz, unsigned long *iova)
+static int _hwdev_export(void *devopq, unsigned id, vaddr_t va, size_t sz, uint64_t *iova)
 {
 	struct hwdev *hd = (struct hwdev *) devopq;
 	struct hwdma *pd;
@@ -436,6 +436,7 @@ static struct devops hwdev_ops = {
 	.in = _hwdev_in,
 	.out = _hwdev_out,
 	.export = _hwdev_export,
+	.unexport = _hwdev_unexport,
 	.iomap = _hwdev_iomap,
 	.iounmap = _hwdev_iounmap,
 	.info = _hwdev_info,

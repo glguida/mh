@@ -163,7 +163,7 @@ void devremove(unsigned did);
 
 int devopen(uint64_t id);
 int devirqmap(unsigned dd, unsigned irq, unsigned sig);
-int devexport(unsigned dd, vaddr_t va, size_t sz, unsigned long *iopfn);
+int devexport(unsigned dd, vaddr_t va, size_t sz, uint64_t *iopfn);
 int devunexport(unsigned dd, vaddr_t va);
 int devin(unsigned dd, uint32_t port, uint64_t * valptr);
 int devout(unsigned dd, uint32_t port, uint64_t val);

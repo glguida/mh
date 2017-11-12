@@ -15806,12 +15806,13 @@ diff -Nru newlib-2.5.0.20170323.dist/newlib/libc/sys/murgia/machine/i386/include
 diff -Nru newlib-2.5.0.20170323.dist/newlib/libc/sys/murgia/machine/i386/include/types.h newlib-2.5.0.20170323/newlib/libc/sys/murgia/machine/i386/include/types.h
 --- newlib-2.5.0.20170323.dist/newlib/libc/sys/murgia/machine/i386/include/types.h	1970-01-01 01:00:00.000000000 +0100
 +++ newlib-2.5.0.20170323/newlib/libc/sys/murgia/machine/i386/include/types.h	2017-04-10 05:04:22.169551394 +0200
-@@ -0,0 +1,5 @@
+@@ -0,0 +1,6 @@
 +#ifndef _SYS_TYPES_H
 +#error "must be included via <sys/types.h>"
 +#endif /* !_SYS_TYPES_H */
 +
 +typedef unsigned long vaddr_t;
++typedef unsigned long long iova_t;
 diff -Nru newlib-2.5.0.20170323.dist/newlib/libc/sys/murgia/machine/i386/include/vmparam.h newlib-2.5.0.20170323/newlib/libc/sys/murgia/machine/i386/include/vmparam.h
 --- newlib-2.5.0.20170323.dist/newlib/libc/sys/murgia/machine/i386/include/vmparam.h	1970-01-01 01:00:00.000000000 +0100
 +++ newlib-2.5.0.20170323/newlib/libc/sys/murgia/machine/i386/include/vmparam.h	2017-04-11 00:37:43.773482680 +0200

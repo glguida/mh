@@ -123,6 +123,8 @@ int dgetinfo(DEVICE * d, struct dinfo *i);
 int drdcfg(DEVICE * d, unsigned off, uint8_t sz, uint64_t *val);
 int dwrcfg(DEVICE *d, unsigned off, uint8_t sz, uint64_t val);
 void *diomap(DEVICE * d, uint64_t base, size_t len);
+int dexport(DEVICE * d, void *vaddr, size_t sz, iova_t *iova);
+int dunexport(DEVICE * d, void *vaddr);
 void dclose(DEVICE * d);
 
 

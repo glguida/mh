@@ -194,7 +194,7 @@ static int sys_open(uint64_t id)
 static int sys_export(unsigned ddno, u_long va, size_t sz, uaddr_t uiovaptr)
 {
 	int ret;
-	unsigned long iova;
+        uint64_t iova;
 
 	if (!__chkuaddr(va, sz))
 		return -EFAULT;

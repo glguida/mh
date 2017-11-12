@@ -282,7 +282,7 @@ void *diomap(DEVICE * d, uint64_t base, size_t len)
 	return (void *) (uintptr_t) (va + (base & PAGE_MASK));
 }
 
-int dexport(DEVICE * d, void *vaddr, size_t sz, unsigned long *iova)
+int dexport(DEVICE * d, void *vaddr, size_t sz, iova_t *iova)
 {
 	return sys_export(d->dd, (vaddr_t) vaddr, sz, iova);
 }

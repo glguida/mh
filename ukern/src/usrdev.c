@@ -291,7 +291,7 @@ static int _usrdev_out(void *devopq, unsigned id, uint32_t port,
 }
 
 static int _usrdev_export(void *devopq, unsigned id, vaddr_t va,
-			  size_t sz, unsigned long *iova)
+			  size_t sz, uint64_t *iova)
 {
 	/* Current thread: Process */
 	int i;

@@ -173,7 +173,7 @@ int sys_iounmap(unsigned ddno, u_long va)
 	return ret;
 }
 
-int sys_export(unsigned ddno, u_long va, size_t sz, unsigned long *iova)
+int sys_export(unsigned ddno, u_long va, size_t sz, iova_t *iova)
 {
 	int ret;
 
