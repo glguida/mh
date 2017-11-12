@@ -202,7 +202,7 @@ int intr_entry(uint32_t vect, struct usrframe *f)
 		cpu_kick();
 	} else if (vect >= VECT_IRQ0) {
 		unsigned irq = vect - VECT_IRQ0;
-		irqsignal(irq);
+		irqsignal(irq, gsi_is_level(irq));
 		lapic_write(L_EOI, 0);
 	}
 

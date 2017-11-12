@@ -280,6 +280,10 @@ enum gsimode gsi_get_irqtype(unsigned gsi)
 	return gsis[gsi].mode;
 }
 
+int gsi_is_level(unsigned gsi)
+{
+	return (gsi_get_irqtype(gsi) != EDGE);
+}
 
 void gsi_setup_done(void)
 {

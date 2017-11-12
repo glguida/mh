@@ -201,6 +201,14 @@ int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
 
 }
 
+int sys_eoi(unsigned ddno, unsigned irq)
+{
+	int ret;
+
+	__syscall2(SYS_EOI, (unsigned long) ddno, (unsigned long) irq, ret);
+	return ret;
+}
+
 int sys_in(unsigned ddno, u_long port, uint64_t * val)
 {
 	int ret;

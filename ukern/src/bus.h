@@ -72,6 +72,7 @@ struct devops {
 		     uint8_t sz, uint64_t *val);
 	int (*irqmap) (void *devopq, unsigned id, unsigned intr,
 		       unsigned sig);
+	int (*eoi)(void *devopq, unsigned id, unsigned intr);
 	void (*close) (void *devopq, unsigned id);
 };
 

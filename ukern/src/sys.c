@@ -240,10 +240,15 @@ static int sys_info(unsigned ddno, uaddr_t ucfg)
 	return 0;
 }
 
-static int sys_mapirq(unsigned ddno, unsigned id, unsigned sig)
+static int sys_mapirq(unsigned ddno, unsigned irq, unsigned sig)
 {
 
-	return devirqmap(ddno, id, sig);
+	return devirqmap(ddno, irq, sig);
+}
+
+static int sys_eoi(unsigned ddno, unsigned irq)
+{
+	return deveoi(ddno, irq);
 }
 
 static int sys_in(unsigned ddno, uint32_t port, uaddr_t valptr)
@@ -578,6 +583,8 @@ int sys_call(int sc,
 		return sys_rdcfg(a1, a2, a3, a4);
 	case SYS_MAPIRQ:
 		return sys_mapirq(a1, a2, a3);
+	case SYS_EOI:
+		return sys_eoi(a1, a2);
 	case SYS_IN:
 		return sys_in(a1, a2, a3);
 	case SYS_OUT32:

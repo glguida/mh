@@ -178,13 +178,15 @@ void die(void) __dead;
 
 struct irqsig {
 	struct thread *th;
+	int eoi;
 	unsigned sig;
 	uint32_t filter;
 	void (*handler) (unsigned);
 	LIST_ENTRY(irqsig) list;
 };
 
-void irqsignal(unsigned irq);
+int doeoi(unsigned irq);
+void irqsignal(unsigned irq, int level);
 int irqregister(struct irqsig *irqsig, unsigned irq, struct thread *th,
 		unsigned sig, uint32_t filter);
 void irqunregister(struct irqsig *irqsig);

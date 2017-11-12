@@ -404,6 +404,36 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	return ret;
 }
 
+static int _hwdev_eoi(void *devopq, unsigned id, unsigned irq,
+			 unsigned sig)
+{
+	struct hwdev *hd = (struct hwdev *) devopq;
+	struct hwdev_cfg *cfg = hd->cfg;
+	struct thread *th = current_thread();
+	struct seg *ptr = hd->cfg->segs;
+	int i, found, ret;
+
+	spinlock(&hd->lock);
+	found = 0;
+	for (i = 0; i < cfg->nirqsegs; i++, ptr++) {
+		uint16_t start = ptr->base;
+		uint16_t end = ptr->base + ptr->len - 1;
+
+		if (start <= irq && irq <= end) {
+			found = 1;
+			break;
+		}
+	}
+	if (!found) {
+		spinunlock(&hd->lock);
+		return -ENOENT;
+	}
+
+	irqeoi(irq);
+	spinunlock(&hd->lock);
+	return 0;
+}
+
 static void _hwdev_close(void *devopq, unsigned id)
 {
 	struct hwdev *hd = (struct hwdev *) devopq;
@@ -443,6 +473,7 @@ static struct devops hwdev_ops = {
 	.iounmap = _hwdev_iounmap,
 	.info = _hwdev_info,
 	.irqmap = _hwdev_irqmap,
+	.eoi = _hwdev_eoi,
 };
 
 struct hwdev *hwdev_creat(struct sys_hwcreat_cfg *syscfg, devmode_t mode)

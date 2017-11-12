@@ -119,6 +119,7 @@ struct sys_info_cfg {
 #define SYS_OUT32   0x2A
 #define SYS_RDCFG   0x2B
 #define SYS_WRCFG   0x2C
+#define SYS_EOI     0x2D
 #define SYS_CLOSE  0x2F
 
 #define SYS_CREAT_CFG_MAXUSERCFG SYS_DEVCONFIG_MAXUSERCFG

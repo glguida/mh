@@ -138,6 +138,7 @@ void gsi_setup(unsigned i, unsigned irq, enum gsimode mode);
 void gsi_setup_done(void);
 void gsi_dump(void);
 void gsi_set_irqtype(unsigned irq, enum gsimode mode);
+int gsi_is_level(unsigned gsi);
 enum gsimode gsi_get_irqtype(unsigned gsi);
 
 void gsi_register(unsigned gsi, unsigned vect);

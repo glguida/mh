@@ -357,6 +357,11 @@ int bus_irqmap(struct bus *b, unsigned desc, unsigned irq, unsigned sig)
 	OP_CALL(irqmap, irq, sig);
 }
 
+int bus_eoi(struct bus *b, unsigned desc, unsigned irq)
+{
+	OP_CALL(eoi, irq);
+}
+
 void bus_remove(struct bus *b)
 {
 	unsigned i;

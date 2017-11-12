@@ -886,6 +886,13 @@ int devirqmap(unsigned dd, unsigned irq, unsigned sig)
 	return bus_irqmap(&th->bus, dd, irq, sig);
 }
 
+int deveoi(unsigned dd, unsigned irq, unsigned sig)
+{
+	struct thread *th = current_thread();
+
+	return bus_eoi(&th->bus, dd, irq);
+}
+
 int devin(unsigned dd, uint32_t port, uint64_t * valptr)
 {
 	struct thread *th = current_thread();
@@ -935,9 +942,41 @@ void devclose(unsigned dd)
 	bus_unplug(&th->bus, dd);
 }
 
-void irqsignal(unsigned irq)
+int irqeoi(unsigned irq)
+{
+	int doeoi;
+	struct irqsig *irqsig;
+
+	assert(irq < MAXIRQS);
+	spinlock(&irqsigs_lock);
+	LIST_FOREACH(irqsig, &irqsigs[irq], list) {
+		if (irqsig->handler)
+			continue;
+		if (irqsig->eoi) {
+			doeoi = 1;
+			irqsig->eoi = 0;
+		}
+	}
+	spinunlock(&irqsigs_lock);
+
+	if (!doeoi)
+		return -EINVAL;
+
+	platform_irqon(irq);
+	return 0;
+}
+
+void irqsignal(unsigned irq, int level)
 {
 	struct irqsig *irqsig;
+
+	if (level) {
+		/* Level IRQ: EOI will be sent to the APIC right
+		 * after we return. Disable the IRQ line, it will
+		 * be re-enabled by the interrupt handler. 
+		 */
+		platform_irqoff(irq);
+	}
 
 	assert(irq < MAXIRQS);
 	spinlock(&irqsigs_lock);
@@ -948,6 +987,8 @@ void irqsignal(unsigned irq)
 		}
 		if (irqsig->filter && !platform_irqfilter(irqsig->filter))
 			continue;
+		if (level)
+			irqsig->eoi = 1;
 		thraise(irqsig->th, irqsig->sig);
 	}
 	spinunlock(&irqsigs_lock);

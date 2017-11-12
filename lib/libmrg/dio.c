@@ -191,6 +191,11 @@ int dmapirq(DEVICE * d, unsigned irq, int evt)
 	return 0;
 }
 
+int deoi(DEVICE * d, unsigned irq)
+{
+	return sys_eoi(d->dd, irq);
+}
+
 int dgetirq(DEVICE * d, int irqno)
 {
 	int i, rem;
