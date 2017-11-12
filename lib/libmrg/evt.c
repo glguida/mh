@@ -33,14 +33,6 @@ static void __evtint_handler(int reqint, void *arg)
 	__evtset(reqevt);
 }
 
-void __astfunc(void *farg)
-{
-	void (*func)(void) = (void (*)(void))farg;
-
-	func();
-	lwt_exit();
-}
-
 int evtalloc(void)
 {
 	int i, evt = -1;;
@@ -109,7 +101,7 @@ void evtwait(int evt)
 	preempt_enable();
 }
 
-void evtast(int evt, void (*func)(void))
+void evtast(int evt, void (*func)(void *), void *arg)
 {
 	int i = evt / 64, r = evt % 64;
 	lwt_t *lwt;
@@ -123,7 +115,7 @@ void evtast(int evt, void (*func)(void))
 		return;
 	}
 
-	lwt = lwt_create(__astfunc, (void *)func, 1024);
+	lwt = lwt_create(func, (void *)arg, 1024);
 
 	/* XXX: add to queue */
 	assert(wait_evts[evt] == NULL);

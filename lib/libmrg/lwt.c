@@ -42,6 +42,14 @@ lwt_t *lwt_current = NULL;
 
 SIMPLEQ_HEAD(, lwt) __lwtq_active = SIMPLEQ_HEAD_INITIALIZER(__lwtq_active);
 
+void __lwt_func(void *farg, void *arg)
+{
+	void (*func)(void *) = (void (*)(void))farg;
+
+	func(arg);
+	lwt_exit();
+}
+
 static void
 lwt_init(void)
 {

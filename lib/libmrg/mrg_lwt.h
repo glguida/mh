@@ -52,6 +52,7 @@ struct lwt {
 };
 typedef struct lwt lwt_t;
 
+void __lwt_func(void *, void *);
 
 void lwt_makebuf(lwt_t *lwt, void (*start)(void *), void * arg,
 		 void *stack_base, size_t stack_size);

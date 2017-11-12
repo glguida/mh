@@ -12,7 +12,7 @@ int keybevt = -1;
 int keybon = 1;
 int clistevt = -1;
 
-static void __redraw(void)
+static void __redraw(void *arg __unused)
 {
 	vtdrv_goto(0,0);
 	vtdrv_putc('1');
@@ -106,7 +106,7 @@ int vtdrv_init(void)
 	dmapirq(cons, CONSIO_IRQ_KBDATA, keybevt);
 
 	drawevt = evtalloc();
-	evtast(drawevt, __redraw);
+	evtast(drawevt, __redraw, NULL);
 	dmapirq(cons, CONSIO_IRQ_REDRAW, drawevt);
 
 	clistevt = evtalloc();
@@ -205,8 +205,8 @@ void vtdrv_kwait(void)
 	evtclear(clistevt);
 }
 
-void vtty_kast(void (*func)(void))
+void vtty_kast(void (*func)(void *), void *arg)
 {
 
-	evtast(clistevt, func);
+	evtast(clistevt, func, arg);
 }

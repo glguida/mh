@@ -27,7 +27,7 @@ int viewstart;
 #define KLOG_LINES 1024
 
 static void
-__klog_avl_ast(void)
+__klog_avl_ast(void *arg __unused)
 {
 	uint64_t ioval = 0;
 	uint8_t ch;
@@ -75,10 +75,10 @@ static void klogger_main(void)
 
 	/* Enable interrupt */
 	klogevt = evtalloc();
-	evtast(klogevt, __klog_avl_ast);
+	evtast(klogevt, __klog_avl_ast, NULL);
 	dmapirq(klogger, KLOGDEVIO_AVLINT, klogevt);
 	dout(klogger, IOPORT_BYTE(KLOGDEVIO_IE), 1);
-	__klog_avl_ast();
+	__klog_avl_ast(NULL);
 
 	lwt_sleep();
 }

@@ -82,7 +82,7 @@ static void console_io_clone(int id, int clid);
 static void console_io_out(int id, uint32_t port, uint64_t val, uint8_t size);
 static void console_io_close(int id);
 
-static void __console_io_ast(void)
+static void __console_io_ast(void *arg __unused)
 {
 	uint64_t val = 0;
 	int ret;
@@ -327,7 +327,7 @@ static void pltconsole()
 	cfg.usercfg[0] = console_vga_cols() + (console_vga_lines() << 8);
 
 	reqevt = evtalloc();
-	evtast(reqevt, __console_io_ast);
+	evtast(reqevt, __console_io_ast, NULL);
 
 	ret = devcreat(&cfg, 0111, reqevt);
 	if (ret < 0) {

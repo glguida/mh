@@ -195,7 +195,7 @@ int getkey(char sc)
 static DEVICE *kbdd = NULL;
 static int kbdevt;
 
-static void __kbd_ast(void)
+static void __kbd_ast(void *arg __unused)
 {
 	uint64_t val;
 	int c;
@@ -255,7 +255,7 @@ console_kbd_init(uint64_t nameid)
 	assert(irq >= 0);
 
 	kbdevt = evtalloc();
-	evtast(kbdevt, __kbd_ast);
+	evtast(kbdevt, __kbd_ast, NULL);
 
 	ret = dmapirq(kbdd, irq, kbdevt);
 	if (ret)

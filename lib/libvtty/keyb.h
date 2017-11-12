@@ -6,7 +6,7 @@ int vtty_kgetc(void);
 int vtty_kgetcw(void);
 
 #ifdef __MURGIA__
-void vtty_kast(void (*func)(void));
+void vtty_kast(void (*func)(void *), void *arg);
 #endif
 
 #endif
