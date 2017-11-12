@@ -217,7 +217,7 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va, size_t sz, uint6
 	spinlock(&hd->lock);
 
 	/* We don't support multiple pages without IOMMU. */
-	if (trunc_page(va + sz) != trunc_page(va))
+	if (trunc_page(va + sz - 1) != trunc_page(va))
 		return -EINVAL;
 
 	/* Export VA addresses */
@@ -375,6 +375,7 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 	struct hwsig *hwsig;
 	int i, found, ret;
 
+	spinlock(&hd->lock);
 	found = 0;
 	for (i = 0; i < cfg->nirqsegs; i++, ptr++) {
 		uint16_t start = ptr->base;
@@ -385,18 +386,19 @@ static int _hwdev_irqmap(void *devopq, unsigned id, unsigned irq,
 			break;
 		}
 	}
-	if (!found)
-		return -EPERM;
+	if (!found) {
+		spinunlock(&hd->lock);
+		return -ENOENT;
+	}
 
 	hwsig = heap_alloc(sizeof(struct hwsig));
 	ret = irqregister(&hwsig->irqsig, irq, th, sig,
 			  0 /* No filter */ );
 	if (ret < 0) {
 		heap_free(hwsig);
+		spinunlock(&hd->lock);
 		return ret;
 	}
-
-	spinlock(&hd->lock);
 	LIST_INSERT_HEAD(&hd->remths[id].hwsigs, hwsig, list);
 	spinunlock(&hd->lock);
 	return ret;
