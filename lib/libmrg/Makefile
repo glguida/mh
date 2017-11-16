@@ -8,7 +8,7 @@ include $(MACHINE)/Makefile.inc
 
 LIBNAME=mrg
 LIBDIR=/lib
-SRCS+= vm.c vmap.c dma32.c lwt.c int.c evt.c dio.c dev.c
+SRCS+= vm.c vmap.c dma32.c lwt.c int.c evt.c dio.c dev.c blk.c
 SRCS+= stdc.c
 
 INCSUBDIRS= mrg $(MACHINE)/include
