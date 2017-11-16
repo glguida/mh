@@ -232,7 +232,7 @@ struct thread *thfork(void)
 	 * 1. How should we name the new device?
 	 * 2. It is straightforward from userspace to re-creat the
 	 * same device.
-	 * 3. It is more complex to cloe from the kernel.
+	 * 3. It is more complex to clone from the kernel.
 	 */
 	memset(&nth->usrdevs, 0, sizeof(nth->usrdevs));
 

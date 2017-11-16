@@ -224,16 +224,19 @@ static int _hwdev_export(void *devopq, unsigned id, vaddr_t va, size_t sz, uint6
 	ret = pmap_uwire(NULL, va);
 	if (ret)
 		goto export_err;
+
 	ret = pmap_phys(NULL, va, &pfn);
 	if (ret) {
 		assert(!pmap_uunwire(NULL, va));
 		goto export_err;
 	}
+
 	pd = heap_alloc(sizeof(*pd));
 	pd->va = va;
 	pd->iopfn = pfn;
 	LIST_INSERT_HEAD(&hd->remths[id].hwdmas, pd, list);
 	*iova = ptoa(pfn) + (va & PAGE_MASK);
+	ret = 0;
       export_err:
 	spinunlock(&hd->lock);
 	return ret;
@@ -258,6 +261,7 @@ static int _hwdev_unexport(void *devopq, unsigned id, vaddr_t va)
 		ret = -ENOENT;
 		goto unexport_err;
 	}
+
 	LIST_REMOVE(found, list);
 	ret = pmap_uunwire(NULL, pd->va);
 	assert(!ret);
