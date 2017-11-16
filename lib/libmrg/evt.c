@@ -108,18 +108,18 @@ void evtast(int evt, void (*func)(void *), void *arg)
 
 	assert(evt < MAXEVT);
 
-	preempt_disable();
-	/* Check event is already set. */
-	if (set_evts[i] & ((uint64_t)1 << r)) {
-		preempt_enable();
-		return;
-	}
-
 	lwt = lwt_create(func, (void *)arg, 1024);
 
+	preempt_disable();
 	/* XXX: add to queue */
 	assert(wait_evts[evt] == NULL);
 	wait_evts[evt] = lwt;
+
+	/* Check event is already set. */
+	if (set_evts[i] & ((uint64_t)1 << r)) {
+		__lwt_wake(wait_evts[evt]);
+		return;
+	}
 	preempt_enable();
 }
 
