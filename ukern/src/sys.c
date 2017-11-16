@@ -217,7 +217,7 @@ static int sys_export(unsigned ddno, u_long va, size_t sz, uaddr_t uiovaptr)
 
 static int sys_unexport(unsigned ddno, uaddr_t va)
 {
-	if (!__chkuaddr(va, 0))
+	if (!__chkuaddr(va, 1))
 		return -EINVAL;
 
 	return devunexport(ddno, va);
