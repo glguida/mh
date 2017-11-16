@@ -71,6 +71,8 @@ int do_child()
 	} while (pid > 0);
 }
 
+#include <mrg/blk.h>
+
 int main()
 {
 	int ret;
@@ -92,16 +94,80 @@ int main()
 	/* Become INTRCHILD handler */
 	inthandler(INTR_CHILD, do_child, NULL);
 
-	pltusb_pid = pltusb_process();
-	/* ret = pltusb_init(); */
+	/* Fork root (partition) process */
 
-	/* run sysconfig. Will get system configuration and inittab */
+	/* Wait for either the root process to die (via sigchld, and we panic) or to get a new device */
 
-	/* fork and start init as configured in sysconfig */
+	/* Run system configuration and inittab */
+
+	/* Become the sigchld handler. Restart services that need to be restarted. */
 
 	/*
 	 * THE REST IS HIGHLY TEMPORARY.
 	 */
+
+
+	do {
+		int i;
+		struct device *d;
+		uint64_t cur;
+		uint64_t nameid = squoze("PCI01.06.01");
+		uint64_t base = squoze("da");
+
+		SLIST_FOREACH(d, &devices, list) {
+			for (i = 0; i < DEVICEIDS; i++) {
+				if (d->deviceids[i] == nameid)
+				  blkdrv_ahci_probe(d->nameid, base);
+			}
+		}
+
+		for (cur = blk_iter(0); cur; cur = blk_iter(cur)) {
+			struct blkdev *blk;
+			int evt = evtalloc();
+			int evt2 = evtalloc();
+			int evt3 = evtalloc();
+			int evt4 = evtalloc();
+			int evt5 = evtalloc();
+
+			char data[512];
+			int r;
+
+			printf("Found disk %s\n", unsquoze_inline(cur).str);
+			blk = blk_open(cur);
+			blk_read(blk, data, sizeof(data), 0, 1, evt, &r);
+			blk_read(blk, data, sizeof(data), 0, 1, evt2, &r);
+			blk_read(blk, data, sizeof(data), 0, 1, evt3, &r);
+			blk_read(blk, data, sizeof(data), 0, 1, evt4, &r);
+			blk_read(blk, data, sizeof(data), 0, 1, evt5, &r);
+			evtwait(evt);
+			evtclear(evt);
+			blk_read(blk, data, sizeof(data), 0, 1, evt, &r);
+			evtwait(evt);
+			evtclear(evt);
+			blk_read(blk, data, sizeof(data), 0, 1, evt, &r);
+			evtwait(evt);
+			evtclear(evt);
+			blk_read(blk, data, sizeof(data), 0, 1, evt, &r);
+			evtwait(evt);
+			evtclear(evt);
+			blk_read(blk, data, sizeof(data), 0, 1, evt, &r);
+			evtwait(evt);
+			evtclear(evt);
+			evtwait(evt2);
+			evtwait(evt3);
+			evtwait(evt4);
+			evtwait(evt5);
+			blk_close(blk);
+		}
+	} while(0);
+
+	//pltusb_pid = pltusb_process();
+	/* ret = pltusb_init(); */
+
+
+
+	/* fork and start init as configured in sysconfig */
+
 
 	/* create console device. */
 	ret = pltconsole_process();
