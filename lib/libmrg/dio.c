@@ -9,19 +9,21 @@
 
 struct _DEVICE {
 	int dd;
-
-	struct dinfo info;
+	uint64_t nameid;
+	uint64_t vendorid;
 
 	unsigned ndevids;
 	uint64_t *devids;
 
-	int nirqsegs;
+	unsigned nirqs;
+	unsigned  nirqsegs;
 	struct sys_info_seg *irqsegs;
 
-	int niosegs;
+	unsigned nios;
+	unsigned niosegs;
 	struct sys_info_seg *iosegs;
 
-	int nmemsegs;
+	unsigned nmemsegs;
 	struct sys_info_memseg *memsegs;
 };
 
@@ -64,38 +66,20 @@ DEVICE *dopen(char *devname)
 	}
 
 	assert(nameid == cfg.nameid);
-
-	/*
-	 * Fill info
-	 */
-
-	d->info.nameid = cfg.nameid;
-	d->info.vendorid = cfg.vendorid;
-	/* count device ids */
-	for (i = 0; i < SYS_INFO_MAX_DEVIDS; i++)
-		if (cfg.deviceids[i] == 0)
-			break;
-	d->info.ndevids = i;
-	/* count irqs */
-	d->info.nirqs = 0;
-	if (cfg.nirqsegs != (uint8_t) - 1)
-		for (i = 0; i < cfg.nirqsegs; i++)
-			d->info.nirqs += SYS_INFO_IRQSEG(&cfg, i).len;
-	/* count pios */
-	d->info.npios = 0;
-	if (cfg.npiosegs != (uint8_t) - 1)
-		for (i = 0; i < cfg.npiosegs; i++)
-			d->info.npios += SYS_INFO_IOSEG(&cfg, i).len;
-	d->info.nmemsegs = cfg.nmemsegs;
+	d->nameid = cfg.nameid;
+	d->vendorid = cfg.vendorid;
 
 
 	/*
 	 * devids
 	 */
-	d->ndevids = d->info.ndevids;
-	if (d->ndevids == -1)
+	for (i = 0; i < SYS_INFO_MAX_DEVIDS; i++)
+		if (cfg.deviceids[i] == 0)
+			break;
+	d->ndevids = i;
+	if (d->ndevids == 0)
 		goto skip_devids;
-	d->devids = malloc(sizeof(uint64_t) * d->info.ndevids);
+	d->devids = malloc(sizeof(uint64_t) * d->ndevids);
 	if (d->devids == NULL) {
 		perror("malloc");
 		free(d);
@@ -108,8 +92,12 @@ DEVICE *dopen(char *devname)
 	/*
 	 * irqsegs
 	 */
-	d->nirqsegs = (cfg.nirqsegs == (uint8_t) - 1 ? -1 : cfg.nirqsegs);
-	if (d->nirqsegs == -1)
+	d->nirqs = 0;
+	if (cfg.nirqsegs != (uint8_t) - 1)
+		for (i = 0; i < cfg.nirqsegs; i++)
+			d->nirqs += SYS_INFO_IRQSEG(&cfg, i).len;
+	d->nirqsegs = (cfg.nirqsegs == (uint8_t) - 1 ? 0 : cfg.nirqsegs);
+	if (d->nirqsegs == 0)
 		goto skip_irqsegs;
 	d->irqsegs = malloc(sizeof(struct sys_info_seg) * d->nirqsegs);
 	if (d->irqsegs == NULL) {
@@ -125,8 +113,12 @@ DEVICE *dopen(char *devname)
 	/*
 	 * iosegs
 	 */
-	d->niosegs = (cfg.npiosegs == (uint8_t) - 1 ? -1 : cfg.npiosegs);
-	if (d->niosegs == -1)
+	d->nios = 0;
+	if (cfg.npiosegs != (uint8_t) - 1)
+		for (i = 0; i < cfg.npiosegs; i++)
+			d->nios += SYS_INFO_IOSEG(&cfg, i).len;
+	d->niosegs = (cfg.npiosegs == (uint8_t) - 1 ? 0 : cfg.npiosegs);
+	if (d->niosegs == 0)
 		goto skip_iosegs;
 	d->iosegs = malloc(sizeof(struct sys_info_seg) * d->niosegs);
 	if (d->iosegs == NULL) {
@@ -143,11 +135,11 @@ DEVICE *dopen(char *devname)
 	/*
 	 * memsegs
 	 */
-	d->nmemsegs = (cfg.nmemsegs == (uint8_t) - 1 ? -1 : cfg.nmemsegs);
-	if (d->nmemsegs == -1)
+	d->nmemsegs = (cfg.nmemsegs == (uint8_t) - 1 ? 0 : cfg.nmemsegs);
+	if (d->nmemsegs == 0)
 		goto skip_memsegs;
 	d->memsegs =
-		malloc(sizeof(struct sys_info_memseg) * d->info.nmemsegs);
+		malloc(sizeof(struct sys_info_memseg) * d->nmemsegs);
 	if (d->memsegs == NULL) {
 		perror("malloc");
 		free(d->iosegs);
@@ -257,8 +249,15 @@ int dwrcfg(DEVICE *d, unsigned off, uint8_t sz, uint64_t val)
 
 int dgetinfo(DEVICE * d, struct dinfo *i)
 {
+	i->nameid = d->nameid;
+	i->vendorid = d->vendorid;
 
-	*i = d->info;
+	i->ndevids = d->ndevids;
+	i->nirqs = d->nirqs;
+	i->npios = d->nios;
+	i->nmemsegs = d->nmemsegs;
+
+	i->devids = d->ndevids > 0 ? d->devids : NULL;
 	return 0;
 }
 

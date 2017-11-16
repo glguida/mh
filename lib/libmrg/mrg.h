@@ -100,6 +100,7 @@ typedef struct _DEVICE DEVICE;
 struct dinfo {
 	uint64_t nameid;
 	uint64_t vendorid;
+	uint64_t *devids;
 
 	unsigned ndevids;
 	unsigned nirqs;
