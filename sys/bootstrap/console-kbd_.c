@@ -236,9 +236,7 @@ console_kbd_init(uint64_t nameid)
 	struct device *tmp, *d = NULL;
 	struct dinfo info;
 
-	char name[13];
-	unsquozelen(nameid, 13, name);
-	kbdd = dopen(name);
+	kbdd = dopen(unsquoze_inline(nameid).str);
 	if (kbdd == NULL) {
 		printf("NO KBD_ FOUND");
 		return -ENOENT;

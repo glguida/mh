@@ -40,9 +40,7 @@ void devadd(struct sys_hwcreat_cfg *cfg)
 
 	ret = sys_hwcreat(cfg, 0111);
 	if (ret) {
-		char *name = unsquoze(cfg->nameid);
-		printf("Error adding device \"%s\": %d\n", name, ret);
-		free(name);
+		printf("Error adding device \"%s\": %d\n", unsquoze_inline(cfg->nameid).str, ret);
 		return;
 	}
 

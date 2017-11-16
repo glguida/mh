@@ -147,11 +147,7 @@ static void update_cursor(void)
 
 int console_vga_init(uint64_t nameid)
 {
-	char name[13];
-
-	unsquozelen(nameid, 13, name);
-
-	vgad = dopen(name);
+	vgad = dopen(unsquoze_inline(nameid).str);
 	if (vgad == NULL)
 		return -ENOENT;
 

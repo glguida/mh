@@ -767,7 +767,6 @@ acpi_pci_scan(void)
 {
 	int i, bus;
 	void *pciroot;
-	char pciname[13];
 	struct device *tmp, *d = NULL;
 	uint64_t pnpid = squoze("PNP0A03");
 
@@ -789,8 +788,7 @@ acpi_pci_scan(void)
 		return -1;
 	}
 
-	unsquozelen(d->nameid, 13, pciname);
-	printf("PCI root device found at %s\n", pciname);
+	printf("PCI root device found at %s\n", unsquoze_inline(d->nameid).str);
 
 	pciroot = platform_getdev(d->nameid);
 	return acpi_pci_scanbus(pciroot, 0, NULL);

@@ -28,7 +28,9 @@
 
 
 #include <sys/types.h>
+#include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
 
 /* Little fun. */
@@ -59,6 +61,32 @@ static char chdec(int s40)
 	return s40 == 033 ? '$' : s40 == 034 ? '.' : '_';
 }
 
+uint64_t squoze_append(uint64_t sqz, char *string)
+{
+	char *ptr = string, *max = ptr;
+
+	if (sqz == 0) {
+		max += 12;
+	} else {
+		/* unpad sqz to get last character at lower bits. */
+		while (!(sqz % 40)) {
+			max++;
+			sqz /= 40;
+		}
+	}
+
+	while ( (*ptr != '\0') && (ptr < max) ) {
+		sqz *= 40;
+		sqz += chenc(*ptr++);
+	}
+
+	/* Pad, to get first character at top bits */
+	while (ptr++ <  max)
+		sqz *= 40;
+
+	return sqz;
+}
+
 uint64_t squoze(char *string)
 {
 	char *ptr = string, *max = ptr + 12;
@@ -74,6 +102,18 @@ uint64_t squoze(char *string)
 		sqz *= 40;
 
 	return sqz;
+}
+
+uint64_t squoze_sprintf(uint64_t sqz, char *fmt, ...)
+{
+	va_list ap;
+	char str[13];
+
+	va_start(ap, fmt);
+	vsnprintf(str, 13, fmt, ap);
+	va_end(ap);
+
+	return squoze_append(sqz, str);
 }
 
 size_t unsquozelen(uint64_t enc, size_t len, char *string)

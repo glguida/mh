@@ -31,12 +31,27 @@
 #include <stdlib.h>
 #include <squoze.h>
 
+squoze_fixed_t unsquoze_inline(uint64_t enc)
+{
+	squoze_fixed_t r;
+
+	unsquozelen(enc, 13, r.str);
+	r.str[12] = '\0';
+	return r;
+}
+
+void unsquoze_fixed(uint64_t enc, squoze_fixed_t *fix)
+{
+	unsquozelen(enc, 13, fix->str);
+	fix->str[12] = '\0';
+}
+
 char *unsquoze(uint64_t enc)
 {
 	char *str = malloc(13);
-	
 	if (str == NULL)
 		return NULL;
+
 	unsquozelen(enc, 13, str);
 	str[12] = '\0';
 	return str;
