@@ -65,9 +65,19 @@ static unsigned _vga_found = 0;
 #define PCI_BRIDGE_MEMLIMIT(reg) (((reg) >> 16) & 0xFFFF)
 #define PCI_BRIDGE_PMEMBASE(reg) ((reg) & 0xFFFF)
 #define PCI_BRIDGE_PMEMLIMIT(reg) (((reg) >> 16) & 0xFFFF)
-#define PCI_BRIDGE_SECONDBUS(reg) (((reg) >> 8) & 0xff)
+#define PCI_BRIDGE_SECONDBUS(reg) (((reg) >> 8) & 0xFF)
+#define PCI_INTR_PIN(reg)         (((reg) >> 8) & 0xFF)
+#define PCI_CAP_PTR(reg)          ((reg) & 0xFF)
+#define PCI_CAP_TYPE(reg)         ((reg) & 0xFF)
+#define PCI_CAP_MSICTL(reg)       (((reg) >> 16) & 0xFFFF)
+#define PCI_CAP_NEXT(reg)         (((reg) >> 8) & 0xFF)
+
+#define PCI_CAP_TYPE_MSI 0x5
+#define PCI_MSICTL_MSIEN 0x1
+#define PCI_CMD_ID       (1 << 10)
 
 #define PCI_VENDOR_REG		0x00
+#define PCI_CMD_REG             0x04
 #define PCI_CLASS_REG 		0x08
 #define PCI_HDRTYPE_REG		0x0c
 #define PCI_BAR_REG(_x)		(0x10 + (_x) * 4)
@@ -77,7 +87,9 @@ static unsigned _vga_found = 0;
 #define PCI_BRIDGE_PMEM_REG	0x24
 #define PCI_BRIDGE_PMEM_BASEUPPER_REG 0x28
 #define PCI_BRIDGE_PMEM_LIMITUPPER_REG 0x2c
-#define PCI_BRIDGE_IOUPPER_REG   0x30
+#define PCI_BRIDGE_IOUPPER_REG  0x30
+#define PCI_CAP_REG             0x34
+#define PCI_INTR_REG            0x3c
 
 
 /*
@@ -420,6 +432,7 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	ACPI_STATUS as;
 	ACPI_PCI_ID acpi_pciid;
 	ACPI_DEVICE_INFO *info;
+	uint8_t pin;
 	uint64_t reg;
 	void *subdev;
 	char name[13];
@@ -516,20 +529,55 @@ acpi_pci_scandevice(void *root, int bus, int dev, int func, struct bridgeirqs *b
 	}
 
 	/* Populate IRQs */
-	if (brirqs) {
-		for (i = 0; i < 4; i++)
-			ints[i] = brirqs->ints[(dev + i) % 4];
-	} else {
-		platform_getpciintrs(root, dev, ints);
-	}
-	for (i = 0; i < 4; i++) {
-		if (ints[i] == 0)
-			continue;
+	AcpiOsReadPciConfiguration(&acpi_pciid, PCI_INTR_REG, &reg, 32);
+	if (PCI_INTR_PIN(reg) != 0 && PCI_INTR_PIN(reg) < 5) {
+		uint8_t pin = PCI_INTR_PIN(reg);
+		uint8_t nxtcap;
 
-		printf(",IRQ%d", ints[i]);
-		hwcreat.segs[hwcreat.nirqsegs].base = ints[i];
-		hwcreat.segs[hwcreat.nirqsegs].len = 1;
-		hwcreat.nirqsegs++;
+		if (brirqs) {
+			for (i = 0; i < 4; i++)
+				ints[i] = brirqs->ints[(dev + i) % 4];
+		} else {
+			platform_getpciintrs(root, dev, ints);
+		}
+
+		if (ints[pin - 1] != 0) {
+			printf(",IRQ%d", ints[pin - 1]);
+			hwcreat.segs[hwcreat.nirqsegs].base = ints[pin - 1];
+			hwcreat.segs[hwcreat.nirqsegs].len = 1;
+			hwcreat.nirqsegs++;
+		}
+
+#if 0
+		/* Enable Interrupt */
+		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_CMD_REG, &reg, 32);
+
+		printf("cmd = %lx", reg);
+		if (reg & PCI_CMD_ID) {
+			reg &= ~PCI_CMD_ID;
+			AcpiOsWritePciConfiguration(&acpi_pciid, PCI_CMD_REG, reg, 32);
+		}
+
+		/* Disable MSIs */
+		AcpiOsReadPciConfiguration(&acpi_pciid, PCI_CAP_REG, &reg, 32);
+		nxtcap = PCI_CAP_PTR(reg);
+
+		while(nxtcap) {
+			uint16_t msictl;
+
+			printf("nxtcap = %x,", nxtcap);
+			AcpiOsReadPciConfiguration(&acpi_pciid, nxtcap, &reg, 32);
+			if (PCI_CAP_TYPE(reg) == PCI_CAP_TYPE_MSI) {
+				msictl = PCI_CAP_MSICTL(reg);
+				printf("MSI:%d", msictl & 1);
+				reg &= ~PCI_MSICTL_MSIEN;
+				AcpiOsWritePciConfiguration(&acpi_pciid, nxtcap, reg, 32);
+			}
+
+			nxtcap = PCI_CAP_NEXT(reg);
+		}
+#endif
+
 	}
 
 	AcpiOsReadPciConfiguration(&acpi_pciid, PCI_HDRTYPE_REG, &reg, 32);
@@ -808,7 +856,6 @@ static ACPI_STATUS
 __prt_resource_irq(ACPI_RESOURCE *res, void *ctx)
 {
 	struct prtrsctx *prtrs = (struct prtrsctx *)ctx;
-	struct sys_hwcreat_cfg *cfg = (struct sys_hwcreat_cfg *)ctx;
 
 	switch (res->Type) {
 	case ACPI_RESOURCE_TYPE_IRQ: {
