@@ -211,8 +211,13 @@ void gsi_init(void)
 	gsis = heap_alloc(sizeof(struct gsi_desc) * irqs);
 
 	/* Setup identity map, edge triggered (this is ISA) */
-	for (i = 0; i < gsis_no; i++) {
+	for (i = 0; i < 16; i++) {
 		gsis[i].mode = EDGE;
+		gsis[i].irq = i;
+	}
+
+	for (; i < gsis_no; i++) {
+		gsis[i].mode = LVLLO;
 		gsis[i].irq = i;
 	}
 }
