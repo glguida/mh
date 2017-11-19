@@ -416,18 +416,20 @@ static int ahci_port_get_blkinfo(struct blk_ahci *ahci, unsigned i, struct blkin
 		return ret;
 
 	ahci->hw_ports[i].ci |= (1 << j);
-
 	evtwait(ahci->evt);
 	evtclear(ahci->evt);
 
 	ahci_port_unset_prdt(ahci, i, j, ident, 512);
 
 	if (ahci_port_error(ahci, i)) {
+		ahci->hw_ports[i].is = -1;
+		assert(deoi(ahci->d, ahci->irq) == 0);
 		/* No point in recovering. Not using this port. */
 		return -EIO;
 	}
 	ahci->hw_ports[i].is = -1;
 	assert(deoi(ahci->d, ahci->irq) == 0);
+
 
 	ahci_port_ata_get_blkinfo(ahci, i, (uint16_t *)ident, bi);
 	return 0;
@@ -443,11 +445,11 @@ static void ahci_port_init(struct blk_ahci *ahci, unsigned i)
 
 	ahci->ports[i].lastci = 0;
 
-	p->cmd &= ~PX_CMD_FRE;
-	while (p->cmd & PX_CMD_FR) lwt_pause();
-
 	p->cmd &= ~PX_CMD_ST;
 	while (p->cmd & PX_CMD_CR) lwt_pause();
+
+	p->cmd &= ~PX_CMD_FRE;
+	while (p->cmd & PX_CMD_FR) lwt_pause();
 
 	/* Command List */
 	memset(blk_ahci_clb(ahci, i), 0, 1024);
@@ -458,24 +460,23 @@ static void ahci_port_init(struct blk_ahci *ahci, unsigned i)
 	p->fb = (uint32_t) blk_ahci_fb_iova(ahci, i);
 	p->fbu = (uint32_t) (blk_ahci_fb_iova(ahci, i) >> 32);
 
+	p->ie = PORT_INT_DHR | PORT_INT_PS | PORT_INT_DS
+		| PORT_INT_SDB | PORT_INT_UF | PORT_INT_DP;
+
 	p->cmd |= PX_CMD_FRE;
+
+	while (!(p->cmd & PX_CMD_FR)) lwt_pause();
+
 	p->cmd |= PX_CMD_ST;
 
-       	p->ie = PORT_INT_DHR | PORT_INT_PS | PORT_INT_DS
-       		| PORT_INT_SDB | PORT_INT_UF | PORT_INT_DP;
+	while (!(p->cmd & PX_CMD_CR)) lwt_pause();
+
 
 	AHCI_PORT_LOG(ahci, i, "RAM structures initialised: CMDL %p [%lx] FB %p [%lx] CFIS: %p [%lx] PRDT %p",
 	       blk_ahci_clb(ahci, i), (unsigned long) blk_ahci_clb_iova(ahci, i),
 	       blk_ahci_fb(ahci, i), (unsigned long) blk_ahci_fb_iova(ahci, i),
 	       blk_ahci_cfis(ahci, i, 0), (unsigned long) blk_ahci_ctba_iova(ahci, i, 0),
 	       blk_ahci_prdtl(ahci, i, 0));
-
-	/* AHCI interrupt still not handled by AST. */
-	evtwait(ahci->evt);
-	evtclear(ahci->evt);
-	p->is = -1;
-	assert(deoi(ahci->d, ahci->irq) == 0);
-	p->ie = -1;
 
 	/* Initialisation done. Get IDENTIFY data. */
 	ret = ahci_port_get_blkinfo(ahci, i, &blkinfo);
@@ -507,30 +508,30 @@ err:
 static int ahci_port_present(struct blk_ahci *ahci, unsigned i)
 {
 	volatile struct blk_ahci_hw_port *p = ahci->hw_ports + i;
-
-	uint32_t ssts = p->ssts;
+	uint32_t ssts  = p->ssts;
 	unsigned det = bitfld_get(ssts, PX_SSTS_DET);
 	unsigned ipm = bitfld_get(ssts, PX_SSTS_IPM);
 	unsigned spd = bitfld_get(ssts, PX_SSTS_SPD);
 
 	AHCI_PORT_LOG(ahci, i, "status: %s %s %s",
-	       det == PX_SSTS_DET_P ? "PRESENT" :
-	       det == PX_SSTS_DET_D ? "NO-PHY" :
-	       det == PX_SSTS_DET_E ? "EMPTY" : "UNKNOWN",
-	       spd == PX_SSTS_SPD_G1 ? "GEN1" :
-	       spd == PX_SSTS_SPD_G2 ? "GEN2" :
-	       spd == PX_SSTS_SPD_G3 ? "GEN3" : "",
-	       ipm == PX_SSTS_IPM_A ? "ACTIVE" :
-	       ipm == PX_SSTS_IPM_P ? "PARTIAL" :
-	       ipm == PX_SSTS_IPM_S ? "SLUMBER" :
-	       ipm == PX_SSTS_IPM_D ? "DEVSLEEP" : "");
+		      det == PX_SSTS_DET_P ? "PRESENT" :
+		      det == PX_SSTS_DET_D ? "NO-PHY" :
+		      det == PX_SSTS_DET_E ? "EMPTY" : "UNKNOWN",
+		      spd == PX_SSTS_SPD_G1 ? "GEN1" :
+		      spd == PX_SSTS_SPD_G2 ? "GEN2" :
+		      spd == PX_SSTS_SPD_G3 ? "GEN3" : "",
+		      ipm == PX_SSTS_IPM_A ? "ACTIVE" :
+		      ipm == PX_SSTS_IPM_P ? "PARTIAL" :
+		      ipm == PX_SSTS_IPM_S ? "SLUMBER" :
+		      ipm == PX_SSTS_IPM_D ? "DEVSLEEP" : "");
 
-	if (bitfld_get(ssts, PX_SSTS_DET) != PX_SSTS_DET_P)
+	if (det != PX_SSTS_DET_P)
 		return 0;
 
-	if (bitfld_get(ssts, PX_SSTS_IPM) != PX_SSTS_IPM_A)
+	if (ipm != PX_SSTS_IPM_A)
 		return 0;
 
+	p->serr = -1;
 	return 1;
 }
 
@@ -552,17 +553,13 @@ static void __ahci_intr(void *arg)
 	deoi(ahci->d, ahci->irq);
 }
 
-static void ahci_reset(struct blk_ahci *ahci)
+static void ahci_init(struct blk_ahci *ahci)
 {
-	/* Reset */
-	ahci->hw_hba->ghc |= GHC_AE | GHC_HR;
-
-	/* Wait for reset to happen */
-  	while (ahci->hw_hba->ghc & GHC_HR) lwt_pause();
+	/* Enable AHCI */
+	ahci->hw_hba->ghc |= GHC_AE;
 
 	/* Enable interrupts */
     	ahci->hw_hba->ghc |= GHC_IE;
-
 }
 
 static void ahci_print_info(struct blk_ahci *ahci)
@@ -650,6 +647,7 @@ int blkdrv_ahci_probe(uint64_t nameid, uint64_t basename)
 	if (ret) {
 		goto err;
 	}
+	deoi(d, irq);
 
 	hba = (volatile struct blk_ahci_hw_hba *)diomap(d, base, len);
 	ports = (volatile struct blk_ahci_hw_port *)((void *)hba + 0x100);
@@ -691,9 +689,10 @@ int blkdrv_ahci_probe(uint64_t nameid, uint64_t basename)
 	ahci->hw_ports = ports;
 	ahci->mem = (void *)ahcimem_va;
 	ahci->mem_iova = ahcimem_iova;
+	TAILQ_INIT(&ahci->ioq);
 
 	ahci_print_info(ahci);
-	ahci_reset(ahci);
+	ahci_init(ahci);
 
 	np = 1 + bitfld_get(ahci->hw_hba->cap, CAP_NP);
 	pi = ahci->ports_impl;
@@ -705,19 +704,6 @@ int blkdrv_ahci_probe(uint64_t nameid, uint64_t basename)
 
 	/* Start async device via intr. */
 	evtast(ahci->evt, __ahci_intr, (void *)ahci);
-#if 0
-	int r = 0x55;
-	char data[1024];
-	int opevt = evtalloc();
-	memset(data, 0, 1024);
-
-	ahci_port_blkrd((void *)ahci, data, 1024, 0, 1, opevt, &r);
-
-	evtwait(opevt);
-	evtclear(opevt);
-	printf("data: %d, %s", r, (char *)data);
-#endif
-
 	ret = 0;
 err:
 	if (ret) {
