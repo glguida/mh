@@ -72,6 +72,7 @@ int do_child()
 }
 
 #include <mrg/blk.h>
+#include <mrg/blk/part.h>
 
 int main()
 {
@@ -112,7 +113,7 @@ int main()
 		struct device *d;
 		uint64_t cur;
 		uint64_t nameid = squoze("PCI01.06.01");
-		uint64_t base = squoze("da");
+		uint64_t base = squoze("ahci");
 
 		SLIST_FOREACH(d, &devices, list) {
 			for (i = 0; i < DEVICEIDS; i++) {
@@ -120,6 +121,8 @@ int main()
 				  blkdrv_ahci_probe(d->nameid, base);
 			}
 		}
+		for (cur = blk_iter(0); cur; cur = blk_iter(cur))
+			part_scan(cur);
 
 		for (cur = blk_iter(0); cur; cur = blk_iter(cur)) {
 			struct blkdev *blk;

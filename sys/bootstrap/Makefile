@@ -6,7 +6,7 @@ PROGNAME= bootstrap
 PROGDIR=sys
 NOINST=yes
 
-LDADD+= -lsquoze -lacpi -lvtty -lahci
+LDADD+= -lsquoze -lacpi -lvtty -lahci -lpart
 
 #CFLAGS+= -DCONSOLE_DEBUG_BOOT
 
