@@ -87,6 +87,7 @@ void evtwait(int evt);
 void evtclear(int evt);
 void evtast(int evt, void (*func) (void *), void *);
 void evtset(int evt);
+void evtfree(int evt);
 void __evtset(int evt);
 
 

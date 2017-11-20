@@ -158,6 +158,12 @@ int main()
 			evtwait(evt4);
 			evtwait(evt5);
 			blk_close(blk);
+
+			evtfree(evt);
+			evtfree(evt2);
+			evtfree(evt3);
+			evtfree(evt4);
+			evtfree(evt5);
 		}
 	} while(0);
 

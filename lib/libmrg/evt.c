@@ -33,6 +33,18 @@ static void __evtint_handler(int reqint, void *arg)
 	__evtset(reqevt);
 }
 
+void evtfree(int evt)
+{
+	int i, j;
+
+	i = evt/64;
+	j = evt%64;
+
+	preempt_disable();
+	alloc_evts[i] &= ~(1 << j);
+	preempt_enable();
+}
+
 int evtalloc(void)
 {
 	int i, evt = -1;;
