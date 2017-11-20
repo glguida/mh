@@ -4,19 +4,6 @@
 #include <mrg.h>
 #include <mrg/blk.h>
 
-struct blkdisk {
-	int invalid;
-	unsigned ref;
-	uint64_t nameid;
-	uint64_t blkdevid;
-	struct blkinfo info;
-
-	const struct blkops *ops;
-	void *opq;
-
-	rb_node_t rb_node;
-};
-
 static int blk_compare_nodes(void *ctx, const void *n1, const void *n2)
 {
 	const struct blkdisk *blk1 = (const struct blkdisk *)n1;
@@ -100,7 +87,7 @@ blk_iter(uint64_t cur)
 	struct blkdisk *blk;
 
 	if (!cur) {
-		blk = (struct blkdisk *)rb_tree_iterate(&blk_rbtree, NULL, RB_DIR_RIGHT);
+		blk = (struct blkdisk *)rb_tree_iterate(&blk_rbtree, NULL, RB_DIR_LEFT);
 	} else {
 		blk = (struct blkdisk *)rb_tree_find_node(&blk_rbtree, (void *) &cur);
 		if (blk != NULL)

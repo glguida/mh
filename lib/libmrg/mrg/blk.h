@@ -1,6 +1,8 @@
 #ifndef __blk_h
 #define __blk_h
 
+#include <sys/rbtree.h>
+
 struct blkinfo {
 	size_t blksz;
 	uint64_t blkno;
@@ -11,7 +13,18 @@ struct blkops {
 	int      (*blkwr)(void *opq, uint64_t blkid, size_t nblks, void *data, size_t sz, int evt, int *res);
 };
 
-struct blkdisk;
+struct blkdisk {
+	int invalid;
+	unsigned ref;
+	uint64_t nameid;
+	uint64_t blkdevid;
+	struct blkinfo info;
+
+	const struct blkops *ops;
+	void *opq;
+
+	rb_node_t rb_node;
+};
 
 void blk_add(uint64_t disk, uint64_t dev, struct blkinfo *info,  const struct blkops *ops,  void *opsopq);
 void blk_del(uint64_t disk);
