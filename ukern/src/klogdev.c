@@ -41,7 +41,7 @@
  * Kernel Log Ring Buffer.
  */
 
-#define KLOGBUFSZ (16*1024)
+#define KLOGBUFSZ (64*1024)
 static lock_t kbuflock;
 static uint8_t klogbuf[KLOGBUFSZ];
 static volatile unsigned _c = 0;
