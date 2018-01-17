@@ -31,7 +31,7 @@
 #include <uk/param.h>
 #include <uk/logio.h>
 #include <machine/uk/pmap.h>
-#include <machine/uk/cpu.h>
+#include <uk/cpu.h>
 #include <machine/uk/i386.h>
 #include <uk/pfndb.h>
 #include <uk/fixmems.h>
@@ -41,8 +41,6 @@
 #include <uk/kern.h>
 
 char *_boot_cmdline = NULL;
-
-void _load_segs(unsigned int, struct tss *, struct cpu_info **cpu);
 
 struct e820e {
 	uint64_t addr;
@@ -68,14 +66,35 @@ void serial_putc(int c)
 	outb(SERIAL_PORT, c);
 }
 
+void _boot_putc_init(void)
+{
+	b800_putcinit();
 #ifdef SERIAL_PUTC
-__decl_alias(_boot_putcinit, serial_init);
-__decl_alias(_boot_putc, serial_putc);
-__decl_alias(_boot_sysputc, serial_putc);
+	serial_init();
 #endif
+}
+
+void _boot_putc(int ch)
+{
+	b800_putc(ch);
+#ifdef SERIAL_PUTC
+	serial_putc(ch);
+#endif
+}
+
+void _boot_sysputc(int ch)
+{
+	b800_sysputc(ch);
+#ifdef SERIAL_PUTC
+	serial_putc(ch);
+#endif
+}
 
 void platform_init(void)
 {
+#ifdef SERIAL_PUTC
+	serial_init();
+#endif
 	pic_off();
 	acpi_findrootptr();
 	acpi_init();
@@ -153,15 +172,12 @@ void sysboot(void)
 	vmap_init();
 	vmap_free(KVA_SVMAP, VMAPSIZE);
 
+	/* Now that we have basic kernel memory allocation and mapping
+	   system, we can initialise platform device drivers (Interrupt Controllers, Timers). */
 	platform_init();
-	__insn_barrier();	/* LAPIC now mapped */
 
-	/* Finish up initialization quickly.
-	   We can now setup per-cpu data. */
-	cpuid = cpu_number_from_lapic();
-	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss,
-		   &cpuinfo_get(cpuid)->self);
-	__insn_barrier();	/* FS: now valid */
+	/* Now that basic platform is initialised, we can setup the CPU infrastructure. */
+	cpu_enter();
 
 	kern_boot();
 }
@@ -171,14 +187,10 @@ void sysboot_ap(void)
 	unsigned cpuid;
 
 	pmap_boot();
-	__insn_barrier();	/* LAPIC now mapped */
-	/* Enable LAPIC */
-	lapic_configure();
-	cpuid = cpu_number_from_lapic();
-	_load_segs(cpuid, &cpuinfo_get(cpuid)->tss,
-		   &cpuinfo_get(cpuid)->self);
-	__insn_barrier();	/* FS: now valid */
-	printf("CPU %d on.\n", cpu_number());
+
+	/* Now that we are using the full kernel pmap, we can access
+	   platform drivers safely */
+	cpu_enter();
 
 	kern_bootap();
 }

@@ -40,8 +40,8 @@
 #include <uk/heap.h>
 #include <uk/vmap.h>
 #include <uk/structs.h>
+#include <uk/cpu.h>
 #include <machine/uk/pmap.h>
-#include <machine/uk/cpu.h>
 #include <machine/uk/machdep.h>
 #include <machine/uk/platform.h>
 #include <machine/uk/pmap.h>
@@ -76,7 +76,10 @@ void __bad_thing(int user, const char *format, ...)
 
 	extern void _boot_putc(int);
 	_setputcfn(_boot_putc, NULL);
-	printf("(bad thing at CPU %d): ", cpu_number());
+	if (user)
+		printf("USRKILL: ");
+	else
+		printf("PANIC at CPU#%d: ", cpu_number());
 	va_start(ap, format);
 	vprintf(format, ap);
 	va_end(ap);
@@ -533,7 +536,7 @@ __dead void __exit(int status)
 	struct thread *child, *tmp;
 
 	if (th->parent == NULL) {
-		panic("Killed System Process %d\nAye!\n", th->pid);
+		panic("Killed System Process %d\n", th->pid);
 	}
 
 	/* In the future, remove shared mapping mechanisms before
@@ -1261,7 +1264,7 @@ void kern_boot(void)
 	current_cpu()->idle_thread = th;
 	/* We are idle thread now. */
 
-	cpu_wakeup_aps();
+	cpu_wakeall();
 
 	/* Create init */
 	th = thnew(__initstart);
@@ -1281,6 +1284,8 @@ void kern_boot(void)
 void kern_bootap(void)
 {
 	struct thread *th;
+
+	printf("CPU %02d on.\n", cpu_number());
 
 	/* initialise idle thread */
 	th = structs_alloc(&threads);
